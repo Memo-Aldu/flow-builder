@@ -1,7 +1,8 @@
 import os
 
 from sqlmodel import SQLModel
-from sqlalchemy.orm import sessionmaker
+from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 
@@ -25,12 +26,12 @@ DATABASE_URL = f"postgresql+asyncpg://{get_db_user()}:{get_db_password()}@{get_d
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)
 
 # Session factory
-async_session = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+async_session = async_sessionmaker(
+    engine, expire_on_commit=False
 )
 
 # Dependency to get the session
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         yield session
 
@@ -38,7 +39,7 @@ async def get_session() -> AsyncSession:
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        
+      
         
 
 

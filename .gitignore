@@ -51,3 +51,4 @@ env/
 Thumbs.db
 .idea/
 *.iml
+.vscode/
