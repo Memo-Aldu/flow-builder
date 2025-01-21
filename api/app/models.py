@@ -1,50 +1,46 @@
+import enum
 from typing import Optional, List, Dict, ClassVar
 from datetime import datetime
-import enum
 from uuid import UUID, uuid4
-from sqlmodel import (
-    SQLModel,
-    Field,
-    Relationship,
-    Column,
-    JSON
-)
+from sqlmodel import SQLModel, Field, Relationship, Column, JSON
 
 
 class User(SQLModel, table=True):
     __tablename__: ClassVar[str] = "user"
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
-    clerk_id: str = Field(index=True, unique=True)  # Clerk's stable user ID
+    clerk_id: str = Field(index=True, unique=True)
     email: Optional[str] = None
 
     # Relationships
     workflows: List["Workflow"] = Relationship(back_populates="user")
     executions: List["WorkflowExecution"] = Relationship(back_populates="user")
 
+
 #
-# 1. WORKFLOW
+# WORKFLOW
 #
+
 
 class WorkflowStatus(str, enum.Enum):
     DRAFT = "draft"
     ACTIVE = "active"
     DISABLED = "disabled"
 
+
 class WorkflowBase(SQLModel):
-    user_id: UUID  = Field(foreign_key='user.id', index=True)
     name: str
     description: Optional[str] = None
     # Store the blueprint of the workflow as JSON so it is queryable
     definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
-    
+
     # Compiled or structured plan
     execution_plan: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
 
     cron: Optional[str] = None
     status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT)
-    
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
     credits_cost: Optional[int] = None
 
@@ -53,9 +49,12 @@ class WorkflowBase(SQLModel):
     last_run_at: Optional[datetime] = None
     next_run_at: Optional[datetime] = None
 
+
 class Workflow(WorkflowBase, table=True):
-    __tablename__: ClassVar[str]  = "workflow"
+    __tablename__: ClassVar[str] = "workflow"
+
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
 
     user: Optional["User"] = Relationship(back_populates="workflows")
     executions: List["WorkflowExecution"] = Relationship(back_populates="workflow")
@@ -64,14 +63,19 @@ class Workflow(WorkflowBase, table=True):
 # Schemas for creation, reading, updating
 class WorkflowCreate(WorkflowBase):
     """Fields allowed/required when creating a workflow."""
+
     pass
+
 
 class WorkflowRead(WorkflowBase):
     """Fields returned when reading a workflow."""
+
     id: UUID
+
 
 class WorkflowUpdate(SQLModel):
     """Fields allowed when updating an existing workflow."""
+
     name: Optional[str] = None
     description: Optional[str] = None
     definition: Optional[Dict] = None
@@ -86,13 +90,15 @@ class WorkflowUpdate(SQLModel):
 
 
 #
-# 2. WORKFLOW EXECUTION
+# WORKFLOW EXECUTION
 #
+
 
 class ExecutionTrigger(str, enum.Enum):
     SCHEDULED = "scheduled"
     MANUAL = "manual"
     API = "api"
+
 
 class ExecutionStatus(str, enum.Enum):
     PENDING = "pending"
@@ -101,22 +107,25 @@ class ExecutionStatus(str, enum.Enum):
     FAILED = "failed"
     CANCELED = "canceled"
 
+
 class WorkflowExecutionBase(SQLModel):
     workflow_id: UUID = Field(foreign_key="workflow.id", index=True)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
 
     trigger: ExecutionTrigger = Field(default=ExecutionTrigger.MANUAL)
     status: ExecutionStatus = Field(default=ExecutionStatus.PENDING)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
     credits_consumed: Optional[int] = None
 
+
 class WorkflowExecution(WorkflowExecutionBase, table=True):
     __tablename__: ClassVar[str] = "workflow_execution"
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
 
     workflow: Optional["Workflow"] = Relationship(back_populates="executions")
     user: Optional["User"] = Relationship(back_populates="executions")
@@ -126,13 +135,23 @@ class WorkflowExecution(WorkflowExecutionBase, table=True):
 class WorkflowExecutionCreate(WorkflowExecutionBase):
     pass
 
+
 class WorkflowExecutionRead(WorkflowExecutionBase):
     id: UUID
 
 
+class WorkflowExecutionUpdate(SQLModel):
+    trigger: Optional[ExecutionTrigger] = None
+    status: Optional[ExecutionStatus] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    credits_consumed: Optional[int] = None
+
+
 #
-# 3. EXECUTION PHASE (steps/tasks within an execution)
+# EXECUTION PHASE (steps/tasks within an execution)
 #
+
 
 class ExecutionPhaseStatus(str, enum.Enum):
     PENDING = "pending"
@@ -140,9 +159,9 @@ class ExecutionPhaseStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class ExecutionPhaseBase(SQLModel):
-    user_id: UUID = Field(foreign_key='user.id', index=True)
-    workflow_execution_id: UUID = Field(foreign_key='workflow_execution.id', index=True)
+    workflow_execution_id: UUID = Field(foreign_key="workflow_execution.id", index=True)
 
     # E.g: phase #1, #2, #3 in the pipeline
     number: int
@@ -159,24 +178,29 @@ class ExecutionPhaseBase(SQLModel):
 
     credits_consumed: Optional[int] = None
 
+
 class ExecutionPhase(ExecutionPhaseBase, table=True):
     __tablename__: ClassVar[str] = "execution_phase"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
 
     user: Optional["User"] = Relationship()
     execution: Optional["WorkflowExecution"] = Relationship(back_populates="phases")
     logs: List["ExecutionLog"] = Relationship(back_populates="phase")
 
+
 class ExecutionPhaseCreate(ExecutionPhaseBase):
     pass
+
 
 class ExecutionPhaseRead(ExecutionPhaseBase):
     id: UUID
 
 
 #
-# 4. EXECUTION LOGS (logging messages within each phase)
+# EXECUTION LOGS (logging messages within each phase)
 #
+
 
 class LogLevel(str, enum.Enum):
     DEBUG = "debug"
@@ -184,56 +208,70 @@ class LogLevel(str, enum.Enum):
     WARNING = "warning"
     ERROR = "error"
 
+
 class ExecutionLogBase(SQLModel):
-    execution_phase_id: UUID = Field(foreign_key='execution_phase.id', index=True)
+    execution_phase_id: UUID = Field(foreign_key="execution_phase.id", index=True)
     log_level: LogLevel = Field(default=LogLevel.INFO)
     message: str
 
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=datetime.now)
+
 
 class ExecutionLog(ExecutionLogBase, table=True):
     __tablename__: ClassVar[str] = "execution_log"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    
+
     phase: Optional["ExecutionPhase"] = Relationship(back_populates="logs")
+
 
 class ExecutionLogCreate(ExecutionLogBase):
     pass
+
 
 class ExecutionLogRead(ExecutionLogBase):
     id: UUID
 
 
 #
-# 5. USER BALANCE
+# USER BALANCE
 #
 
+
 class UserBalanceBase(SQLModel):
-    user_id: UUID = Field(foreign_key='user.id', index=True)
     credits: int = 0
+
 
 class UserBalance(UserBalanceBase, table=True):
     __tablename__: ClassVar[str] = "user_balance"
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    user_id: UUID = Field(primary_key=True, foreign_key="user.id")
+    updated_at: datetime = Field(default_factory=datetime.now)
 
 
 #
-# 6. CREDENTIALS (e.g., for storing tokens securely)
+# CREDENTIALS (e.g., for storing tokens securely)
 #
+
 
 class CredentialBase(SQLModel):
-    user_id: UUID = Field(foreign_key='user.id', index=True)
     name: str
-    # Secret Manager ID or encrypted value
     value: str
+
 
 class Credential(CredentialBase, table=True):
     __tablename__: ClassVar[str] = "credential"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+
 
 class CredentialCreate(CredentialBase):
     pass
+
+
+class CredentialUpdate(SQLModel):
+    name: Optional[str] = None
+    value: Optional[str] = None
+
 
 class CredentialRead(CredentialBase):
     id: UUID
@@ -241,23 +279,27 @@ class CredentialRead(CredentialBase):
 
 
 #
-# 7. USER PURCHASES (tracking top-ups or plan purchases)
+# USER PURCHASES (tracking top-ups or plan purchases)
 #
 
+
 class UserPurchaseBase(SQLModel):
-    user_id: UUID = Field(foreign_key="user.id", index=True, primary_key=True)
     stripe_id: Optional[str] = None
     description: Optional[str] = None
     amount: int
     currency: str = "USD"
-    date: datetime = Field(default_factory=datetime.utcnow)
+    date: datetime = Field(default_factory=datetime.now)
+
 
 class UserPurchase(UserPurchaseBase, table=True):
-    __tablename__: ClassVar[str] = 'user_purchase'
+    __tablename__: ClassVar[str] = "user_purchase"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    user_id: UUID = Field(foreign_key="user.id", index=True, primary_key=True)
+
 
 class UserPurchaseCreate(UserPurchaseBase):
     pass
+
 
 class UserPurchaseRead(UserPurchaseBase):
     id: UUID
