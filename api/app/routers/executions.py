@@ -1,7 +1,11 @@
+import os
+import json
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from boto3 import client as boto3_client
 
 from app.models import WorkflowExecution
 from app.db import get_session
@@ -21,7 +25,20 @@ from app.models import (
     WorkflowExecutionUpdate,
 )
 
+WORKFLOW_QUEUE_URL = os.getenv(
+    "WORKFLOW_QUEUE_URL",
+    "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/flow-builder-queue",
+)
+WORKFLOW_QUEUE_HOST = os.getenv(
+    "WORKFLOW_QUEUE_HOST", "http://sqs.us-east-1.localhost.localstack.cloud:4566"
+)
+
 router = APIRouter(tags=["Executions"])
+sqs_client = boto3_client(
+    "sqs",
+    endpoint_url=WORKFLOW_QUEUE_HOST,
+    region_name="us-east-1",
+)
 
 
 @router.get("", response_model=List[WorkflowExecutionRead])
@@ -49,6 +66,25 @@ async def create_execution_endpoint(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     new_execution = await create_execution(session, local_user.id, exec_in)
+
+    message_body = {
+        "execution_id": str(new_execution.id),
+        "workflow_id": str(new_execution.workflow_id),
+        "user_id": str(new_execution.user_id),
+        "trigger": new_execution.trigger,
+        "status": new_execution.status,
+        "queued_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        sqs_client.send_message(
+            QueueUrl=WORKFLOW_QUEUE_URL,
+            MessageBody=json.dumps(message_body),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail="Failed to send message to SQS: " + str(e)
+        )
     return new_execution
 
 
