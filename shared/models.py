@@ -1,7 +1,7 @@
 import enum
-from typing import Optional, List, Dict, ClassVar
-from datetime import datetime
 from uuid import UUID, uuid4
+from datetime import datetime
+from typing import Optional, List, Dict, ClassVar
 from sqlmodel import SQLModel, Field, Relationship, Column, JSON
 
 

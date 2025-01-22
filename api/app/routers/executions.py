@@ -1,44 +1,40 @@
 import os
 import json
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
 from uuid import UUID
+from typing import List
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from boto3 import client as boto3_client
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.models import WorkflowExecution
-from app.db import get_session
-from app.auth import verify_clerk_token
-from app.crud.user_crud import get_local_user_by_clerk_id
-from app.crud.workflow_crud import get_workflow_by_id_and_user
-from app.crud.execution_crud import (
+from api.app.auth import verify_clerk_token
+from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.crud.execution_crud import (
     create_execution,
-    get_execution_by_id_and_user,
     list_executions_for_user,
-    update_execution,
     delete_execution,
 )
-from app.models import (
+from shared.crud.workflow_crud import get_workflow_by_id_and_user
+from shared.db import get_session
+from shared.sqs import get_sqs_client
+from shared.crud.execution_crud import (
+    get_execution_by_id_and_user,
+    update_execution,
+)
+from shared.models import (
+    WorkflowExecution,
     WorkflowExecutionCreate,
     WorkflowExecutionRead,
     WorkflowExecutionUpdate,
 )
 
+
 WORKFLOW_QUEUE_URL = os.getenv(
     "WORKFLOW_QUEUE_URL",
     "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/flow-builder-queue",
 )
-WORKFLOW_QUEUE_HOST = os.getenv(
-    "WORKFLOW_QUEUE_HOST", "http://sqs.us-east-1.localhost.localstack.cloud:4566"
-)
 
 router = APIRouter(tags=["Executions"])
-sqs_client = boto3_client(
-    "sqs",
-    endpoint_url=WORKFLOW_QUEUE_HOST,
-    region_name="us-east-1",
-)
+sqs_client = get_sqs_client()
 
 
 @router.get("", response_model=List[WorkflowExecutionRead])

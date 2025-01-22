@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.auth import verify_clerk_token
-from app.db import get_session
-from app.models import User
-from app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.auth import verify_clerk_token
+from api.app.crud.user_crud import get_local_user_by_clerk_id
+from shared.models import User
+from shared.db import get_session
+
 
 router = APIRouter(tags=["Users"])
 

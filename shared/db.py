@@ -2,8 +2,8 @@ import os
 
 from sqlmodel import SQLModel
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 
 def get_db_password() -> str:

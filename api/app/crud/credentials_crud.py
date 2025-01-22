@@ -1,9 +1,6 @@
-from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
-from app.models import Credential, CredentialCreate, CredentialUpdate
+from shared.models import Credential, CredentialCreate, CredentialUpdate
 
 
 async def create_credential(
@@ -14,24 +11,6 @@ async def create_credential(
     await session.commit()
     await session.refresh(new_credential)
     return new_credential
-
-
-async def get_credential_by_id_and_user(
-    session: AsyncSession, credential_id: UUID, user_id: UUID
-) -> Optional[Credential]:
-    stmt = select(Credential).where(
-        Credential.id == credential_id, Credential.user_id == user_id
-    )
-    result = await session.execute(stmt)
-    return result.scalars().first()
-
-
-async def list_credentials_for_user(
-    session: AsyncSession, user_id: UUID
-) -> List[Credential]:
-    stmt = select(Credential).where(Credential.user_id == user_id)
-    result = await session.execute(stmt)
-    return [credential for credential in result.scalars().all()]
 
 
 async def update_credential(

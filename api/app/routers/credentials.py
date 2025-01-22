@@ -1,20 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
-from app.models import Credential
-from app.db import get_session
-from app.auth import verify_clerk_token
-from app.crud.user_crud import get_local_user_by_clerk_id
-from app.crud.credentials_crud import (
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from api.app.auth import verify_clerk_token
+from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.crud.credentials_crud import (
     create_credential,
-    get_credential_by_id_and_user,
-    list_credentials_for_user,
     update_credential,
     delete_credential,
 )
-from app.models import CredentialRead, CredentialCreate, CredentialUpdate
+from shared.db import get_session
+from shared.crud.credentials_crud import (
+    get_credential_by_id_and_user,
+    list_credentials_for_user,
+)
+from shared.models import CredentialRead, CredentialCreate, CredentialUpdate, Credential
+
 
 router = APIRouter(tags=["Credentials"])
 
