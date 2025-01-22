@@ -1,18 +1,18 @@
+# infra/docker-compose.yml
 version: '3.8'
 
 networks:
-    main-network:
-        external: false
-        name: main-network
+  main-network:
+    name: main-network
 
 services:
   postgres:
     image: postgres:14
     container_name: local_postgres
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: flow-builder
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5433:5432"
     volumes:
@@ -21,21 +21,48 @@ services:
       - main-network
     command: ["postgres", "-c", "listen_addresses=*"]
 
-
   localstack:
     image: localstack/localstack
     container_name: localstack
     environment:
-      - SERVICES=sqs,secretsmanager,s3
-      - EDGE_PORT=4566
-      - AWS_DEFAULT_REGION=us-east-1
+      SERVICES: sqs,secretsmanager,s3
+      EDGE_PORT: 4566
+      AWS_DEFAULT_REGION: ${AWS_REGION}
     ports:
       - "4566:4566"
     volumes:
       - localstack_data:/var/lib/localstack
+      - ./localstack-setup.sh:/etc/localstack/init/ready.d/script.sh
     networks:
-        - main-network
+      - main-network
 
+  api:
+    container_name: api_service
+    build:
+      context: ..
+      dockerfile: ./api/Dockerfile
+    env_file:
+      - ../.env
+    networks:
+      - main-network
+    depends_on:
+      - postgres
+      - localstack
+    ports:
+      - "8000:8000"
+
+  worker:
+    container_name: worker_service
+    build:
+      context: ..
+      dockerfile: ./worker/Dockerfile
+    env_file:
+      - ../.env
+    networks:
+      - main-network
+    depends_on:
+      - postgres
+      - localstack
 
 volumes:
   postgres_data:
