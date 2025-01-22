@@ -1,6 +1,6 @@
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import User
+from shared.models import User
 
 
 async def get_local_user_by_clerk_id(session: AsyncSession, clerk_id: str) -> User:

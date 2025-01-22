@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from app.db import init_db
-from app.routers import credentials, users, workflows
-from app.routers import executions, users, workflows, credentials
+from shared.db import init_db
+from api.app.routers import credentials, users, workflows
+from api.app.routers import executions, users, workflows, credentials
 
 
 app = FastAPI(

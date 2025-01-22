@@ -11,7 +11,9 @@ from clerk_backend_api.jwks_helpers import (
 
 
 def get_clerk_secret_key() -> str:
-    return os.getenv("CLERK_SECRET_KEY", "")
+    return os.getenv(
+        "CLERK_SECRET_KEY", ""
+    )
 
 
 def get_authorized_party_url() -> list[str]:

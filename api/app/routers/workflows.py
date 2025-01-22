@@ -1,19 +1,24 @@
+from uuid import UUID
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-from typing import List
-from uuid import UUID
 
-from app.db import get_session
-from app.auth import verify_clerk_token
-from app.crud.user_crud import get_local_user_by_clerk_id
-from app.crud.workflow_crud import (
+
+from api.app.auth import verify_clerk_token
+from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.crud.workflow_crud import (
     create_workflow,
-    get_workflow_by_id_and_user,
     list_workflows_for_user,
-    update_workflow,
     delete_workflow,
 )
-from app.models import Workflow, WorkflowCreate, WorkflowRead, WorkflowUpdate
+from shared.db import get_session
+from shared.crud.workflow_crud import (
+    get_workflow_by_id_and_user,
+    update_workflow,
+)
+from shared.models import Workflow, WorkflowCreate, WorkflowRead, WorkflowUpdate
+
 
 router = APIRouter(tags=["Workflows"])
 
