@@ -1,3 +1,4 @@
+from calendar import c
 import enum
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -11,9 +12,19 @@ class User(SQLModel, table=True):
     clerk_id: str = Field(index=True, unique=True)
     email: Optional[str] = None
 
-    # Relationships
-    workflows: List["Workflow"] = Relationship(back_populates="user")
-    executions: List["WorkflowExecution"] = Relationship(back_populates="user")
+    workflows: List["Workflow"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
+    executions: List["WorkflowExecution"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
+    credentials: List["Credential"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
+    purchases: List["UserPurchase"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
+    balance: Optional["UserBalance"] = Relationship(back_populates="user")
 
 
 #
@@ -57,7 +68,9 @@ class Workflow(WorkflowBase, table=True):
     user_id: UUID = Field(foreign_key="user.id", index=True)
 
     user: Optional["User"] = Relationship(back_populates="workflows")
-    executions: List["WorkflowExecution"] = Relationship(back_populates="workflow")
+    executions: List["WorkflowExecution"] = Relationship(
+        back_populates="workflow", cascade_delete=True
+    )
 
 
 # Schemas for creation, reading, updating
@@ -129,7 +142,9 @@ class WorkflowExecution(WorkflowExecutionBase, table=True):
 
     workflow: Optional["Workflow"] = Relationship(back_populates="executions")
     user: Optional["User"] = Relationship(back_populates="executions")
-    phases: List["ExecutionPhase"] = Relationship(back_populates="execution")
+    phases: List["ExecutionPhase"] = Relationship(
+        back_populates="execution", cascade_delete=True
+    )
 
 
 class WorkflowExecutionCreate(WorkflowExecutionBase):
@@ -171,7 +186,7 @@ class ExecutionPhaseBase(SQLModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
-    nodes: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    node: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     inputs: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     outputs: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
 
@@ -183,9 +198,10 @@ class ExecutionPhase(ExecutionPhaseBase, table=True):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
     user_id: UUID = Field(foreign_key="user.id", index=True)
 
-    user: Optional["User"] = Relationship()
     execution: Optional["WorkflowExecution"] = Relationship(back_populates="phases")
-    logs: List["ExecutionLog"] = Relationship(back_populates="phase")
+    logs: List["ExecutionLog"] = Relationship(
+        back_populates="phase", cascade_delete=True
+    )
 
 
 class ExecutionPhaseCreate(ExecutionPhaseBase):
@@ -244,6 +260,7 @@ class UserBalance(UserBalanceBase, table=True):
     __tablename__: ClassVar[str] = "user_balance"
     user_id: UUID = Field(primary_key=True, foreign_key="user.id")
     updated_at: datetime = Field(default_factory=datetime.now)
+    user: Optional["User"] = Relationship(back_populates="balance")
 
 
 #
@@ -261,6 +278,8 @@ class Credential(CredentialBase, table=True):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
     user_id: UUID = Field(foreign_key="user.id", index=True)
     created_at: datetime = Field(default_factory=datetime.now)
+
+    user: Optional["User"] = Relationship(back_populates="credentials")
 
 
 class CredentialCreate(CredentialBase):
@@ -293,7 +312,9 @@ class UserPurchaseBase(SQLModel):
 class UserPurchase(UserPurchaseBase, table=True):
     __tablename__: ClassVar[str] = "user_purchase"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    user_id: UUID = Field(foreign_key="user.id", index=True, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+
+    user: Optional["User"] = Relationship(back_populates="purchases")
 
 
 class UserPurchaseCreate(UserPurchaseBase):
