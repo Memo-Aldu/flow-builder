@@ -166,13 +166,12 @@ class ExecutionPhaseBase(SQLModel):
     # E.g: phase #1, #2, #3 in the pipeline
     number: int
     name: Optional[str] = None
-    node: Optional[str] = None
     status: ExecutionPhaseStatus = Field(default=ExecutionPhaseStatus.PENDING)
 
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
-    # Input/Output stored as JSON
+    nodes: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     inputs: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     outputs: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
 
