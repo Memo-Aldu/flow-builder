@@ -4,17 +4,16 @@ import asyncio
 from uuid import UUID
 from typing import NoReturn
 from datetime import datetime
+from croniter import croniter
+
+from worker import logger
+from worker.runner.workflow_runner import WorkflowRunner
 
 from shared.db import async_session
 from shared.sqs import get_sqs_client
-from shared.crud.workflow_crud import (
-    get_workflow_by_id_and_user,
-)
-from shared.crud.execution_crud import (
-    get_execution_by_id_and_user,
-    update_execution,
-)
-from shared.models import ExecutionStatus, WorkflowExecutionUpdate
+from shared.models import WorkflowUpdate
+from shared.crud.execution_crud import get_execution_by_id_and_user
+from shared.crud.workflow_crud import get_workflow_by_id_and_user, update_workflow
 
 
 WORKFLOW_QUEUE_URL = os.getenv(
@@ -29,46 +28,54 @@ async def process_message(message_body: dict) -> None:
     """Handle a single SQS message's content."""
     workflow_id_str = message_body.get("workflow_id")
     user_id_str = message_body.get("user_id")
+    execution_id_str = message_body.get("execution_id")
 
-    if not workflow_id_str or not user_id_str:
-        print("Message missing required fields, skipping:", message_body)
+    if not workflow_id_str or not user_id_str or not execution_id_str:
+        logger.warning("Missing required fields in message: %s", message_body)
         return
 
     workflow_id = UUID(workflow_id_str)
     user_id = UUID(user_id_str)
+    execution_id = UUID(execution_id_str)
 
     async with async_session() as session:
         workflow = await get_workflow_by_id_and_user(session, workflow_id, user_id)
         if not workflow:
-            print(f"Workflow {workflow_id} not found for user {user_id}.")
+            logger.warning("Workflow %s not found for user %s", workflow_id, user_id)
             return
 
-        # Log workflow execution
-        print(f"[{datetime.now()}] Running workflow #{workflow_id} for user #{user_id}")
+        execution = await get_execution_by_id_and_user(session, execution_id, user_id)
+        if not execution:
+            logger.warning("Execution %s not found for user %s", execution_id, user_id)
+            return
 
-        # Simulate updating execution status
-        execution_id = message_body.get("execution_id")
-        if execution_id:
-            execution_id_uuid = UUID(execution_id)
-            execution = await get_execution_by_id_and_user(
-                session, execution_id_uuid, user_id
-            )
-            if execution:
-                await update_execution(
-                    session,
-                    execution,
-                    WorkflowExecutionUpdate(status=ExecutionStatus.RUNNING),
-                )
-                print(f"Updated execution {execution_id} to RUNNING status.")
-        # TODO: Add your workflow execution logic here
-        # Set WorkflowExecution status to SUCCESS or FAILURE
-        # Log to database
-        # Set WorkFlow last_run_id, status, and last_run_at, next_run_at
+        logger.info(
+            "Processing workflow %s for execution %s", workflow_id, execution_id
+        )
+
+        runner = WorkflowRunner(session)
+        status = await runner.run_workflow(workflow, execution)
+
+        next_run_at = None
+        if workflow.cron:
+            cron = croniter(workflow.cron, datetime.now())
+            next_run_at = cron.get_next(datetime)
+
+        await update_workflow(
+            session,
+            workflow,
+            WorkflowUpdate(
+                last_run_id=execution_id,
+                last_run_status=status,
+                last_run_at=datetime.now(),
+                next_run_at=next_run_at,
+            ),
+        )
 
 
 async def poll_sqs() -> NoReturn:
     """Continuously poll SQS, process messages, and delete them."""
-    print("Worker started. Polling SQS...")
+    logger.info("Starting SQS polling loop...")
 
     while True:
         response = sqs_client.receive_message(
@@ -86,19 +93,16 @@ async def poll_sqs() -> NoReturn:
             try:
                 body = json.loads(body_str)
             except json.JSONDecodeError:
-                print("Failed to decode JSON:", body_str)
-                # You might delete or re-queue the message
+                logger.error("Failed to parse message body: %s", body_str)
                 continue
 
-            # 3) Do your business logic
             await process_message(body)
 
-            # 4) Delete the message to prevent reprocessing
             if receipt_handle:
                 sqs_client.delete_message(
                     QueueUrl=WORKFLOW_QUEUE_URL, ReceiptHandle=receipt_handle
                 )
-                print(f"Deleted message {msg['MessageId']} from queue.")
+                logger.info("Deleted message with receipt handle %s", receipt_handle)
 
 
 async def run_worker() -> None:
@@ -110,4 +114,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(run_worker())
     except KeyboardInterrupt:
-        print("Worker shutting down gracefully...")
+        logger.info("Shutting down worker...")
