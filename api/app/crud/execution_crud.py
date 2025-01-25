@@ -21,14 +21,28 @@ async def create_execution(
     return new_execution
 
 
-async def list_executions_for_user(
+async def get_executions_for_user(
     session: AsyncSession, user_id: UUID
 ) -> List[WorkflowExecution]:
+    """Retrieve all executions for a given user."""
     stmt = select(WorkflowExecution).where(WorkflowExecution.user_id == user_id)
     result = await session.execute(stmt)
     return [execution for execution in result.scalars().all()]
 
 
+async def get_executions_by_workflow_id_and_user(
+    session: AsyncSession, workflow_id: UUID, user_id: UUID
+) -> List[WorkflowExecution]:
+    """Retrieve all executions for a given workflow and user."""
+    stmt = select(WorkflowExecution).where(
+        WorkflowExecution.workflow_id == workflow_id,
+        WorkflowExecution.user_id == user_id,
+    )
+    result = await session.execute(stmt)
+    return [execution for execution in result.scalars().all()]
+
+
 async def delete_execution(session: AsyncSession, execution: WorkflowExecution) -> None:
+    """Delete an execution."""
     await session.delete(execution)
     await session.commit()

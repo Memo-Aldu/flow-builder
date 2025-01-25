@@ -9,7 +9,7 @@ from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.workflow_crud import (
     create_workflow,
-    list_workflows_for_user,
+    get_workflows_for_user,
     delete_workflow,
 )
 from shared.db import get_session
@@ -28,11 +28,13 @@ async def list_workflows_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> List[Workflow]:
+    """ Get all workflows for a given user """
+    # TODO: Add pagination
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    workflows = await list_workflows_for_user(session, local_user.id)
+    workflows = await get_workflows_for_user(session, local_user.id)
     return workflows
 
 
@@ -42,6 +44,7 @@ async def create_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> Workflow:
+    """ Create a new workflow """
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -56,6 +59,7 @@ async def get_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> Workflow:
+    """ Get a workflow by ID """
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -73,6 +77,7 @@ async def update_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> Workflow:
+    """ Update a workflow by ID """
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -91,6 +96,7 @@ async def delete_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> None:
+    """ Delete a workflow by ID """
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")

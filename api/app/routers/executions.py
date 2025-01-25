@@ -1,16 +1,17 @@
 import os
 import json
 from uuid import UUID
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.execution_crud import (
     create_execution,
-    list_executions_for_user,
+    get_executions_for_user,
+    get_executions_by_workflow_id_and_user,
     delete_execution,
 )
 from shared.crud.workflow_crud import get_workflow_by_id_and_user
@@ -41,9 +42,17 @@ sqs_client = get_sqs_client()
 async def list_executions_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
+    workflow_id: Optional[UUID] = Query(None, description="Filter by workflow ID"),
 ) -> List[WorkflowExecution]:
+    """Gets all executions for a given workflow ID or all executions for a user"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    executions = await list_executions_for_user(session, local_user.id)
+    if workflow_id:
+        executions = await get_executions_by_workflow_id_and_user(
+            session, workflow_id, local_user.id
+        )
+        return executions
+
+    executions = await get_executions_for_user(session, local_user.id)
     return executions
 
 
@@ -55,6 +64,7 @@ async def create_execution_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
+    """Creates a new execution and sends a message to the SQS queue."""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     workflow = await get_workflow_by_id_and_user(
         session, exec_in.workflow_id, local_user.id
@@ -90,6 +100,7 @@ async def get_execution_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
+    """Gets a single execution by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
     if not execution:
@@ -104,6 +115,7 @@ async def update_execution_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
+    """Updates a single execution by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
     if not execution:
@@ -119,6 +131,7 @@ async def delete_execution_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> None:
+    """Deletes a single execution by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
     if not execution:
