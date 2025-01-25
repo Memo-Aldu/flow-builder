@@ -183,7 +183,7 @@ class ExecutionPhaseBase(SQLModel):
     name: Optional[str] = None
     status: ExecutionPhaseStatus = Field(default=ExecutionPhaseStatus.PENDING)
 
-    started_at: Optional[datetime] = None
+    started_at: Optional[datetime] = Field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
 
     node: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
@@ -210,6 +210,13 @@ class ExecutionPhaseCreate(ExecutionPhaseBase):
 
 class ExecutionPhaseRead(ExecutionPhaseBase):
     id: UUID
+
+
+class ExecutionPhaseUpdate(SQLModel):
+    status: Optional[ExecutionPhaseStatus] = None
+    completed_at: Optional[datetime] = None
+    outputs: Optional[Dict] = None
+    credits_consumed: Optional[int] = None
 
 
 #
