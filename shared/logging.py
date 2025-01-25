@@ -41,10 +41,10 @@ LOGGING_CONFIG = {
 
 
 def setup_logging() -> None:
-    """ Configure logging for the application """
+    """Configure logging for the application"""
     logging.config.dictConfig(LOGGING_CONFIG)
 
 
 def get_logger(name: str) -> logging.Logger:
-    """ Get a logger instance with the given name """
+    """Get a logger instance with the given name"""
     return logging.getLogger(name)
