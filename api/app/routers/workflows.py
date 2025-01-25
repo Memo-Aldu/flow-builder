@@ -28,7 +28,7 @@ async def list_workflows_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> List[Workflow]:
-    """ Get all workflows for a given user """
+    """Get all workflows for a given user"""
     # TODO: Add pagination
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
@@ -44,7 +44,7 @@ async def create_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> Workflow:
-    """ Create a new workflow """
+    """Create a new workflow"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -59,7 +59,7 @@ async def get_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> Workflow:
-    """ Get a workflow by ID """
+    """Get a workflow by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -77,7 +77,7 @@ async def update_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> Workflow:
-    """ Update a workflow by ID """
+    """Update a workflow by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -96,7 +96,7 @@ async def delete_workflow_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """ Delete a workflow by ID """
+    """Delete a workflow by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
