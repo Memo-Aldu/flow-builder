@@ -24,7 +24,8 @@ def get_db_port() -> str:
 
 DATABASE_URL = f"postgresql+asyncpg://{get_db_user()}:{get_db_password()}@{get_db_host()}:{get_db_port()}/flow-builder"
 
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+# Echo = True will log all the queries
+engine = create_async_engine(DATABASE_URL, echo=False, future=True)
 
 # Session factory
 async_session = async_sessionmaker(engine, expire_on_commit=False)

@@ -21,7 +21,7 @@ async def create_workflow(
     return new_workflow
 
 
-async def list_workflows_for_user(
+async def get_workflows_for_user(
     session: AsyncSession, user_id: UUID
 ) -> List[Workflow]:
     """Return all workflows owned by a specific user."""

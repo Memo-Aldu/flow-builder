@@ -3,11 +3,14 @@ async-timeout==5.0.1
 asyncpg==0.30.0
 boto3==1.36.3
 botocore==1.36.3
+croniter==6.0.0
 greenlet==3.1.1
 jmespath==1.0.1
 pydantic==2.10.5
 pydantic_core==2.27.2
 python-dateutil==2.9.0.post0
+python-json-logger==3.2.1
+pytz==2024.2
 s3transfer==0.11.1
 six==1.17.0
 SQLAlchemy==2.0.37
