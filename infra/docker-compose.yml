@@ -21,6 +21,7 @@ services:
       - main-network
     command: ["postgres", "-c", "listen_addresses=*"]
 
+
   localstack:
     image: localstack/localstack
     container_name: localstack
@@ -35,6 +36,11 @@ services:
       - ./localstack-setup.sh:/etc/localstack/init/ready.d/script.sh
     networks:
       - main-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     container_name: api_service
@@ -61,8 +67,10 @@ services:
     networks:
       - main-network
     depends_on:
-      - postgres
-      - localstack
+      postgres:
+        condition: service_started
+      localstack:
+        condition: service_healthy
 
 volumes:
   postgres_data:
