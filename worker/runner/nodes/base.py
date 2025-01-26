@@ -5,7 +5,6 @@ class NodeExecutor:
     """
     Base interface for all node executors.
     """
-
     required_context_keys: List[str] = []
     required_definition_keys: List[str] = []
     output_keys: List[str] = []
@@ -36,3 +35,10 @@ class NodeExecutor:
         Returns a dictionary of outputs to merge back into the context.
         """
         raise NotImplementedError("Subclasses must implement 'run'.")
+
+    async def cleanup(self, context: Dict[str, Any]) -> None:
+        """
+        Cleanup resources used by the node.
+        Subclasses can override this method to implement custom cleanup logic.
+        """
+        raise NotImplementedError("Subclasses must implement 'cleanup'.")
