@@ -1,6 +1,6 @@
 from copy import copy
 from datetime import datetime
-from typing import Any, Dict, Set
+from typing import Any, Dict, List, Set
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import (
@@ -43,6 +43,7 @@ class WorkflowRunner:
         visited = set()
         queue = list(start_phases)
         phase_outputs: Dict[str, Dict[str, Any]] = {}
+        executed_nodes: List[Dict[str, Any]] = []
 
         try:
             await self.process_phases(
@@ -53,13 +54,20 @@ class WorkflowRunner:
                 reverse_adjacency,
                 execution,
                 phase_outputs,
+                executed_nodes,
             )
             await self.update_execution_status(execution, ExecutionStatus.COMPLETED)
             return ExecutionStatus.COMPLETED
+
         except Exception as e:
             logger.error(f"Workflow {workflow.id} execution failed: {str(e)}")
+            await self.session.rollback()
+            
             await self.update_execution_status(execution, ExecutionStatus.FAILED)
             return ExecutionStatus.FAILED
+
+        finally:
+            await self.cleanup_workflow(executed_nodes)
 
     def build_phase_maps(self, phases_def):
         """Build phase maps for the given phases definition."""
@@ -88,6 +96,7 @@ class WorkflowRunner:
         reverse_adjacency,
         execution,
         phase_outputs,
+        executed_nodes,
     ) -> None:
         while queue:
             current_phase_id = queue.pop(0)
@@ -98,7 +107,7 @@ class WorkflowRunner:
             visited.add(current_phase_id)
             phase_def = phase_map[current_phase_id]
             out = await self.run_phase(
-                execution, phase_def, phase_outputs, reverse_adjacency
+                execution, phase_def, phase_outputs, reverse_adjacency, executed_nodes
             )
             phase_outputs[current_phase_id] = out
 
@@ -114,12 +123,12 @@ class WorkflowRunner:
         phase_def: Dict[str, Any],
         phase_outputs: Dict[str, Dict[str, Any]],
         reverse_adjacency: Dict[str, Set[str]],
+        executed_nodes: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """
         Run all nodes in the given phase, gather outputs, return them.
         """
         phase_id = phase_def["id"]
-        phase_name = phase_def.get("name", phase_id)
         node_def = phase_def.get("node", {})
 
         if not node_def:
@@ -144,6 +153,7 @@ class WorkflowRunner:
         try:
             node_name = node_def.get("name")
             node_type = node_def.get("type")
+
             await self.log_message(
                 exec_phase, f"Starting node: {node_name} ({node_type})"
             )
@@ -157,6 +167,9 @@ class WorkflowRunner:
 
             if node_outputs:
                 local_context.update(node_outputs)
+
+            # Store the executor and local_context so we can do final cleanup
+            executed_nodes.append({"executor": executor, "context": local_context})
 
             logger.info(f"Node {node_name} completed with outputs: {node_outputs}")
 
@@ -185,6 +198,20 @@ class WorkflowRunner:
                 },
             )
             raise
+
+    async def cleanup_workflow(self, executed_nodes: List[Dict[str, Any]]) -> None:
+        """Clean up all executed nodes in reverse order ONCE, after workflow finishes/fails."""
+        logger.info("Starting final workflow cleanup process.")
+        for node_entry in reversed(executed_nodes):
+            executor = node_entry["executor"]
+            context = node_entry["context"]
+            try:
+                logger.info(f"Cleaning up {executor.__class__.__name__}...")
+                await executor.cleanup(context)
+            except Exception as e:
+                logger.warning(
+                    f"Error during cleanup of {executor.__class__.__name__}: {str(e)}"
+                )
 
     async def create_phase(
         self, execution: WorkflowExecution, phase_def: Dict[str, Any]
