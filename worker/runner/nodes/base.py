@@ -7,6 +7,7 @@ class NodeExecutor:
     """
     Base interface for all node executors.
     """
+
     required_input_keys: List[str] = []
     output_keys: List[str] = []
     can_be_start_node: bool = False
@@ -25,7 +26,6 @@ class NodeExecutor:
         """
         Execute the node with the given node dataclass and environment.
         Returns a dictionary of outputs which will be added to node.outputs
-        and presumably placed into the environment or phase outputs, etc.
+        and presumably placed into the environment for use by subsequent nodes.
         """
         raise NotImplementedError("Subclasses must implement 'run'.")
-    
