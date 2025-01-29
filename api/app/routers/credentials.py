@@ -41,7 +41,9 @@ async def create_credential_endpoint(
 ) -> Credential:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     secret_arn = create_secret(credential_in.name, credential_in.value)
-    new_cred = await create_credential(session, local_user.id, secret_arn, credential_in)
+    new_cred = await create_credential(
+        session, local_user.id, secret_arn, credential_in
+    )
     return new_cred
 
 
@@ -68,9 +70,9 @@ async def delete_credential_endpoint(
     cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
-    
+
     success = delete_secret(cred.secret_arn)
-    
+
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete secret")
 
