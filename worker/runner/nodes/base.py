@@ -1,44 +1,31 @@
 from typing import Any, Dict, List
 
+from worker.runner.environment import Node, Environment
+
 
 class NodeExecutor:
     """
     Base interface for all node executors.
     """
-    required_context_keys: List[str] = []
-    required_definition_keys: List[str] = []
+    required_input_keys: List[str] = []
     output_keys: List[str] = []
     can_be_start_node: bool = False
 
     def __init__(self, session) -> None:
         self.session = session
 
-    def validate(self, node_def, context) -> None:
-        if not self.can_be_start_node:
-            for key in self.required_context_keys:
-                if key not in context:
-                    raise ValueError(
-                        f"Missing '{key}' in context for node {node_def.get('name')}"
-                    )
-
-        for key in self.required_definition_keys:
-            if key not in node_def.get("inputs", {}):
+    def validate(self, node: Node, env: Environment) -> None:
+        for key in self.required_input_keys:
+            if key not in node.inputs:
                 raise ValueError(
-                    f"Missing '{key}' in node definition for node {node_def.get('name')}"
+                    f"Missing required input key '{key}' in node {node.name}"
                 )
 
-    async def run(
-        self, node_def: Dict[str, Any], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         """
-        Execute the node with the given node definition and context data.
-        Returns a dictionary of outputs to merge back into the context.
+        Execute the node with the given node dataclass and environment.
+        Returns a dictionary of outputs which will be added to node.outputs
+        and presumably placed into the environment or phase outputs, etc.
         """
         raise NotImplementedError("Subclasses must implement 'run'.")
-
-    async def cleanup(self, context: Dict[str, Any]) -> None:
-        """
-        Cleanup resources used by the node.
-        Subclasses can override this method to implement custom cleanup logic.
-        """
-        raise NotImplementedError("Subclasses must implement 'cleanup'.")
+    
