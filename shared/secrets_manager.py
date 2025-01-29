@@ -6,14 +6,14 @@ from botocore.exceptions import ClientError
 
 
 secrets_client = boto3.client(
-        "secretsmanager",
-        region_name=os.getenv("AWS_REGION", "us-east-1"),
-        endpoint_url=os.getenv(
-            "SQS_ENDPOINT_URL", "http://sqs.us-east-1.localhost.localstack.cloud:4566"
-        ),
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "test"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
-    )
+    "secretsmanager",
+    region_name=os.getenv("AWS_REGION", "us-east-1"),
+    endpoint_url=os.getenv(
+        "SQS_ENDPOINT_URL", "http://sqs.us-east-1.localhost.localstack.cloud:4566"
+    ),
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "test"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
+)
 
 
 def sanitize_secret_name(name: str) -> str:
@@ -39,20 +39,19 @@ def create_secret(secret_name: str, secret_value: str) -> str:
     except ClientError as e:
         print(f"Error creating secret: {e}")
         raise RuntimeError(f"Failed to create secret in AWS: {e}")
-    
-    
+
+
 def delete_secret(secret_arn: str) -> bool:
     try:
         secrets_client.delete_secret(
-            SecretId=secret_arn,
-            ForceDeleteWithoutRecovery=True
+            SecretId=secret_arn, ForceDeleteWithoutRecovery=True
         )
         return True
     except ClientError as e:
         print(f"Error deleting secret: {e}")
         raise RuntimeError(f"Failed to delete secret from AWS: {e}")
-    
-    
+
+
 def get_secret_value(secret_arn: str) -> str:
     """
     Retrieve the secret from AWS Secrets Manager using the ARN.

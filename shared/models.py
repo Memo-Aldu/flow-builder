@@ -217,6 +217,7 @@ class ExecutionPhaseUpdate(SQLModel):
     status: Optional[ExecutionPhaseStatus] = None
     completed_at: Optional[datetime] = None
     outputs: Optional[Dict] = None
+    node: Optional[Dict] = None
     credits_consumed: Optional[int] = None
 
 
