@@ -1,5 +1,6 @@
 from calendar import c
 import enum
+from multiprocessing import Value
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Optional, List, Dict, ClassVar
@@ -216,6 +217,7 @@ class ExecutionPhaseUpdate(SQLModel):
     status: Optional[ExecutionPhaseStatus] = None
     completed_at: Optional[datetime] = None
     outputs: Optional[Dict] = None
+    node: Optional[Dict] = None
     credits_consumed: Optional[int] = None
 
 
@@ -277,12 +279,12 @@ class UserBalance(UserBalanceBase, table=True):
 
 class CredentialBase(SQLModel):
     name: str
-    value: str
 
 
 class Credential(CredentialBase, table=True):
     __tablename__: ClassVar[str] = "credential"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    secret_arn: str = Field(index=True)
     user_id: UUID = Field(foreign_key="user.id", index=True)
     created_at: datetime = Field(default_factory=datetime.now)
 
@@ -290,16 +292,12 @@ class Credential(CredentialBase, table=True):
 
 
 class CredentialCreate(CredentialBase):
-    pass
-
-
-class CredentialUpdate(SQLModel):
-    name: Optional[str] = None
-    value: Optional[str] = None
+    value: str
 
 
 class CredentialRead(CredentialBase):
     id: UUID
+    name: str
     created_at: datetime
 
 

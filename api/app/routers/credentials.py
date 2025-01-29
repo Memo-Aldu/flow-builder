@@ -8,7 +8,6 @@ from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.credentials_crud import (
     create_credential,
-    update_credential,
     delete_credential,
 )
 from shared.db import get_session
@@ -16,7 +15,8 @@ from shared.crud.credentials_crud import (
     get_credential_by_id_and_user,
     list_credentials_for_user,
 )
-from shared.models import CredentialRead, CredentialCreate, CredentialUpdate, Credential
+from shared.models import CredentialRead, CredentialCreate, Credential
+from shared.secrets_manager import create_secret, delete_secret
 
 
 router = APIRouter(tags=["Credentials"])
@@ -39,7 +39,10 @@ async def create_credential_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    new_cred = await create_credential(session, local_user.id, credential_in)
+    secret_arn = create_secret(credential_in.name, credential_in.value)
+    new_cred = await create_credential(
+        session, local_user.id, secret_arn, credential_in
+    )
     return new_cred
 
 
@@ -56,22 +59,6 @@ async def get_credential_endpoint(
     return cred
 
 
-@router.patch("/{credential_id}", response_model=CredentialRead)
-async def update_credential_endpoint(
-    credential_id: UUID,
-    credential_in: CredentialUpdate,
-    user_info: dict = Depends(verify_clerk_token),
-    session: AsyncSession = Depends(get_session),
-) -> Credential:
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
-    if not cred:
-        raise HTTPException(status_code=404, detail="Credential not found")
-
-    updated_cred = await update_credential(session, cred, credential_in)
-    return updated_cred
-
-
 @router.delete("/{credential_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_credential_endpoint(
     credential_id: UUID,
@@ -82,5 +69,10 @@ async def delete_credential_endpoint(
     cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
+
+    success = delete_secret(cred.secret_arn)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete secret")
 
     await delete_credential(session, cred)
