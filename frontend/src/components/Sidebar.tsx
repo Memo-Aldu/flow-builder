@@ -64,12 +64,12 @@ function DesktopSidebar() {
 export const MobileSidebar = () => {
     const pathName = usePathname();
     const activeRoute = routes.find(route => pathName.includes(route.href)) || routes[0];
-    const [isOpen, setOpen] = React.useState(false);
+    const [isOpen, setIsOpen] = React.useState(false);
   
     return (
     <div className='block border-separate bg-background md:hidden'>
         <div className='container flex items-center justify-between px-8'>
-            <Sheet open={isOpen} onOpenChange={setOpen}>
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger asChild>
                     <Button variant='ghost' size='icon'>
                         <MenuIcon />
@@ -84,7 +84,7 @@ export const MobileSidebar = () => {
                             className={buttonVariants({
                                 variant: activeRoute.href === route.href ? 'sidebarItemActive' : 'sidebarItem',
                             })}
-                            onClick={() => setOpen(false)}
+                            onClick={() => setIsOpen(false)}
                             >
                                 <route.icon className='w-6 h-6' size={20} />
                                 {route.label}
