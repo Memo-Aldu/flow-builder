@@ -1,5 +1,6 @@
 "use client";
 
+import useWorkflowValidation from '@/components/hooks/useWorkflowValidation';
 import { cn } from '@/lib/utils';
 import { useReactFlow } from '@xyflow/react';
 import React from 'react'
@@ -13,6 +14,9 @@ type NodeCardProps = {
 
 const NodeCard = ({ nodeId, isSelected, children }: NodeCardProps) => {
   const { getNode, setCenter } = useReactFlow()
+  const { invalidInputs } = useWorkflowValidation()
+
+  const hasInvalidInputs = invalidInputs.some((input) => input.nodeId === nodeId)
 
   return (
     <div 
@@ -32,8 +36,8 @@ const NodeCard = ({ nodeId, isSelected, children }: NodeCardProps) => {
     }}
     className={cn(
         "rounded-md cursor-pointer bg-background border-2 border-separate w-[460px] text-xs gap-1 flex flex-col",
-         isSelected ? "border-primary" : "border-secondary")}>
-
+         isSelected && "border-primary",
+         hasInvalidInputs && "border-destructive border-2")}>
         {children}
     </div>
   )

@@ -4,6 +4,7 @@ import { Handle, Position, useEdges } from '@xyflow/react'
 import React from 'react'
 import NodeParamField from '@/app/workflow/_components/nodes/NodeParamField'
 import { ColorForHandle } from '@/app/workflow/_components/nodes/common'
+import useWorkflowValidation from '@/components/hooks/useWorkflowValidation'
 
 export const NodeInputs = ({ children }: {children: React.ReactNode}) => {
   return (
@@ -15,9 +16,15 @@ export const NodeInputs = ({ children }: {children: React.ReactNode}) => {
 
 export const NodeInput = ({ input, nodeId } : { input: TaskParam, nodeId: string }) => {
   const edges = useEdges()
+  const { invalidInputs } = useWorkflowValidation()
   const isConnected = edges.some(edge => edge.target === nodeId && edge.targetHandle === input.name)
+
+  const hasInvalidInputs = invalidInputs.find(node => node.nodeId === nodeId)
+                                ?.inputs.find((invalidInputs) => invalidInputs === input.name)
   return (
-    <div className='flex justify-start relative p-3 bg-secondary w-full'>
+    <div className={cn('flex justify-start relative p-3 bg-secondary w-full',
+        hasInvalidInputs && 'bg-destructive/30'
+    )}>
       <NodeParamField param={input} nodeId={nodeId} disabled={isConnected} />
       {!input.hideHandle && (
               <Handle 
