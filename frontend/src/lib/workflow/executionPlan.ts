@@ -8,7 +8,7 @@ export enum WorkflowToExecutionPlanValidationError {
     INVALID_INPUTS = "INVALID_INPUTS"
 }
 
-type FlowToExecutionPlan = {
+type WorkFlowToExecutionPlan = {
     executionPlan?: WorkflowExecutionPlan
     error? : {
         type: WorkflowToExecutionPlanValidationError
@@ -16,7 +16,7 @@ type FlowToExecutionPlan = {
     }
 }
 
-export const FlowToExecutionPlan = (nodes: AppNode[], edges: Edge[]): FlowToExecutionPlan => {
+export const FlowToExecutionPlan = (nodes: AppNode[], edges: Edge[]): WorkFlowToExecutionPlan => {
 
     const entryPoints = nodes.filter(node => TaskRegistry[node.data.type].isEntryPoint)
 

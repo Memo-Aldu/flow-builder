@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { TaskRegistry } from '@/lib/workflow/task/registry';
 import { TaskType } from '@/types/task';
+import { BetweenHorizonalStartIcon } from 'lucide-react';
 import React from 'react'
 
 const TaskMenu = () => {
@@ -17,10 +18,12 @@ const TaskMenu = () => {
         <Accordion type='multiple' className='w-full' defaultValue={['Extraction', 'Entrypoint']}>
             <AccordionItem value='Entrypoint'>
                 <AccordionTrigger className='font-bold'>
-                    Entrypoint
+                    Browser Automation
                 </AccordionTrigger>
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.LAUNCH_BROWSER} />
+                    <TaskMenuBtn taskType={TaskType.CLICK_ELEMENT} />
+                    <TaskMenuBtn taskType={TaskType.FILL_INPUT} />
                 </AccordionContent>
             </AccordionItem>
             <AccordionItem value='Extraction'>
@@ -30,6 +33,7 @@ const TaskMenu = () => {
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.GET_HTML} />
                     <TaskMenuBtn taskType={TaskType.GET_TEXT_FROM_HTML} />
+                    <TaskMenuBtn taskType={TaskType.EXTRACT_DATA_OPENAI} />
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
@@ -50,12 +54,17 @@ export const TaskMenuBtn = ({ taskType }: { taskType: TaskType }) => {
         <Button 
         variant={'secondary'} 
         draggable
-        className='flex justify-between items-center gap-2border w-full'
+        className='flex justify-between items-center gap-2 border w-full'
         onDragStart={(e) => ondragstart(e, taskType)}>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                 <task.icon size={20} />
                 {task.label}
             </div>
+            {task.isEntryPoint && (
+            <div className="flex items-end">
+                    <BetweenHorizonalStartIcon size={20} className='stroke-green-400'/>
+            </div>
+            )}
         </Button>
     )
 

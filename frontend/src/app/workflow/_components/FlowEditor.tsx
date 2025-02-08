@@ -122,7 +122,6 @@ const FlowEditor = ({ workflow }: { workflow: Workflow }) => {
     return !detectedCycle;
   }, [nodes, edges]);
 
-  console.log("@Updated", nodes);
   return (
     <main className='h-full w-full'>
         <ReactFlow
