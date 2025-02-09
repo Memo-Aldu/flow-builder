@@ -1,7 +1,7 @@
 import { LucideProps } from "lucide-react";
 import React from "react";
 import { TaskParam, TaskType } from "@/types/task";
-import { AppNode } from "./nodes";
+import { AppNode } from "@/types/nodes";
 
 export type WorkflowStatus = "draft" | "active" | "disabled";
 

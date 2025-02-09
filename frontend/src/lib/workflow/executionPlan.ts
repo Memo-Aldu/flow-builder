@@ -28,7 +28,6 @@ export const FlowToExecutionPlan = (nodes: AppNode[], edges: Edge[]): WorkFlowTo
         }
     }
 
-    
     let index  = 0
     const inputsWithErrors: AppNodesMissingInputs[] = []
     const planned = new Set<string>()
