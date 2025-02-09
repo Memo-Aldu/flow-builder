@@ -51,7 +51,7 @@ export const CreateWorkflowDialog = ({ triggerText }: CreateWorkflowDialogProps)
 	onSuccess: (workflow) => {
 	  toast.success("Workflow created successfully", { id: "create-workflow" });
 	  setOpen(false);
-	  router.push(`dashboard/workflows/${workflow.id}`);
+	  router.push(`/workflow/editor/${workflow.id}`);
 	},
 	onError: (err) => {
 		console.error(err);

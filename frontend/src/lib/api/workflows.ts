@@ -1,3 +1,4 @@
+import axios, { AxiosResponse } from "axios";
 import {
   WorkflowListResponse,
   WorkflowSingleResponse,
@@ -7,75 +8,85 @@ import {
 } from "@/types/workflows";
 import { CreateWorkflowSchemaType, createWorkflowSchema } from "@/schema/workflow";
 
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-async function fetchWithAuth(input: RequestInfo, token: string, init?: RequestInit) {
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
+const getAuthHeaders = (token: string) => {
   if (!token) {
     throw new Error("User is not authenticated");
   }
+  return { Authorization: `Bearer ${token}` };
+};
 
-  const headers = {
-    ...init?.headers,
-    Authorization: token ? `Bearer ${token}` : "",
-    "Content-Type": "application/json",
-  };
-
-  return fetch(input, { ...init, headers });
-}
 
 export async function getWorkflows(token: string): Promise<WorkflowListResponse> {
-  const res = await fetchWithAuth(`${BASE_URL}/api/v1/workflows`, token);
-  if (!res.ok) throw new Error(`Error listing workflows: ${res.statusText}`);
-  return res.json();
+  const response: AxiosResponse<WorkflowListResponse> = await api.get("/api/v1/workflows", {
+    headers: getAuthHeaders(token),
+  });
+  return response.data;
 }
+
 
 export async function createWorkflow(
   form: CreateWorkflowSchemaType,
   token: string
 ): Promise<Workflow> {
-  	const { success, data } = createWorkflowSchema.safeParse(form); 
+  const { success, data } = createWorkflowSchema.safeParse(form);
+  if (!success) {
+    throw new Error("Invalid form data");
+  }
 
-    if (!success) {
-        throw new Error("Invalid form data");
-    }
+  const payload = { ...data, status: WorkflowStatusEnum.DRAFT };
 
-  	const res = await fetchWithAuth(`${BASE_URL}/api/v1/workflows`, token, {
-    	method: "POST",
-    	body: JSON.stringify({ ...data, status: WorkflowStatusEnum.DRAFT }),
-  	});
-  	if (!res.ok) throw new Error(`Error creating workflow: ${res.statusText}`);
-  	return res.json();
+  const response: AxiosResponse<Workflow> = await api.post("/api/v1/workflows", payload, {
+    headers: getAuthHeaders(token),
+  });
+  return response.data;
 }
+
 
 export async function getWorkflow(
   workflowId: string,
   token: string
 ): Promise<WorkflowSingleResponse> {
-  const res = await fetchWithAuth(`${BASE_URL}/api/v1/workflows/${workflowId}`, token);
-  if (!res.ok) throw new Error(`Error fetching workflow: ${res.statusText}`);
-  return res.json();
+  const response: AxiosResponse<WorkflowSingleResponse> = await api.get(
+    `/api/v1/workflows/${workflowId}`,
+    {
+      headers: getAuthHeaders(token),
+    }
+  );
+  return response.data;
 }
+
 
 export async function updateWorkflow(
   workflowId: string,
   data: WorkflowUpdateRequest,
   token: string
 ): Promise<Workflow> {
-  const res = await fetchWithAuth(`${BASE_URL}/api/v1/workflows/${workflowId}`, token, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error(`Error updating workflow: ${res.statusText}`);
-  return res.json();
+  const response: AxiosResponse<Workflow> = await api.patch(
+    `/api/v1/workflows/${workflowId}`,
+    data,
+    {
+      headers: getAuthHeaders(token),
+    }
+  );
+  return response.data;
 }
+
 
 export async function deleteWorkflow(
   workflowId: string,
   token: string
 ): Promise<void> {
-  const res = await fetchWithAuth(`${BASE_URL}/api/v1/workflows/${workflowId}`, token, {
-	method: "DELETE",
+  await api.delete(`/api/v1/workflows/${workflowId}`, {
+    headers: getAuthHeaders(token),
   });
-  if (!res.ok) throw new Error(`Error deleting workflow: ${res.statusText}`);
 }

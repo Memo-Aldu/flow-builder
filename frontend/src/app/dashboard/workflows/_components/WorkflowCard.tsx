@@ -36,7 +36,7 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                 </div>
                 <div className="">
                     <h3 className="text-base font-bold text-muted-foreground flex items-center" >
-                        <Link href={`/dashboard/workflow/${workflow.id}`} 
+                        <Link href={`/workflow/editor/${workflow.id}`} 
                         className='flex items-center hover:underline'>
                             {workflow.name}
                         </Link>
@@ -51,7 +51,7 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                 </div>
             </div>
             <div className="flex items-center space-x-2">
-                <Link href={`/dashboard/workflow/${workflow.id}`} 
+                <Link href={`/workflow/editor/${workflow.id}`} 
                       className={cn(
                         buttonVariants({
                             variant: 'outline',
