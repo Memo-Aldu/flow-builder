@@ -22,35 +22,32 @@ class LaunchBrowserNode(NodeExecutor):
     Returns True if the browser was launched successfully.
     """
 
-    required_input_keys = ["url"]
-    output_keys = ["launched_browser"]
+    required_input_keys = ["Website URL"]
+    output_keys = ["Web Page"]
     can_be_start_node = True
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
 
         phase = env.get_phase_of_node(node.id)
-        url = node.inputs["url"]
-
-        phase.add_log(f"Launching browser to {url}...")
+        url = node.inputs["Website URL"]
+        phase.add_log(f"Launching browser to {url}...", LogLevel.INFO)
 
         try:
             if env.playwright is None:
                 env.playwright = await async_playwright().start()
-                phase.add_log("Started Playwright engine", level=LogLevel.DEBUG)
+                phase.add_log("Started Playwright engine.", LogLevel.DEBUG)
 
             if env.browser is None:
-                env.browser = await env.playwright.chromium.launch(headless=True)
-                phase.add_log("Launched Chromium browser", level=LogLevel.DEBUG)
+                env.browser = await env.playwright.chromium.launch(headless=False)
+                phase.add_log("Launched Chromium browser.", LogLevel.DEBUG)
 
             page = await env.browser.new_page()
             await page.goto(url)
-            phase.add_log(f"Browser navigated to {url}", level=LogLevel.INFO)
+            phase.add_log(f"Browser navigated to {url}", LogLevel.INFO)
 
             env.page = page
-
-            return {"launched_browser": True}
-
+            return {"Web Page": True}
         except PlaywrightError as e:
             logger.warning(f"Error launching browser: {str(e)}")
             raise e
@@ -63,25 +60,26 @@ class FillInputNode(NodeExecutor):
     Return True if the input was filled successfully.
     """
 
-    required_input_keys = ["selector", "text"]
+    required_input_keys = ["Selector", "Value"]
     output_keys = ["filled_input"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
-
-        selector = node.inputs["selector"]
-        text = node.inputs["text"]
         phase = env.get_phase_of_node(node.id)
 
-        phase.add_log(f"Filling input '{selector}' with text '{text}'.")
-        logger.info(f"Filling input '{selector}' with text '{text}'.")
+        selector = node.inputs["Selector"]
+        value = node.inputs["Value"]
+        phase.add_log(f"Filling input '{selector}' with text '{value}'.", LogLevel.INFO)
+        logger.info(f"Filling input '{selector}' with text '{value}'.")
 
         if env.page is None:
             raise ValueError("No browser page found in environment.")
+        
         try:
             await env.page.wait_for_selector(selector)
             await env.page.click(selector)
-            phase.add_log(f"Clicked {selector} successfully.")
+            await env.page.fill(selector, value)
+            phase.add_log(f"Filled '{selector}' successfully.", LogLevel.INFO)
             return {"filled_input": True}
         except PlaywrightError as e:
             logger.warning(f"Error clicking element {selector}: {str(e)}")
@@ -95,16 +93,16 @@ class ClickElementNode(NodeExecutor):
     Return True if the element was clicked successfully.
     """
 
-    required_input_keys = ["selector"]
+    required_input_keys = ["Selector"]
     output_keys = ["clicked_element"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
-
         phase = env.get_phase_of_node(node.id)
-        selector = node.inputs["selector"]
 
-        phase.add_log(f"Clicking element {selector}...")
+        selector = node.inputs["Selector"]
+        phase.add_log(f"Clicking element {selector}", LogLevel.INFO)
+        logger.info(f"Clicking element {selector}.")
 
         if not env.page:
             raise ValueError("No page found in environment")
@@ -112,7 +110,7 @@ class ClickElementNode(NodeExecutor):
         try:
             await env.page.wait_for_selector(selector)
             await env.page.click(selector)
-            phase.add_log(f"Clicked {selector} successfully.")
+            phase.add_log(f"Clicked {selector} successfully.", LogLevel.INFO)
             return {"clicked_element": True}
         except PlaywrightError as e:
             logger.warning(f"Error clicking element {selector}: {str(e)}")
