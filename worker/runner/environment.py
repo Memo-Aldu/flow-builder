@@ -2,11 +2,9 @@ from uuid import UUID
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-
-from worker.runner import logger
-from shared.models import LogLevel
-
 from playwright.async_api import Browser, Playwright, Page
+from shared.models import LogLevel
+from worker.runner import logger
 
 
 @dataclass
@@ -43,15 +41,19 @@ class Phase:
 
     def add_log(self, message: str, level: LogLevel = LogLevel.INFO) -> None:
         self.logs.append(
-            {"message": message, "level": level, "timestamp": datetime.now()}
+            {
+                "message": message,
+                "level": level,
+                "timestamp": datetime.now()
+            }
         )
 
 
 class Environment:
     """
-    The environment is a shared context that is passed between nodes during execution
+    Holds ephemeral references and resources for the entire workflow run.
+    Each node's outputs are stored in `resources[nodeId]`.
     """
-
     def __init__(self) -> None:
         self.phases: Dict[UUID, Phase] = {}
         self.browser: Optional[Browser] = None
@@ -82,9 +84,9 @@ class Environment:
 
     async def cleanup(self) -> None:
         """
-        Cleanup all resources from the environment (browser, playwright, etc.).
+        Cleanup all resources after the workflow ends.
         """
-        logger.info("Cleaning up environment...")
+        logger.info("Cleaning up environment resources.")
         self.resources.clear()
 
         if self.page:

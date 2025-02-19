@@ -55,10 +55,7 @@ const ExecuteBtn = ( { workflowId }: ExecuteBtnProps) => {
             return 
         }
         console.log(plan)
-        const executionPlan = { execution_plan: plan }
-        const workflowUpdateRequest: WorkflowUpdateRequest = {
-            execution_plan: executionPlan
-        }
+        const workflowUpdateRequest = { execution_plan: plan } as WorkflowUpdateRequest
         mutation.mutate({ id: workflowId, values: workflowUpdateRequest })
     }}
     >

@@ -2,10 +2,13 @@ import openai
 import asyncio
 from uuid import UUID
 from typing import Any, Dict
+
+from bs4 import BeautifulSoup
 from playwright.async_api import Error as PlaywrightError
 from openai.types.chat.chat_completion import ChatCompletion
 
 from shared.logging import get_logger
+from shared.models import LogLevel
 from shared.secrets_manager import get_secret_value
 from shared.crud.credentials_crud import get_credential_by_id
 
@@ -22,27 +25,68 @@ class GetHTMLNode(NodeExecutor):
     Requires a browser page to be present in the environment.
     Returns the HTML content as a string.
     """
-
-    output_keys = ["content"]
+    __name__ = "Get HTML Node"
+    
+    output_keys = ["Html Content"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
+        phase = env.get_phase_of_node(node.id)
+
 
         if env.page is None:
             raise ValueError("No browser page found in environment.")
 
-        page = env.page
+        try:
+            html = await env.page.content()
+            phase.add_log("HTML content retrieved.", level=LogLevel.INFO)
+            return {"Html Content": html}
+        except PlaywrightError as e:
+            phase.add_log(f"Error getting page HTML: {str(e)}", level=LogLevel.ERROR)
+            raise ValueError(f"Error getting page HTML: {str(e)}")
+        
+        
+class GetTextFromHTMLNode(NodeExecutor):
+    """
+    Extracts text from the provided HTML content using the given CSS selector.
+    Expects "Html" and "Selector" as inputs and returns {"Text": extracted_text}.
+    """
+    __name__ = "Get Text From HTML Node"
+    
+    required_input_keys = ["Html", "Selector"]
+    output_keys = ["Text"]
+
+    async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
+        # Validate that required inputs exist.
+        self.validate(node, env)
         phase = env.get_phase_of_node(node.id)
-        phase.add_log("Getting page HTML...")
-        logger.info("Getting page HTML.")
+
+        html = node.inputs["Html"]
+        selector = node.inputs["Selector"]
+
+        phase.add_log(f"Extracting text using selector '{selector}'.", level=LogLevel.INFO)
 
         try:
-            page_html = await page.content()
-            phase.add_log("HTML content retrieved")
-            return {"content": page_html}
-        except PlaywrightError as e:
-            logger.warning(f"Error getting page HTML: {str(e)}")
-            raise e
+            # Parse the HTML content using BeautifulSoup.
+            soup = BeautifulSoup(html, "html.parser")
+        except Exception as e:
+            phase.add_log(f"Failed to parse HTML: {str(e)}", level=LogLevel.ERROR)
+            raise ValueError(f"Failed to parse HTML: {str(e)}")
+
+        try:
+            elements = soup.select(selector)
+            if not elements:
+                msg = f"No elements found for selector '{selector}'."
+                phase.add_log(msg, level=LogLevel.WARNING)
+                raise ValueError(msg)
+
+            extracted_text = " ".join(el.get_text(strip=True) for el in elements)
+            phase.add_log(f"Extracted text (first 100 chars): {extracted_text[:100]}", level=LogLevel.INFO)
+            return {"Text": extracted_text}
+        except Exception as e:
+            phase.add_log(f"Error extracting text: {str(e)}", level=LogLevel.ERROR)
+            raise ValueError(f"Error extracting text: {str(e)}")
+        
 
 
 class OpenAICallNode(NodeExecutor):
@@ -51,47 +95,46 @@ class OpenAICallNode(NodeExecutor):
     Requires a credential ID and prompt to be present in the environment.
     Returns the response from the OpenAI API.
     """
+    __name__ = "OpenAI Call Node"
 
-    required_input_keys = ["cred_id", "prompt", "content"]
-    output_keys = ["ai_result"]
+    required_input_keys = ["API Key", "Prompt", "Content"]
+    output_keys = ["Extracted Data"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
-
         phase = env.get_phase_of_node(node.id)
-        prompt = node.inputs["prompt"]
-        content = node.inputs["content"]
-        cred_id = node.inputs["cred_id"]
 
-        phase.add_log(f"Starting AI call with prompt: {prompt[:30]}...")
-        logger.info(f"[OpenAICallNode] Starting AI call with prompt: {prompt[:30]}...")
+        prompt = node.inputs["Prompt"]
+        content = node.inputs["Content"]
+        cred_id = node.inputs["API Key"]
 
+        phase.add_log(f"OpenAI call with prompt: {prompt[:30]}...", level=LogLevel.INFO)
+        logger.info(f"OpenAI call with prompt: {prompt[:30]}...")
+
+        # Get credential
         credential = await get_credential_by_id(
             session=self.session, credential_id=UUID(cred_id)
         )
-
         if not credential:
-            raise ValueError(f"Credential {cred_id} not found")
-
+            raise ValueError(f"Credential {cred_id} not found.")
         if not credential.secret_arn:
-            raise ValueError(f"Credential {cred_id} is missing secret_arn")
+            raise ValueError(f"Credential {cred_id} missing secret_arn.")
 
         try:
             openai_api_key = get_secret_value(credential.secret_arn)
         except Exception as e:
             logger.warning(f"Error fetching secret from AWS: {str(e)}")
-            raise
+            raise ValueError(f"Error fetching secret: {str(e)}")
 
         openai.api_key = openai_api_key
 
         try:
             response = await self.call_openai_async(prompt, content)
+            phase.add_log("AI call completed successfully.", level=LogLevel.INFO)
+            return {"Extracted Data": response}
         except Exception as e:
             logger.warning(f"OpenAI call failed: {str(e)}")
-            raise
-
-        phase.add_log("AI call completed.")
-        return {"ai_result": response}
+            raise ValueError(f"OpenAI call failed: {str(e)}")
 
     async def call_openai_async(self, prompt: str, content: str) -> Dict[str, Any]:
 
@@ -114,5 +157,6 @@ class OpenAICallNode(NodeExecutor):
             return completion
 
         result = await asyncio.to_thread(sync_openai_call)
-        logger.info(f"OpenAI call result: {result.choices[0].message.to_dict()}")
-        return {"response": result.choices[0].message.to_dict()}
+        msg_dict = result.choices[0].message.to_dict()
+        logger.info(f"OpenAI response: {msg_dict}")
+        return {"response": msg_dict}

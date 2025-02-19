@@ -17,7 +17,7 @@ from shared.crud.workflow_crud import (
     get_workflow_by_id_and_user,
     update_workflow,
 )
-from shared.models import Workflow, WorkflowCreate, WorkflowRead, WorkflowUpdate
+from shared.models import Workflow, WorkflowCreate, WorkflowRead, WorkflowStatus, WorkflowUpdate
 
 
 router = APIRouter(tags=["Workflows"])
@@ -85,6 +85,11 @@ async def update_workflow_endpoint(
     workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    if workflow.status != WorkflowStatus.DRAFT:
+        raise HTTPException(
+            status_code=400, detail="Only draft workflows can be updated"
+        )
 
     updated = await update_workflow(session, workflow, workflow_in)
     return updated

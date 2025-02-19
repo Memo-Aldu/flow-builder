@@ -1,23 +1,6 @@
 import { WorkflowExecution, WorkflowExecutionCreate, WorkflowExecutionUpdate } from "@/types/executions";
-import axios, { AxiosResponse } from "axios";
-
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-
-const getAuthHeaders = (token: string) => {
-  if (!token) {
-    throw new Error("User is not authenticated");
-  }
-  return { Authorization: `Bearer ${token}` };
-};
+import { api, getAuthHeaders } from "@/lib/api/axios";
+import { AxiosResponse } from "axios";
 
 
 export async function getExecutions(

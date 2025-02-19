@@ -46,7 +46,7 @@ class WorkflowBase(SQLModel):
     definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
 
     # Compiled or structured plan
-    execution_plan: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    execution_plan: Optional[List] = Field(default=None, sa_column=Column(JSON))
 
     cron: Optional[str] = None
     status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT)
@@ -93,7 +93,7 @@ class WorkflowUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
     definition: Optional[Dict] = None
-    execution_plan: Optional[Dict] = None
+    execution_plan: Optional[List] = None
     cron: Optional[str] = None
     status: Optional[WorkflowStatus] = None
     credits_cost: Optional[int] = None

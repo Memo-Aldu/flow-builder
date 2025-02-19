@@ -1,5 +1,4 @@
 from typing import Any, Dict, List
-
 from worker.runner.environment import Node, Environment
 
 
@@ -7,6 +6,8 @@ class NodeExecutor:
     """
     Base interface for all node executors.
     """
+    
+    __name__ = "Node Executor Base"
 
     required_input_keys: List[str] = []
     output_keys: List[str] = []
@@ -17,7 +18,8 @@ class NodeExecutor:
 
     def validate(self, node: Node, env: Environment) -> None:
         for key in self.required_input_keys:
-            if key not in node.inputs:
+            # Skip the "Web Page" key, which is a special key for the browser page.
+            if key not in node.inputs and key != "Web Page":
                 raise ValueError(
                     f"Missing required input key '{key}' in node {node.name}"
                 )
