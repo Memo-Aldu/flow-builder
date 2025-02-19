@@ -1,7 +1,9 @@
+from math import e
 from typing import Any, Dict
 from playwright.async_api import (
     async_playwright,
     Error as PlaywrightError,
+    TimeoutError as PlaywrightTimeoutError,
 )
 from shared.models import LogLevel
 from worker.runner.environment import Environment, Node
@@ -21,6 +23,7 @@ class LaunchBrowserNode(NodeExecutor):
     Can be used as a start node.
     Returns True if the browser was launched successfully.
     """
+    __name__ = "Launch Browser Node"
 
     required_input_keys = ["Website URL"]
     output_keys = ["Web Page"]
@@ -43,14 +46,25 @@ class LaunchBrowserNode(NodeExecutor):
                 phase.add_log("Launched Chromium browser.", LogLevel.DEBUG)
 
             page = await env.browser.new_page()
-            await page.goto(url)
+            response = await page.goto(url)
+            if not response:
+                raise ValueError(f"Failed to navigate to {url}.")
+            if response.status < 200 or response.status >= 400:
+                raise ValueError(f"Failed to navigate to {url}. Status code: {response.status}")
             phase.add_log(f"Browser navigated to {url}", LogLevel.INFO)
 
             env.page = page
             return {"Web Page": True}
+        
+        except PlaywrightTimeoutError:
+            logger.warning(f"Timeout error while launching browser to {url}.")
+            raise ValueError(f"Timeout error while launching browser to {url}.") from None
+        
         except PlaywrightError as e:
-            logger.warning(f"Error launching browser: {str(e)}")
-            raise e
+            friendly = (f"An unexpected browser error occurred while launching browser to {url}. "
+                        f"Original error: {type(e).__name__} - {str(e)}")
+            logger.warning(friendly)
+            raise ValueError(friendly) from e
 
 
 class FillInputNode(NodeExecutor):
@@ -59,6 +73,7 @@ class FillInputNode(NodeExecutor):
     Requires a browser page to be present in the environment.
     Return True if the input was filled successfully.
     """
+    __name__ = "Fill Input Node"
 
     required_input_keys = ["Selector", "Value"]
     output_keys = ["filled_input"]
@@ -76,14 +91,21 @@ class FillInputNode(NodeExecutor):
             raise ValueError("No browser page found in environment.")
         
         try:
-            await env.page.wait_for_selector(selector)
-            await env.page.click(selector)
+            await env.page.wait_for_selector(selector, timeout=5000)
             await env.page.fill(selector, value)
             phase.add_log(f"Filled '{selector}' successfully.", LogLevel.INFO)
             return {"filled_input": True}
+        
+        except PlaywrightTimeoutError:
+            friendly = f"Could not locate or interact with the input '{selector}' before the timeout expired."
+            logger.warning(friendly)
+            raise ValueError(friendly) from None
+        
         except PlaywrightError as e:
-            logger.warning(f"Error clicking element {selector}: {str(e)}")
-            raise e
+            friendly = (f"An unexpected browser error occurred while filling input '{selector}'. "
+                        f"Original error: {type(e).__name__} - {str(e)}")
+            logger.warning(friendly)
+            raise ValueError(friendly) from e
 
 
 class ClickElementNode(NodeExecutor):
@@ -92,6 +114,7 @@ class ClickElementNode(NodeExecutor):
     Requires a browser page to be present in the environment.
     Return True if the element was clicked successfully.
     """
+    __name__ = "Click Element Node"
 
     required_input_keys = ["Selector"]
     output_keys = ["clicked_element"]
@@ -108,10 +131,18 @@ class ClickElementNode(NodeExecutor):
             raise ValueError("No page found in environment")
 
         try:
-            await env.page.wait_for_selector(selector)
+            await env.page.wait_for_selector(selector, timeout=10000)
             await env.page.click(selector)
-            phase.add_log(f"Clicked {selector} successfully.", LogLevel.INFO)
+            phase.add_log(f"Clicked '{selector}' successfully.", LogLevel.INFO)
             return {"clicked_element": True}
+
+        except PlaywrightTimeoutError:
+            friendly = f"Could not locate or interact with the element '{selector}' before the timeout expired."
+            logger.warning(friendly)
+            raise ValueError(friendly) from None
+
         except PlaywrightError as e:
-            logger.warning(f"Error clicking element {selector}: {str(e)}")
-            raise e
+            friendly = (f"An unexpected browser error occurred while clicking element '{selector}'. "
+                        f"Original error: {type(e).__name__} - {str(e)}")
+            logger.warning(friendly)
+            raise ValueError(friendly) from None

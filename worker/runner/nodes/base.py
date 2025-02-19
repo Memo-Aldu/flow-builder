@@ -6,6 +6,8 @@ class NodeExecutor:
     """
     Base interface for all node executors.
     """
+    
+    __name__ = "Node Executor Base"
 
     required_input_keys: List[str] = []
     output_keys: List[str] = []

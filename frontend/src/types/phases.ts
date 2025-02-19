@@ -1,3 +1,5 @@
+import { TaskType } from "@/types/task"
+
 export enum ExecutionPhaseStatus {
     PENDING = "pending",
     RUNNING = "running",
@@ -9,7 +11,7 @@ export enum ExecutionPhaseStatus {
 export interface ExecutionPhase {
     workflow_execution_id: string;
     number: number;
-    name?: string;
+    name: TaskType;
     status: ExecutionPhaseStatus;
     started_at: string;
     completed_at: string | null;
@@ -17,15 +19,6 @@ export interface ExecutionPhase {
     inputs?: Record<string, any>;
     outputs?: Record<string, any>;
     credits_consumed?: number;
-    id: string;
-}
-  
-
-export interface ExecutionLog {
-    execution_phase_id: string;
-    log_level: "debug" | "info" | "warning" | "error";
-    message: string;
-    timestamp: string;
     id: string;
 }
   

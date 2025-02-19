@@ -25,6 +25,8 @@ class GetHTMLNode(NodeExecutor):
     Requires a browser page to be present in the environment.
     Returns the HTML content as a string.
     """
+    __name__ = "Get HTML Node"
+    
     output_keys = ["Html Content"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
@@ -41,7 +43,7 @@ class GetHTMLNode(NodeExecutor):
             return {"Html Content": html}
         except PlaywrightError as e:
             phase.add_log(f"Error getting page HTML: {str(e)}", level=LogLevel.ERROR)
-            raise e
+            raise ValueError(f"Error getting page HTML: {str(e)}")
         
         
 class GetTextFromHTMLNode(NodeExecutor):
@@ -49,6 +51,8 @@ class GetTextFromHTMLNode(NodeExecutor):
     Extracts text from the provided HTML content using the given CSS selector.
     Expects "Html" and "Selector" as inputs and returns {"Text": extracted_text}.
     """
+    __name__ = "Get Text From HTML Node"
+    
     required_input_keys = ["Html", "Selector"]
     output_keys = ["Text"]
 
@@ -67,7 +71,7 @@ class GetTextFromHTMLNode(NodeExecutor):
             soup = BeautifulSoup(html, "html.parser")
         except Exception as e:
             phase.add_log(f"Failed to parse HTML: {str(e)}", level=LogLevel.ERROR)
-            raise
+            raise ValueError(f"Failed to parse HTML: {str(e)}")
 
         try:
             elements = soup.select(selector)
@@ -81,7 +85,7 @@ class GetTextFromHTMLNode(NodeExecutor):
             return {"Text": extracted_text}
         except Exception as e:
             phase.add_log(f"Error extracting text: {str(e)}", level=LogLevel.ERROR)
-            raise
+            raise ValueError(f"Error extracting text: {str(e)}")
         
 
 
@@ -91,6 +95,7 @@ class OpenAICallNode(NodeExecutor):
     Requires a credential ID and prompt to be present in the environment.
     Returns the response from the OpenAI API.
     """
+    __name__ = "OpenAI Call Node"
 
     required_input_keys = ["API Key", "Prompt", "Content"]
     output_keys = ["Extracted Data"]
@@ -119,7 +124,7 @@ class OpenAICallNode(NodeExecutor):
             openai_api_key = get_secret_value(credential.secret_arn)
         except Exception as e:
             logger.warning(f"Error fetching secret from AWS: {str(e)}")
-            raise
+            raise ValueError(f"Error fetching secret: {str(e)}")
 
         openai.api_key = openai_api_key
 
@@ -129,7 +134,7 @@ class OpenAICallNode(NodeExecutor):
             return {"Extracted Data": response}
         except Exception as e:
             logger.warning(f"OpenAI call failed: {str(e)}")
-            raise
+            raise ValueError(f"OpenAI call failed: {str(e)}")
 
     async def call_openai_async(self, prompt: str, content: str) -> Dict[str, Any]:
 

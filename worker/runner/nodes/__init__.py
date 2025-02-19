@@ -16,3 +16,13 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "get_text_from_html": GetTextFromHTMLNode,
     "extract_data_openai": OpenAICallNode,
 }
+
+
+NODE_CREDIT_COSTS = {
+    "launch_browser": 5,
+    "fill_input": 1,
+    "click_element": 1,
+    "get_html": 2,
+    "get_text_from_html": 2,
+    "extract_data_openai": 4,
+}

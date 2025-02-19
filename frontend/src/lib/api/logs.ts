@@ -1,5 +1,5 @@
-import { ExecutionLog } from "@/types/phases";
 import { api, getAuthHeaders } from "@/lib/api/axios";
+import { ExecutionLog } from "@/types/logs";
 import { AxiosResponse } from "axios";
 
 
@@ -15,7 +15,7 @@ export async function getLog(
 }
   
 
-export async function listLogs(
+export async function getLogs(
     token: string,
     executionPhaseId: string
   ): Promise<ExecutionLog[]> {
