@@ -29,7 +29,9 @@ class WorkflowRunner:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def run_workflow(self, workflow: Workflow, execution: WorkflowExecution) -> ExecutionStatus:
+    async def run_workflow(
+        self, workflow: Workflow, execution: WorkflowExecution
+    ) -> ExecutionStatus:
         """
         Run the workflow by executing each node in the execution plan.
         """
@@ -59,7 +61,7 @@ class WorkflowRunner:
         execution: WorkflowExecution,
         phase_info: Dict[str, Any],
         edges: List[Dict[str, Any]],
-        env: Environment
+        env: Environment,
     ) -> None:
         """
         For each node in phase_info["nodes"], create a separate DB ExecutionPhase
@@ -78,45 +80,48 @@ class WorkflowRunner:
                 node_id = node_def["id"]
                 node_data = node_def["data"]
                 node_type = node_data["type"]
-                    
+
                 # Build final node inputs from node_data["inputs"] + edges
                 node_inputs = self.assemble_node_inputs(node_id, node_data, edges, env)
 
                 exec_phase_db = await self.create_phase(
-                    execution,node_inputs, node_type, phase_index
+                    execution, node_inputs, node_type, phase_index
                 )
-                
+
                 phase_env_obj = env.create_phase(exec_phase_db.id, node_type)
 
                 started_at = datetime.now()
-                await self.update_phase(exec_phase_db, {
-                    "status": ExecutionPhaseStatus.RUNNING,
-                    "started_at": started_at
-                })
+                await self.update_phase(
+                    exec_phase_db,
+                    {"status": ExecutionPhaseStatus.RUNNING, "started_at": started_at},
+                )
                 phase_env_obj.status = ExecutionPhaseStatus.RUNNING
                 phase_env_obj.start_time = started_at
-                
+
                 executor_cls = NODE_REGISTRY.get(node_type)
                 if not executor_cls:
                     err_msg = f"Node type {node_type} not found in registry"
                     phase_env_obj.add_log(err_msg, LogLevel.ERROR)
                     raise ValueError(err_msg)
 
-                node_obj = Node(
-                    id=uuid4(),
-                    name=executor_cls.__name__,
-                    type=node_type,
-                    start_time=datetime.now(),
-                    end_time=None,
-                    inputs=node_inputs,
-                    outputs={},
-                ) or {}
+                node_obj = (
+                    Node(
+                        id=uuid4(),
+                        name=executor_cls.__name__,
+                        type=node_type,
+                        start_time=datetime.now(),
+                        end_time=None,
+                        inputs=node_inputs,
+                        outputs={},
+                    )
+                    or {}
+                )
                 phase_env_obj.node = node_obj
                 phase_env_obj.add_log(f"Starting node: {executor_cls.__name__}")
                 logger.info(f"Starting node: {executor_cls.__name__}")
 
                 credits_consumed += NODE_CREDIT_COSTS.get(node_type, 0)
-                
+
                 # Instantiate the node executor and run the node
                 executor = executor_cls(self.session)
 
@@ -132,21 +137,27 @@ class WorkflowRunner:
                 phase_env_obj.add_log(str(e), LogLevel.ERROR)
                 await self.write_logs_to_db(exec_phase_db.id, phase_env_obj)
 
-                await self.update_phase(exec_phase_db, {
-                    "status": ExecutionPhaseStatus.FAILED,
-                    "completed_at": datetime.now(),
-                    "outputs": {},
-                    "credits_consumed": credits_consumed
-                })
+                await self.update_phase(
+                    exec_phase_db,
+                    {
+                        "status": ExecutionPhaseStatus.FAILED,
+                        "completed_at": datetime.now(),
+                        "outputs": {},
+                        "credits_consumed": credits_consumed,
+                    },
+                )
                 raise
         # Update the phase status to completed
-        await self.update_phase(exec_phase_db, {
-            "status": ExecutionPhaseStatus.COMPLETED,
-            "completed_at": datetime.now(),
-            "outputs": node_outputs,
-            "node": node_obj.to_dict(),
-            "credits_consumed": credits_consumed
-        })
+        await self.update_phase(
+            exec_phase_db,
+            {
+                "status": ExecutionPhaseStatus.COMPLETED,
+                "completed_at": datetime.now(),
+                "outputs": node_outputs,
+                "node": node_obj.to_dict(),
+                "credits_consumed": credits_consumed,
+            },
+        )
         await self.write_logs_to_db(exec_phase_db.id, phase_env_obj)
 
     def assemble_node_inputs(
@@ -154,7 +165,7 @@ class WorkflowRunner:
         node_id: str,
         node_data: Dict[str, Any],
         edges: List[Dict[str, Any]],
-        env: Environment
+        env: Environment,
     ) -> Dict[str, Any]:
         """
         Merges node_data["inputs"] + any edges referencing (target=nodeId).
@@ -177,13 +188,20 @@ class WorkflowRunner:
                     raise ValueError(f"Node outputs for {source_id} not found in env.")
                 source_outputs = env.resources[str(source_id)]
                 if source_handle not in source_outputs:
-                    raise ValueError(f"Output '{source_handle}' not in node {source_id}'s outputs.")
+                    raise ValueError(
+                        f"Output '{source_handle}' not in node {source_id}'s outputs."
+                    )
                 final_inputs[target_handle] = source_outputs[source_handle]
 
         return final_inputs
 
-    async def create_phase(self, execution: WorkflowExecution, inputs: Dict[str, Any],
-                                  node_type: str, phase_index: int) -> ExecutionPhase:
+    async def create_phase(
+        self,
+        execution: WorkflowExecution,
+        inputs: Dict[str, Any],
+        node_type: str,
+        phase_index: int,
+    ) -> ExecutionPhase:
         """
         Create an ExecutionPhase record for a single node, using the node_type as the name
         """
@@ -198,7 +216,9 @@ class WorkflowRunner:
             self.session, execution.id, execution.user_id, create_data
         )
 
-    async def update_phase(self, phase_db: ExecutionPhase, data: Dict[str, Any]) -> ExecutionPhase:
+    async def update_phase(
+        self, phase_db: ExecutionPhase, data: Dict[str, Any]
+    ) -> ExecutionPhase:
         phase_update = ExecutionPhaseUpdate(**data)
         return await update_phase(self.session, phase_db, phase_update)
 
@@ -208,15 +228,25 @@ class WorkflowRunner:
                 execution_phase_id=phase_id,
                 message=log_data["message"],
                 log_level=log_data["level"],
-                timestamp=log_data["timestamp"]
+                timestamp=log_data["timestamp"],
             )
             await create_log(self.session, log_entry)
         phase_obj.logs.clear()
 
-    async def update_execution_status(self, execution: WorkflowExecution, status: ExecutionStatus) -> None:
+    async def update_execution_status(
+        self, execution: WorkflowExecution, status: ExecutionStatus
+    ) -> None:
         update_data = WorkflowExecutionUpdate(
             status=status,
-            started_at=(datetime.now() if status == ExecutionStatus.RUNNING else execution.started_at),
-            completed_at=(datetime.now() if status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED) else None),
+            started_at=(
+                datetime.now()
+                if status == ExecutionStatus.RUNNING
+                else execution.started_at
+            ),
+            completed_at=(
+                datetime.now()
+                if status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED)
+                else None
+            ),
         )
         await update_execution(self.session, execution, update_data)
