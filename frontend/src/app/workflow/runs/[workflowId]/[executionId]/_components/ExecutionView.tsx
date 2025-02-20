@@ -23,6 +23,7 @@ import { ExecutionLog } from '@/types/logs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import PhaseStatus from './PhaseStatus'
+import CountUpWrapper from '@/components/CountUpWrapper'
 
 const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: WorkflowExecution, initialPhases: ExecutionPhase[] }) => {
     const { getToken } = useAuth();
@@ -103,7 +104,9 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
                             {executionQuery.data?.started_at ? formatDistanceToNow(new Date(executionQuery.data?.started_at), { addSuffix: true }) : 'N/A'}
                         </span>}/>
                     <ExecutionLabel icon={ClockIcon} label='Duration' value={duration ?? <Loader2Icon className='animate-spin' size={20}/>} />
-                    <ExecutionLabel icon={CoinsIcon} label='Credits used' value={creditsConsumed} />
+                    <ExecutionLabel icon={CoinsIcon} label='Credits used' value={
+                        <CountUpWrapper value={creditsConsumed} />
+                    } />
 
                 </div>
                 <Separator />

@@ -36,7 +36,7 @@ const UserCreditsBadge = () => {
         <span className="font-semibold capitalize">
             { query.isLoading && (<Loader2Icon className='h-4 w-4 animate-spin stroke-primary'/>)}
             { !query.isLoading && query.data && <CountUpWrapper value={query.data} />}
-            { !query.isLoading && query.isError && 'Error'}
+            { !query.isLoading && query.data === undefined && 'N/A'}
         </span>
     </Link>
   )
