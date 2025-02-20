@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.crud.balance_crud import decrement_balance
 from shared.models import (
     LogLevel,
     Workflow,
@@ -121,6 +122,10 @@ class WorkflowRunner:
                 logger.info(f"Starting node: {executor_cls.__name__}")
 
                 credits_consumed += NODE_CREDIT_COSTS.get(node_type, 0)
+                # Decrement user balance by the cost of running this node
+                await decrement_balance(
+                    self.session, execution.user_id, NODE_CREDIT_COSTS.get(node_type, 0)
+                )
 
                 # Instantiate the node executor and run the node
                 executor = executor_cls(self.session)
