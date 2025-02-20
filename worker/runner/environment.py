@@ -41,11 +41,7 @@ class Phase:
 
     def add_log(self, message: str, level: LogLevel = LogLevel.INFO) -> None:
         self.logs.append(
-            {
-                "message": message,
-                "level": level,
-                "timestamp": datetime.now()
-            }
+            {"message": message, "level": level, "timestamp": datetime.now()}
         )
 
 
@@ -54,6 +50,7 @@ class Environment:
     Holds ephemeral references and resources for the entire workflow run.
     Each node's outputs are stored in `resources[nodeId]`.
     """
+
     def __init__(self) -> None:
         self.phases: Dict[UUID, Phase] = {}
         self.browser: Optional[Browser] = None

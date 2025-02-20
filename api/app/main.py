@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from shared.db import init_db
-from api.app.routers import credentials, users, workflows, phases, logs
+from api.app.routers import balances, credentials, users, workflows, phases, logs
 from api.app.routers import executions, users, workflows, credentials
 
 
@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="Workflow Builder Service",
     summary="A service for building and executing workflows",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -31,6 +31,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(balances.router, prefix="/api/v1/balances", tags=["Balances"])
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["Workflows"])
 app.include_router(
     credentials.router, prefix="/api/v1/credentials", tags=["Credentials"]

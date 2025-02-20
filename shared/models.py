@@ -272,6 +272,16 @@ class UserBalance(UserBalanceBase, table=True):
     user: Optional["User"] = Relationship(back_populates="balance")
 
 
+class UserBalanceCreate(UserBalanceBase):
+    pass
+
+
+class UserBalanceRead(UserBalanceBase):
+    user_id: UUID
+    credits: int = 0
+    updated_at: datetime
+
+
 #
 # CREDENTIALS (e.g., for storing tokens securely)
 #

@@ -25,14 +25,14 @@ class GetHTMLNode(NodeExecutor):
     Requires a browser page to be present in the environment.
     Returns the HTML content as a string.
     """
+
     __name__ = "Get HTML Node"
-    
+
     output_keys = ["Html Content"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
         phase = env.get_phase_of_node(node.id)
-
 
         if env.page is None:
             raise ValueError("No browser page found in environment.")
@@ -44,15 +44,16 @@ class GetHTMLNode(NodeExecutor):
         except PlaywrightError as e:
             phase.add_log(f"Error getting page HTML: {str(e)}", level=LogLevel.ERROR)
             raise ValueError(f"Error getting page HTML: {str(e)}")
-        
-        
+
+
 class GetTextFromHTMLNode(NodeExecutor):
     """
     Extracts text from the provided HTML content using the given CSS selector.
     Expects "Html" and "Selector" as inputs and returns {"Text": extracted_text}.
     """
+
     __name__ = "Get Text From HTML Node"
-    
+
     required_input_keys = ["Html", "Selector"]
     output_keys = ["Text"]
 
@@ -64,7 +65,9 @@ class GetTextFromHTMLNode(NodeExecutor):
         html = node.inputs["Html"]
         selector = node.inputs["Selector"]
 
-        phase.add_log(f"Extracting text using selector '{selector}'.", level=LogLevel.INFO)
+        phase.add_log(
+            f"Extracting text using selector '{selector}'.", level=LogLevel.INFO
+        )
 
         try:
             # Parse the HTML content using BeautifulSoup.
@@ -81,12 +84,14 @@ class GetTextFromHTMLNode(NodeExecutor):
                 raise ValueError(msg)
 
             extracted_text = " ".join(el.get_text(strip=True) for el in elements)
-            phase.add_log(f"Extracted text (first 100 chars): {extracted_text[:100]}", level=LogLevel.INFO)
+            phase.add_log(
+                f"Extracted text (first 100 chars): {extracted_text[:100]}",
+                level=LogLevel.INFO,
+            )
             return {"Text": extracted_text}
         except Exception as e:
             phase.add_log(f"Error extracting text: {str(e)}", level=LogLevel.ERROR)
             raise ValueError(f"Error extracting text: {str(e)}")
-        
 
 
 class OpenAICallNode(NodeExecutor):
@@ -95,6 +100,7 @@ class OpenAICallNode(NodeExecutor):
     Requires a credential ID and prompt to be present in the environment.
     Returns the response from the OpenAI API.
     """
+
     __name__ = "OpenAI Call Node"
 
     required_input_keys = ["API Key", "Prompt", "Content"]
