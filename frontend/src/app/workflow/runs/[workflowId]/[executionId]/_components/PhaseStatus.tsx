@@ -3,7 +3,6 @@ import { CircleCheckIcon, CircleDashedIcon, CircleXIcon, Loader2Icon } from 'luc
 import React from 'react'
 
 const PhaseStatus = ( { status } : { status: ExecutionPhaseStatus}) => {
-    console.log(status)
     switch (status) {
         case ExecutionPhaseStatus.PENDING:
             return <CircleDashedIcon size={20} className='stroke-muted-foreground' />
