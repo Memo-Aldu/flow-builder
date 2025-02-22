@@ -1,3 +1,4 @@
+from enum import Enum
 from uuid import UUID
 from typing import Optional, List
 
@@ -5,6 +6,20 @@ from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import ExecutionPhase, ExecutionPhaseUpdate, ExecutionPhaseCreate
+
+
+class SortOrder(str, Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+
+class SortField(str, Enum):
+    STARTED_AT = "started_at"
+    COMPLETED_AT = "completed_at"
+    CREDITS_CONSUMED = "credits_consumed"
+    STATUS = "status"
+    NAME = "name"
+    NUMBER = "number"
 
 
 async def get_phase_by_id_and_user(
@@ -19,12 +34,28 @@ async def get_phase_by_id_and_user(
 
 
 async def get_phases_by_execution_and_user(
-    session: AsyncSession, execution_id: UUID, user_id: UUID
+    session: AsyncSession,
+    execution_id: UUID,
+    user_id: UUID,
+    page: int = 1,
+    limit: int = 10,
+    sort: SortField = SortField.STARTED_AT,
+    order: SortOrder = SortOrder.DESC,
 ) -> List[ExecutionPhase]:
     """Retrieve all phases for a given execution"""
-    stmt = select(ExecutionPhase).where(
-        ExecutionPhase.workflow_execution_id == execution_id,
-        ExecutionPhase.user_id == user_id,
+    stmt = (
+        select(ExecutionPhase)
+        .where(
+            ExecutionPhase.workflow_execution_id == execution_id,
+            ExecutionPhase.user_id == user_id,
+        )
+        .order_by(
+            getattr(ExecutionPhase, sort).desc()
+            if order == "desc"
+            else getattr(ExecutionPhase, sort).asc()
+        )
+        .offset((page - 1) * limit)
+        .limit(limit)
     )
     result = await session.execute(stmt)
     return [phase for phase in result.scalars().all()]

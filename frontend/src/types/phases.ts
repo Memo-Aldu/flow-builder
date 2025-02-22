@@ -21,4 +21,14 @@ export interface ExecutionPhase {
     credits_consumed?: number;
     id: string;
 }
+
+
+export enum ExecutionPhaseSortField {
+    NUMBER = "number",
+    NAME = "name",
+    STATUS = "status",
+    STARTED_AT = "started_at",
+    COMPLETED_AT = "completed_at",
+    CREDITS_CONSUMED = "credits_consumed",
+}
   

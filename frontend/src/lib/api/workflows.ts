@@ -4,15 +4,29 @@ import {
   WorkflowUpdateRequest,
   Workflow,
   WorkflowStatusEnum,
+  WorkflowSortField,
 } from "@/types/workflows";
 import { CreateWorkflowSchemaType, createWorkflowSchema } from "@/schema/workflow";
 import { api, getAuthHeaders } from "@/lib/api/axios";
 import { AxiosResponse } from "axios";
+import { SortDir } from "@/types/base";
 
 
-export async function getWorkflows(token: string): Promise<WorkflowListResponse> {
+export async function getWorkflows(
+  token: string,
+  page: number = 1,
+  limit: number = 10,
+  sortField: WorkflowSortField = WorkflowSortField.UPDATED_AT,
+  sortDir: SortDir = "desc"
+): Promise<WorkflowListResponse> {
   const response: AxiosResponse<WorkflowListResponse> = await api.get("/api/v1/workflows", {
     headers: getAuthHeaders(token),
+    params: {
+      page: page,
+      limit: limit,
+      sort: sortField,
+      order: sortDir
+    }
   });
   return response.data;
 }

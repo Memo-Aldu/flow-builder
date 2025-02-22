@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.execution_crud import (
+    SortField,
+    SortOrder,
     create_execution,
     get_executions_for_user,
     get_executions_by_workflow_id_and_user,
@@ -43,16 +45,22 @@ async def list_executions_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
     workflow_id: Optional[UUID] = Query(None, description="Filter by workflow ID"),
+    page: int = Query(1, ge=1, description="Current page number"),
+    limit: int = Query(10, le=100, description="Number of items per page"),
+    sort: SortField = Query(SortField.CREATED_AT, description="Sort field"),
+    order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[WorkflowExecution]:
     """Gets all executions for a given workflow ID or all executions for a user"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if workflow_id:
         executions = await get_executions_by_workflow_id_and_user(
-            session, workflow_id, local_user.id
+            session, workflow_id, local_user.id, page, limit, sort, order
         )
         return executions
 
-    executions = await get_executions_for_user(session, local_user.id)
+    executions = await get_executions_for_user(
+        session, local_user.id, page, limit, sort, order
+    )
     return executions
 
 

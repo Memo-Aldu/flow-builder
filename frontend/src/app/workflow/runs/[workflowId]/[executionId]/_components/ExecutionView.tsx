@@ -8,7 +8,7 @@ import { useAuth } from '@clerk/nextjs'
 
 import React, { Suspense, useEffect, useState } from 'react'
 import { CalendarIcon, CircleDashedIcon, ClockIcon, CoinsIcon, Loader2Icon, LucideIcon, WorkflowIcon } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, set } from 'date-fns'
 import { Separator } from '@/components/ui/separator'
 import { listPhases } from '@/lib/api/phases'
 import { Button } from '@/components/ui/button'
@@ -48,8 +48,7 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
         queryKey: ['phases', initialExecution.id],
         queryFn: async () => {
             if (!token) throw new Error("No token available");
-            return (await listPhases(token, initialExecution.id))
-            .toSorted((a, b) => a.started_at > b.started_at ? 1 : -1);
+            return listPhases(token, initialExecution.id)
         },
         refetchInterval: () => executionQuery.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
         enabled: !!token,
@@ -59,19 +58,7 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
     const isRunning = executionQuery.data?.status === ExecutionStatus.RUNNING;
 
     useEffect(() => {
-        const phases = phasesQuery.data;
-
-        if (isRunning && phases) {
-            const lastPhase = phases[phases.length - 1];
-            setSelectedPhase(lastPhase);
-        } else if (!isRunning && phases) {
-            const lastCompletedPhase = phases.toSorted(
-                (a, b) => a.completed_at! > b.completed_at! ? 1 : -1
-            )[phases.length - 1];
-            if (lastCompletedPhase) {
-                setSelectedPhase(lastCompletedPhase);
-            }
-        }
+        setSelectedPhase(phasesQuery.data[phasesQuery.data.length - 1]);
     }, [phasesQuery.data, isRunning, setSelectedPhase]);
 
     const duration = DatesToDurationString(

@@ -6,4 +6,9 @@ export interface ExecutionLog {
     timestamp: string;
     id: string;
 }
+
+export enum ExecutionLogSortField {
+    TIMESTAMP = "timestamp",
+    LOG_LEVEL = "log_level",
+}
   

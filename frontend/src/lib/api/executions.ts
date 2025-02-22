@@ -1,20 +1,28 @@
-import { WorkflowExecution, WorkflowExecutionCreate, WorkflowExecutionUpdate } from "@/types/executions";
+import { WorkflowExecution, WorkflowExecutionCreate, WorkflowExecutionSortField, WorkflowExecutionUpdate } from "@/types/executions";
 import { api, getAuthHeaders } from "@/lib/api/axios";
 import { AxiosResponse } from "axios";
+import { SortDir } from "@/types/base";
 
 
 export async function getExecutions(
-  token: string,
-  workflowId?: string
+  token: string, 
+  workflowId: string,
+  page: number = 1, 
+  limit: number = 10,
+  sortField: WorkflowExecutionSortField = WorkflowExecutionSortField.STARTED_AT,
+  sortDir: SortDir = "desc"
 ): Promise<WorkflowExecution[]> {
-  let url = "/api/v1/executions";
-  if (workflowId) {
-    url += `?workflow_id=${workflowId}`;
-  }
-  const response: AxiosResponse<WorkflowExecution[]> = await api.get(url, {
-    headers: getAuthHeaders(token),
+  const res = await api.get<WorkflowExecution[]>("/api/v1/executions", {
+    headers: { Authorization: `Bearer ${token}` },
+    params: {
+      workflow_id: workflowId,
+      page: page,
+      limit: limit,
+      sort: sortField,
+      order: sortDir
+    }
   });
-  return response.data.toSorted((a, b) => a.completed_at! < b.completed_at! ? 1 : -1)
+  return res.data;
 }
 
 

@@ -8,6 +8,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.log_crud import (
+    SortField,
+    SortOrder,
     get_log_by_id,
     get_logs_by_execution_phase_id,
 )
@@ -48,6 +50,10 @@ async def get_logs_endpoint(
     execution_phase_id: UUID = Query(..., description="Filter by execution phase ID"),
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
+    page: int = Query(1, ge=1, description="Current page number"),
+    limit: int = Query(10, le=100, description="Number of items per page"),
+    sort: SortField = Query(SortField.TIMESTAMP, description="Sort field"),
+    order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[ExecutionLog]:
     """Get all logs for a given execution phase ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
@@ -63,5 +69,7 @@ async def get_logs_endpoint(
             status_code=404, detail=f"Phase not found for id {execution_phase_id}"
         )
 
-    logs = await get_logs_by_execution_phase_id(session, execution_phase_id)
+    logs = await get_logs_by_execution_phase_id(
+        session, execution_phase_id, page, limit, sort, order
+    )
     return logs
