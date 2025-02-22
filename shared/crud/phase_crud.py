@@ -19,7 +19,7 @@ class SortField(str, Enum):
     CREDITS_CONSUMED = "credits_consumed"
     STATUS = "status"
     NAME = "name"
-    number = "number"
+    NUMBER = "number"
 
 
 async def get_phase_by_id_and_user(
