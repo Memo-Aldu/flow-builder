@@ -1,13 +1,15 @@
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.workflow_crud import (
+    SortField,
+    SortOrder,
     create_workflow,
     get_workflows_for_user,
     delete_workflow,
@@ -33,14 +35,19 @@ router = APIRouter(tags=["Workflows"])
 async def list_workflows_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
+    page: int = Query(1, ge=1, description="Current page number"),
+    limit: int = Query(10, le=100, description="Number of items per page"),
+    sort: SortField = Query(SortField.CREATED_AT, description="Sort field"),
+    order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[Workflow]:
     """Get all workflows for a given user"""
-    # TODO: Add pagination
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    workflows = await get_workflows_for_user(session, local_user.id)
+    workflows = await get_workflows_for_user(
+        session, local_user.id, page, limit, sort, order
+    )
     return workflows
 
 

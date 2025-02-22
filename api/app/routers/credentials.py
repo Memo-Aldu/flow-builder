@@ -2,7 +2,7 @@ from uuid import UUID
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
@@ -12,6 +12,8 @@ from api.app.crud.credentials_crud import (
 )
 from shared.db import get_session
 from shared.crud.credentials_crud import (
+    SortField,
+    SortOrder,
     get_credential_by_id_and_user,
     list_credentials_for_user,
 )
@@ -26,9 +28,15 @@ router = APIRouter(tags=["Credentials"])
 async def list_credentials_endpoint(
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
+    page: int = Query(1, ge=1, description="Current page number"),
+    limit: int = Query(10, le=100, description="Number of items per page"),
+    sort: SortField = Query(SortField.CREATED_AT, description="Sort field"),
+    order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[Credential]:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    creds = await list_credentials_for_user(session, local_user.id)
+    creds = await list_credentials_for_user(
+        session, local_user.id, page, limit, sort, order
+    )
     return creds
 
 
