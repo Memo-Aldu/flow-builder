@@ -14,7 +14,7 @@ export async function getExecutions(
   const response: AxiosResponse<WorkflowExecution[]> = await api.get(url, {
     headers: getAuthHeaders(token),
   });
-  return response.data;
+  return response.data.toSorted((a, b) => a.completed_at! < b.completed_at! ? 1 : -1)
 }
 
 
