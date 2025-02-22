@@ -14,7 +14,7 @@ class SortOrder(str, Enum):
 
 
 class SortField(str, Enum):
-    CREATED_AT = "timestamp"
+    TIMESTAMP = "timestamp"
     LEVEL = "log_level"
 
 
@@ -30,7 +30,7 @@ async def get_logs_by_execution_phase_id(
     execution_phase_id: UUID,
     page: int = 1,
     limit: int = 10,
-    sort: SortField = SortField.CREATED_AT,
+    sort: SortField = SortField.TIMESTAMP,
     order: SortOrder = SortOrder.DESC,
 ) -> List[ExecutionLog]:
     """Retrieve all logs for a given execution phase."""

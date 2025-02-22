@@ -52,7 +52,7 @@ async def get_logs_endpoint(
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),
-    sort: SortField = Query(SortField.CREATED_AT, description="Sort field"),
+    sort: SortField = Query(SortField.TIMESTAMP, description="Sort field"),
     order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[ExecutionLog]:
     """Get all logs for a given execution phase ID"""
