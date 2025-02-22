@@ -1,6 +1,7 @@
-import { ExecutionPhase } from "@/types/phases";
+import { ExecutionPhase, ExecutionPhaseSortField } from "@/types/phases";
 import { api, getAuthHeaders } from "@/lib/api/axios";
 import { AxiosResponse } from "axios";
+import { SortDir } from "@/types/base";
 
 
 export async function getPhase(
@@ -17,13 +18,23 @@ export async function getPhase(
 
 export async function listPhases(
   token: string,
-  executionId: string
+  executionId: string,
+  page: number = 1,
+  limit: number = 10,
+  sortField: ExecutionPhaseSortField = ExecutionPhaseSortField.STARTED_AT,
+  sortDir: SortDir = "asc"
 ): Promise<ExecutionPhase[]> {
   const response: AxiosResponse<ExecutionPhase[]> = await api.get(
     `/api/v1/phases`,
     {
       headers: getAuthHeaders(token),
-      params: { execution_id: executionId },
+      params: { 
+        execution_id: executionId,
+        page: page,
+        limit: limit,
+        sort: sortField,
+        order: sortDir
+      },
     }
   );
   return response.data;

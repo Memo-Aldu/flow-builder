@@ -11,6 +11,16 @@ export enum WorkflowStatusEnum {
     DISABLED = "disabled",
 }
 
+export enum WorkflowSortField {
+    NAME = "name",
+    CREATED_AT = "created_at",
+    UPDATED_AT = "updated_at",
+    STATUS = "status",
+    CREDITS_COST = "credits_cost",
+    LAST_RUN_AT = "last_run_at",
+    NEXT_RUN_AT = "next_run_at",
+}
+
 export type WorkflowExecutionPlanPhase = {
   phase: number;
   nodes: AppNode[];
