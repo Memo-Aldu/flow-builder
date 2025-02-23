@@ -38,26 +38,38 @@ class WorkflowRunner:
         """
         await self.update_execution(execution, ExecutionStatus.RUNNING)
 
-        phases_list = workflow.execution_plan or []
+        if not workflow.active_version:
+            logger.error(f"Workflow {workflow.id} has no active version.")
+            await self.update_execution(execution, ExecutionStatus.FAILED)
+            return ExecutionStatus.FAILED
 
-        definition = workflow.definition or {}
+        phases_list = workflow.active_version.execution_plan or []
+
+        definition = workflow.active_version.definition or {}
         all_edges = definition.get("edges", [])
-        
+
         env = Environment()
         total_credits_consumed = 0
-        
+
         try:
+            # Create all the phases in the DB first
             for phase_info in phases_list:
                 # run_nodes_in_phase returns the sum of credits used by that phase
-                phase_credits = await self.run_nodes_in_phase(execution, phase_info, all_edges, env)
+                phase_credits = await self.run_nodes_in_phase(
+                    execution, phase_info, all_edges, env
+                )
                 total_credits_consumed += phase_credits
 
             # If all phases succeed, mark execution as COMPLETED
-            await self.update_execution(execution, ExecutionStatus.COMPLETED, total_credits_consumed)
+            await self.update_execution(
+                execution, ExecutionStatus.COMPLETED, total_credits_consumed
+            )
             return ExecutionStatus.COMPLETED
         except Exception as e:
             logger.error(f"Workflow {workflow.id} execution failed: {str(e)}")
-            await self.update_execution(execution, ExecutionStatus.FAILED, total_credits_consumed)
+            await self.update_execution(
+                execution, ExecutionStatus.FAILED, total_credits_consumed
+            )
             return ExecutionStatus.FAILED
         finally:
             await env.cleanup()
@@ -96,7 +108,6 @@ class WorkflowRunner:
 
         return phase_credits_consumed
 
-
     async def run_node(
         self,
         execution: WorkflowExecution,
@@ -124,12 +135,13 @@ class WorkflowRunner:
         )
 
         phase_env_obj = env.create_phase(exec_phase_db.id, node_type)
-
+        await asyncio.sleep(1)
         started_at = datetime.now()
         await self.update_phase(
             exec_phase_db,
             {"status": ExecutionPhaseStatus.RUNNING, "started_at": started_at},
         )
+        await asyncio.sleep(2)
         phase_env_obj.status = ExecutionPhaseStatus.RUNNING
         phase_env_obj.start_time = started_at
 
@@ -183,7 +195,6 @@ class WorkflowRunner:
 
             env.resources[str(node_id)] = node_outputs
             return node_credits
-
 
     async def fail_phase(
         self,
@@ -265,7 +276,7 @@ class WorkflowRunner:
             credits_consumed=credits,
         )
         await update_execution(self.session, execution, update_data)
-        
+
     def assemble_node_inputs(
         self,
         node_id: str,
