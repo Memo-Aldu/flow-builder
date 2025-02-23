@@ -4,7 +4,15 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from shared.db import init_db
-from api.app.routers import balances, credentials, users, workflows, phases, logs
+from api.app.routers import (
+    balances,
+    credentials,
+    users,
+    workflows,
+    phases,
+    logs,
+    versions,
+)
 from api.app.routers import executions, users, workflows, credentials
 
 
@@ -33,6 +41,9 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(balances.router, prefix="/api/v1/balances", tags=["Balances"])
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["Workflows"])
+app.include_router(
+    versions.router, prefix="/api/v1/versions", tags=["WorkflowVersions"]
+)
 app.include_router(
     credentials.router, prefix="/api/v1/credentials", tags=["Credentials"]
 )
