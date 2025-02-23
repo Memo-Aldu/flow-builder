@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 from sqlmodel import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import (
@@ -15,8 +16,10 @@ async def get_workflow_by_id_and_user(
     session: AsyncSession, workflow_id: UUID, user_id: UUID
 ) -> Optional[Workflow]:
     """Fetch a workflow by ID, ensuring it belongs to the given user."""
-    stmt = select(Workflow).where(
-        Workflow.id == workflow_id, Workflow.user_id == user_id
+    stmt = (
+        select(Workflow).where(Workflow.id == workflow_id, Workflow.user_id == user_id)
+        # Pass the relationship name as a string
+        .options(selectinload(Workflow.active_version))  # type: ignore
     )
     result = await session.execute(stmt)
     return result.scalars().first()
@@ -26,7 +29,10 @@ async def update_workflow(
     session: AsyncSession, existing_workflow: Workflow, workflow_updates: WorkflowUpdate
 ) -> Workflow:
     """Apply partial updates to a workflow instance and save."""
-    update_data = workflow_updates.model_dump(exclude_unset=True)
+    update_data = workflow_updates.model_dump(
+        exclude_unset=True, exclude={"definition", "execution_plan"}
+    )
+    print(update_data)
     for field, value in update_data.items():
         setattr(existing_workflow, field, value)
     existing_workflow.updated_at = datetime.now()
