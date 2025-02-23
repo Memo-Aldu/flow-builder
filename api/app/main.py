@@ -42,7 +42,7 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(balances.router, prefix="/api/v1/balances", tags=["Balances"])
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["Workflows"])
 app.include_router(
-    versions.router, prefix="/api/v1/versions", tags=["WorkflowVersions"]
+    versions.router, prefix="/api/v1/workflows", tags=["WorkflowVersions"]
 )
 app.include_router(
     credentials.router, prefix="/api/v1/credentials", tags=["Credentials"]

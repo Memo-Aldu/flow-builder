@@ -107,27 +107,38 @@ async def update_workflow_endpoint(
             status_code=400, detail="Only draft workflows can be updated"
         )
 
-    definition = workflow_in.definition or {}
-    execution_plan = workflow_in.execution_plan or []
+    changed = partial_update_workflow(workflow, workflow_in)
+    if changed:
+        print("Versioned fields changed, creating new version")
+        new_version = await create_new_workflow_version(
+            session,
+            workflow_id,
+            local_user.id,
+            WorkflowVersionCreate(
+                version_number=-1,
+                definition=(
+                    workflow_in.definition
+                    if workflow_in.definition is not None
+                    else (
+                        workflow.active_version.definition
+                        if workflow.active_version
+                        else {}
+                    )
+                ),
+                execution_plan=(
+                    workflow_in.execution_plan
+                    if workflow_in.execution_plan is not None
+                    else (
+                        workflow.active_version.execution_plan
+                        if workflow.active_version
+                        else []
+                    )
+                ),
+            ),
+        )
+        workflow.active_version_id = new_version.id
 
-    new_version = await create_new_workflow_version(
-        session,
-        workflow_id,
-        local_user.id,
-        WorkflowVersionCreate(
-            version_number=-1,
-            definition=definition,
-            execution_plan=execution_plan,
-        ),
-    )
-
-    if not new_version:
-        raise HTTPException(status_code=500, detail="Failed to create new version")
-    workflow_in.active_version_id = new_version.id
-    # remove the definition and execution plan from the update
-    workflow_in.definition = None
-    workflow_in.execution_plan = None
-    updated = await update_workflow(session, workflow, workflow_in)
+    updated = await update_workflow(session, workflow, WorkflowUpdate())
     return updated
 
 
@@ -177,3 +188,50 @@ async def delete_workflow_endpoint(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     await delete_workflow(session, workflow)
+
+
+def partial_update_workflow(db_workflow: Workflow, patch_data: WorkflowUpdate) -> bool:
+    """
+    Returns True if any of the "versioned" fields changed, otherwise False.
+    """
+    versioned_fields_changed = False
+
+    if patch_data.name is not None:
+        if patch_data.name != db_workflow.name:
+            versioned_fields_changed = True
+        db_workflow.name = patch_data.name
+
+    if patch_data.description is not None:
+        if patch_data.description != db_workflow.description:
+            versioned_fields_changed = True
+        db_workflow.description = patch_data.description
+
+    if patch_data.cron is not None:
+        if patch_data.cron != db_workflow.cron:
+            versioned_fields_changed = True
+        db_workflow.cron = patch_data.cron
+
+    if patch_data.definition is not None:
+        old_definition = (
+            db_workflow.active_version.definition
+            if db_workflow.active_version and db_workflow.active_version.definition
+            else {}
+        )
+        old_def_no_vp = {k: v for k, v in old_definition.items() if k != "viewport"}
+        new_def_no_vp = {
+            k: v for k, v in patch_data.definition.items() if k != "viewport"
+        }
+        if old_def_no_vp != new_def_no_vp:
+            versioned_fields_changed = True
+
+    if patch_data.execution_plan is not None:
+        old_plan = (
+            db_workflow.active_version.execution_plan
+            if db_workflow.active_version
+            else []
+        )
+        if patch_data.execution_plan != old_plan:
+            versioned_fields_changed = True
+        # Same comment: actual storage is in the version table.
+
+    return versioned_fields_changed

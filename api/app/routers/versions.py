@@ -15,14 +15,14 @@ from api.app.crud.workflow_version_crud import (
 )
 from shared.crud.workflow_version_crud import get_workflow_version_by_id
 from shared.db import get_session
-from shared.models import WorkflowVersionCreate, WorkflowVersionRead
+from shared.models import WorkflowVersionRead
 
 
-router = APIRouter(tags=["Workflow Versions"])
+router = APIRouter(tags=["WorkflowVersions"])
 
 
 @router.get(
-    "/workflows/{workflow_id}/versions/{version_num}",
+    "/{workflow_id}/versions/number/{version_num}",
     response_model=WorkflowVersionRead,
 )
 async def get_version_by_number(
@@ -45,9 +45,7 @@ async def get_version_by_number(
     return WorkflowVersionRead.model_validate(workflow_version)
 
 
-@router.get(
-    "/workflows/{workflow_id}/versions/{version_id}", response_model=WorkflowVersionRead
-)
+@router.get("/{workflow_id}/versions/{version_id}", response_model=WorkflowVersionRead)
 async def get_version_by_id(
     workflow_id: UUID,
     version_id: UUID,
@@ -68,9 +66,7 @@ async def get_version_by_id(
     return WorkflowVersionRead.model_validate(workflow_version)
 
 
-@router.get(
-    "/workflows/{workflow_id}/versions", response_model=List[WorkflowVersionRead]
-)
+@router.get("/{workflow_id}/versions", response_model=List[WorkflowVersionRead])
 async def list_versions(
     workflow_id: UUID,
     user_info: dict = Depends(verify_clerk_token),

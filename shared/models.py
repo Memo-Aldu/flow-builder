@@ -147,8 +147,6 @@ class WorkflowVersion(WorkflowVersionBase, table=True):
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
     workflow_id: UUID = Field(foreign_key="workflow.id", index=True)
 
-    workflow_id: UUID = Field(foreign_key="workflow.id", index=True)
-
     workflow: "Workflow" = Relationship(
         back_populates="versions",
         sa_relationship_kwargs={
