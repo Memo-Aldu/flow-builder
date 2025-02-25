@@ -77,17 +77,17 @@ const FlowEditor = ({ workflow }: { workflow: Workflow }) => {
 
   useEffect(() => {
     try {
-      if (!workflow.definition) return;
-      setNodes(workflow.definition.nodes ?? []);
-      setEdges(workflow.definition.edges ?? []);
-      if (!workflow.definition.viewport) return;
-      const { x=0, y=0, zoom=1 } = workflow.definition.viewport;
+      if (!workflow.active_version) return;
+      setNodes(workflow.active_version.definition?.nodes ?? []);
+      setEdges(workflow.active_version.definition?.edges ?? []);
+      if (!workflow.active_version.definition?.viewport) return;
+      const { x=0, y=0, zoom=1 } = workflow.active_version.definition.viewport;
       setViewport({ x, y, zoom });
 
     } catch (error) {
 
     }
-  }, [workflow.definition, setEdges, setNodes, setViewport])
+  }, [workflow.active_version?.definition, setEdges, setNodes, setViewport])
 
   const isValidConnection = useCallback((connection: Edge | Connection) => {
     // Prevent connecting to self
