@@ -10,6 +10,11 @@ export const getWorkflowVersionByNumber = async (
 ): Promise<WorkflowVersion> => {
   const response: AxiosResponse<WorkflowVersion> = await api.get(`/api/v1/workflows/${workflowId}/versions/number/${versionNumber}`, {
     headers: getAuthHeaders(token)
+  }).catch((error) => {
+    if (error.response.status === 404) {
+      throw new Error(`Version ${versionNumber} not found`);
+    }
+    throw error;
   });
   return response.data;
 }

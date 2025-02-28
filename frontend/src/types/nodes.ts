@@ -8,9 +8,19 @@ export interface AppNodeData {
     outputs: Record<string, any>;
 }
 
+export interface TimelineNodeData {
+    [key: string]: any;
+    label: string;
+    createdBy?: string;
+}
+
 
 export interface AppNode extends Node {
     data: AppNodeData
+}
+
+export interface TimelineNode extends Node {
+
 }
 
 export type ParamProps = {

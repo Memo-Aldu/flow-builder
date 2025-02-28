@@ -12,3 +12,9 @@ export enum WorkflowVersionSortField {
     VERSION_NUMBER = "version_number",
     CREATED_BY = "created_by",
 }
+
+export const WorkflowVersionSortFieldLabels: Record<WorkflowVersionSortField, string> = {
+    [WorkflowVersionSortField.CREATED_AT]: "Created At",
+    [WorkflowVersionSortField.VERSION_NUMBER]: "Version Number",
+    [WorkflowVersionSortField.CREATED_BY]: "Created By",
+}
