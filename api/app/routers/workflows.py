@@ -134,6 +134,7 @@ async def update_workflow_endpoint(
                         else []
                     )
                 ),
+                parent_version_id=workflow.active_version_id,
             ),
         )
         workflow.active_version_id = new_version.id

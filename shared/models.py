@@ -139,6 +139,9 @@ class WorkflowVersionBase(SQLModel):
     created_by: Optional[UUID] = Field(
         default=None, description="User who created this version"
     )
+    parent_version_id: Optional[UUID] = Field(
+        default=None, foreign_key="workflow_version.id"
+    )
 
 
 class WorkflowVersion(WorkflowVersionBase, table=True):
@@ -152,6 +155,14 @@ class WorkflowVersion(WorkflowVersionBase, table=True):
         sa_relationship_kwargs={
             "foreign_keys": "[WorkflowVersion.workflow_id]",
             "primaryjoin": "Workflow.id == WorkflowVersion.workflow_id",
+        },
+    )
+    
+    parent_version: "WorkflowVersion" = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[WorkflowVersion.parent_version_id]",
+            "primaryjoin": "WorkflowVersion.id == WorkflowVersion.parent_version_id",
+            "uselist": False,
         },
     )
 
