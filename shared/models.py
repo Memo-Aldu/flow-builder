@@ -172,7 +172,7 @@ class WorkflowVersionCreate(WorkflowVersionBase):
 
 
 class WorkflowVersionRead(WorkflowVersionBase):
-    pass
+    id : UUID
 
 
 #
