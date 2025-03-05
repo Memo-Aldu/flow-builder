@@ -168,7 +168,7 @@ async def rollback_version(
     if not version:
         raise HTTPException(status_code=404, detail="Workflow version not found")
 
-    workflow.version_id = version_id
+    workflow.active_version_id = version_id
     updated = await update_workflow(session, workflow, WorkflowUpdate())
     return updated
 
