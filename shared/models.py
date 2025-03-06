@@ -159,7 +159,7 @@ class WorkflowVersion(WorkflowVersionBase, table=True):
             "primaryjoin": "Workflow.id == WorkflowVersion.workflow_id",
         },
     )
-    
+
     parent_version: "WorkflowVersion" = Relationship(
         sa_relationship_kwargs={
             "foreign_keys": "[WorkflowVersion.parent_version_id]",
@@ -174,7 +174,7 @@ class WorkflowVersionCreate(WorkflowVersionBase):
 
 
 class WorkflowVersionRead(WorkflowVersionBase):
-    id : UUID
+    id: UUID
 
 
 #

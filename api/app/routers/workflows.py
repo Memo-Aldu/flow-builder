@@ -169,15 +169,17 @@ async def rollback_version(
 
     version = await get_workflow_version_by_id(session, workflow_id, version_id)
     if not version:
-        raise HTTPException(status_code=404, detail="Workflow version not found")   
-    
+        raise HTTPException(status_code=404, detail="Workflow version not found")
+
     if version_id == workflow.active_version_id:
-        raise HTTPException(status_code=400, detail="Cannot rollback to the current active version")
-    
+        raise HTTPException(
+            status_code=400, detail="Cannot rollback to the current active version"
+        )
+
     if workflow.active_version:
         print("Deactivating current active version")
         workflow.active_version.is_active = False
-        
+
     version.is_active = True
     workflow.active_version_id = version_id
     updated = await update_workflow(session, workflow, WorkflowUpdate())
