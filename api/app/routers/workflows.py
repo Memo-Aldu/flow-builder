@@ -142,7 +142,16 @@ async def update_workflow_endpoint(
             workflow.active_version.is_active = False
         workflow.active_version_id = new_version.id
 
-    updated = await update_workflow(session, workflow, WorkflowUpdate())
+    if (
+        workflow_in.execution_plan is not None
+        and not changed
+        and workflow.active_version
+        and workflow.active_version.execution_plan != workflow_in.execution_plan
+    ):
+        print("Execution plan changed, creating new version")
+        workflow.active_version.execution_plan = workflow_in.execution_plan
+
+    updated = await update_workflow(session, workflow, workflow_in)
     return updated
 
 
@@ -237,15 +246,5 @@ def partial_update_workflow(db_workflow: Workflow, patch_data: WorkflowUpdate) -
         }
         if old_def_no_vp != new_def_no_vp:
             versioned_fields_changed = True
-
-    if patch_data.execution_plan is not None:
-        old_plan = (
-            db_workflow.active_version.execution_plan
-            if db_workflow.active_version
-            else []
-        )
-        if patch_data.execution_plan != old_plan:
-            versioned_fields_changed = True
-        # Same comment: actual storage is in the version table.
 
     return versioned_fields_changed

@@ -38,12 +38,21 @@ const useFlowDiff = (nodesA: AppNode[],
           changedKeys.push(key);
         }
       }
+      // Compare positions
+      const posA = nodeA.position || { x: 0, y: 0 };
+      const posB = nodeB.position || { x: 0, y: 0 };
+      if (posA.x !== posB.x || posA.y !== posB.y) {
+        changedKeys.push("_position");
+      }
+
+      // If anything changed, mark it in changedInputsMap
       if (changedKeys.length > 0) {
         changedInputsMapA.set(nodeA.id, changedKeys);
         changedInputsMapB.set(nodeB.id, changedKeys);
       }
     }
 
+    // For each node in B, if not in A => highlight B
     for (const nodeB of nodesB) {
       if (!nodeMapA.has(nodeB.id)) {
         highlightNodesB.push(nodeB.id);

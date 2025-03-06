@@ -68,7 +68,7 @@ const VersionCompare = ({ versionA, versionB, workflowId }: CompareProps) => {
 
   const styledNodesB = nodesB.map((node) => {
     if (highlightNodesB.includes(node.id)) {
-      return { ...node, style: { ...node.style, border: "2px solid !#facc15" } };
+      return { ...node, style: { ...node.style, border: "2px solid #facc15" } };
     }
     if (changedInputsMapB.has(node.id)) {
       return {
@@ -77,7 +77,7 @@ const VersionCompare = ({ versionA, versionB, workflowId }: CompareProps) => {
           ...node.data,
           changedInputs: changedInputsMapB.get(node.id),
         },
-        style: { ...node.style, border: "2px solid !#facc15" },
+        style: { ...node.style, border: "2px solid #facc15" },
       };
     }
     return node;
