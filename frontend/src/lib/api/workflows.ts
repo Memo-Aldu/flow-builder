@@ -80,6 +80,22 @@ export async function updateWorkflow(
 }
 
 
+export async function rollbackWorkflow(
+  workflowId: string,
+  versionId: string,
+  token: string
+): Promise<Workflow> {
+  const response: AxiosResponse<Workflow> = await api.patch(
+    `/api/v1/workflows/${workflowId}/rollback`, null, {
+    headers: getAuthHeaders(token),
+    params: {
+      version_id: versionId
+    }
+  });
+  return response.data;
+}
+
+
 export async function deleteWorkflow(
   workflowId: string,
   token: string

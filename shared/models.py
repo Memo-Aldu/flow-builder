@@ -1,6 +1,4 @@
-from calendar import c
 import enum
-from multiprocessing import Value
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Optional, List, Dict, ClassVar
@@ -12,6 +10,7 @@ class User(SQLModel, table=True):
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
     clerk_id: str = Field(index=True, unique=True)
     email: Optional[str] = None
+    username: Optional[str] = None
 
     workflows: List["Workflow"] = Relationship(
         back_populates="user", cascade_delete=True
@@ -42,11 +41,12 @@ class WorkflowStatus(str, enum.Enum):
 class WorkflowBase(SQLModel):
     name: str
     description: Optional[str] = None
-    # Store the blueprint of the workflow as JSON so it is queryable
-    definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
 
-    # Compiled or structured plan
-    execution_plan: Optional[List] = Field(default=None, sa_column=Column(JSON))
+    active_version_id: Optional[UUID] = Field(
+        default=None,
+        foreign_key="workflow_version.id",
+        description="References the workflow_version.id that is active",
+    )
 
     cron: Optional[str] = None
     status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT)
@@ -73,12 +73,31 @@ class Workflow(WorkflowBase, table=True):
         back_populates="workflow", cascade_delete=True
     )
 
+    versions: List["WorkflowVersion"] = Relationship(
+        back_populates="workflow",
+        sa_relationship_kwargs={
+            "foreign_keys": "[WorkflowVersion.workflow_id]",
+            "primaryjoin": "Workflow.id == WorkflowVersion.workflow_id",
+        },
+    )
+    active_version: Optional["WorkflowVersion"] = Relationship(
+        sa_relationship_kwargs={
+            "uselist": False,
+            "foreign_keys": "[Workflow.active_version_id]",
+            "primaryjoin": "WorkflowVersion.id == Workflow.active_version_id",
+        }
+    )
+
 
 # Schemas for creation, reading, updating
 class WorkflowCreate(WorkflowBase):
     """Fields allowed/required when creating a workflow."""
 
-    pass
+    name: str
+    description: Optional[str] = None
+    cron: Optional[str] = None
+    status: WorkflowStatus = WorkflowStatus.DRAFT
+    credits_cost: Optional[int] = None
 
 
 class WorkflowRead(WorkflowBase):
@@ -92,8 +111,6 @@ class WorkflowUpdate(SQLModel):
 
     name: Optional[str] = None
     description: Optional[str] = None
-    definition: Optional[Dict] = None
-    execution_plan: Optional[List] = None
     cron: Optional[str] = None
     status: Optional[WorkflowStatus] = None
     credits_cost: Optional[int] = None
@@ -101,6 +118,63 @@ class WorkflowUpdate(SQLModel):
     last_run_status: Optional[str] = None
     last_run_at: Optional[datetime] = None
     next_run_at: Optional[datetime] = None
+    definition: Optional[Dict] = None
+    execution_plan: Optional[List] = None
+    active_version_id: Optional[UUID] = None
+
+
+#
+# Workflow Versioning
+#
+
+
+class WorkflowVersionBase(SQLModel):
+    version_number: int = Field(
+        index=True, description="Monotonically increasing version number"
+    )
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    execution_plan: Optional[List] = Field(default=None, sa_column=Column(JSON))
+    is_active: Optional[bool] = Field(default=False)
+
+    created_by: Optional[str] = Field(
+        default=None, description="User who created this version"
+    )
+    parent_version_id: Optional[UUID] = Field(
+        default=None, foreign_key="workflow_version.id"
+    )
+
+
+class WorkflowVersion(WorkflowVersionBase, table=True):
+    __tablename__: ClassVar[str] = "workflow_version"
+
+    id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
+    workflow_id: UUID = Field(foreign_key="workflow.id", index=True)
+
+    workflow: "Workflow" = Relationship(
+        back_populates="versions",
+        sa_relationship_kwargs={
+            "foreign_keys": "[WorkflowVersion.workflow_id]",
+            "primaryjoin": "Workflow.id == WorkflowVersion.workflow_id",
+        },
+    )
+
+    parent_version: "WorkflowVersion" = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[WorkflowVersion.parent_version_id]",
+            "primaryjoin": "WorkflowVersion.id == WorkflowVersion.parent_version_id",
+            "uselist": False,
+        },
+    )
+
+
+class WorkflowVersionCreate(WorkflowVersionBase):
+    pass
+
+
+class WorkflowVersionRead(WorkflowVersionBase):
+    id: UUID
 
 
 #

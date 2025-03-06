@@ -2,6 +2,7 @@ import { LucideProps } from "lucide-react";
 import React from "react";
 import { TaskParam, TaskType } from "@/types/task";
 import { AppNode } from "@/types/nodes";
+import { WorkflowVersion } from "./versions";
 
 export type WorkflowStatus = "draft" | "active" | "disabled";
 
@@ -42,10 +43,9 @@ export type WorkflowTask = {
 export interface WorkflowCreateRequest {
   name: string;
   description?: string | null;
-  definition?: Record<string, any> | null;
-  execution_plan?: Record<string, any> | null;
   cron?: string | null;
   status: WorkflowStatus;
+  credits_cost?: number | null;
 }
 
 
@@ -61,6 +61,7 @@ export interface WorkflowUpdateRequest {
   last_run_status?: string | null;
   last_run_at?: string | null;
   next_run_at?: string | null;
+  active_version_id?: string | null;
 }
 
 
@@ -68,17 +69,18 @@ export interface Workflow {
   id: string;
   name: string;
   description?: string | null;
-  definition?: Record<string, any> | null;
-  execution_plan?: Record<string, any> | null;
   cron?: string | null;
   status: WorkflowStatus;
   created_at: string;
   updated_at: string;
   credits_cost?: number | null;
   last_run_id?: string | null;
+  active_version_id?: string | null;
   last_run_status?: string | null;
   last_run_at?: string | null;
   next_run_at?: string | null;
+  active_version?: WorkflowVersion | null;
+  versions?: WorkflowVersion[];
 }
 
 

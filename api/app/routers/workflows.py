@@ -14,6 +14,8 @@ from api.app.crud.workflow_crud import (
     get_workflows_for_user,
     delete_workflow,
 )
+from api.app.crud.workflow_version_crud import create_new_workflow_version
+from shared.crud.workflow_version_crud import get_workflow_version_by_id
 from shared.db import get_session
 from shared.crud.workflow_crud import (
     get_workflow_by_id_and_user,
@@ -25,6 +27,7 @@ from shared.models import (
     WorkflowRead,
     WorkflowStatus,
     WorkflowUpdate,
+    WorkflowVersionCreate,
 )
 
 
@@ -104,7 +107,91 @@ async def update_workflow_endpoint(
             status_code=400, detail="Only draft workflows can be updated"
         )
 
+    changed = partial_update_workflow(workflow, workflow_in)
+    if changed:
+        print("Versioned fields changed, creating new version")
+        new_version = await create_new_workflow_version(
+            session,
+            workflow_id,
+            local_user.username or str(local_user.id),
+            WorkflowVersionCreate(
+                is_active=True,
+                version_number=-1,
+                definition=(
+                    workflow_in.definition
+                    if workflow_in.definition is not None
+                    else (
+                        workflow.active_version.definition
+                        if workflow.active_version
+                        else {}
+                    )
+                ),
+                execution_plan=(
+                    workflow_in.execution_plan
+                    if workflow_in.execution_plan is not None
+                    else (
+                        workflow.active_version.execution_plan
+                        if workflow.active_version
+                        else []
+                    )
+                ),
+                parent_version_id=workflow.active_version_id,
+            ),
+        )
+        if workflow.active_version:
+            workflow.active_version.is_active = False
+        workflow.active_version_id = new_version.id
+
+    if (
+        workflow_in.execution_plan is not None
+        and not changed
+        and workflow.active_version
+        and workflow.active_version.execution_plan != workflow_in.execution_plan
+    ):
+        print("Execution plan changed, creating new version")
+        workflow.active_version.execution_plan = workflow_in.execution_plan
+
     updated = await update_workflow(session, workflow, workflow_in)
+    return updated
+
+
+@router.patch("/{workflow_id}/rollback", response_model=WorkflowRead)
+async def rollback_version(
+    workflow_id: UUID,
+    version_id: UUID = Query(..., description="Version ID to rollback to"),
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> Workflow:
+    """Rollback a workflow to a previous version"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    if workflow.status != WorkflowStatus.DRAFT:
+        raise HTTPException(
+            status_code=400, detail="Only draft workflows can be updated"
+        )
+
+    version = await get_workflow_version_by_id(session, workflow_id, version_id)
+    if not version:
+        raise HTTPException(status_code=404, detail="Workflow version not found")
+
+    if version_id == workflow.active_version_id:
+        raise HTTPException(
+            status_code=400, detail="Cannot rollback to the current active version"
+        )
+
+    if workflow.active_version:
+        print("Deactivating current active version")
+        workflow.active_version.is_active = False
+
+    version.is_active = True
+    workflow.active_version_id = version_id
+    updated = await update_workflow(session, workflow, WorkflowUpdate())
     return updated
 
 
@@ -124,3 +211,40 @@ async def delete_workflow_endpoint(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     await delete_workflow(session, workflow)
+
+
+def partial_update_workflow(db_workflow: Workflow, patch_data: WorkflowUpdate) -> bool:
+    """
+    Returns True if any of the "versioned" fields changed, otherwise False.
+    """
+    versioned_fields_changed = False
+
+    if patch_data.name is not None:
+        if patch_data.name != db_workflow.name:
+            versioned_fields_changed = True
+        db_workflow.name = patch_data.name
+
+    if patch_data.description is not None:
+        if patch_data.description != db_workflow.description:
+            versioned_fields_changed = True
+        db_workflow.description = patch_data.description
+
+    if patch_data.cron is not None:
+        if patch_data.cron != db_workflow.cron:
+            versioned_fields_changed = True
+        db_workflow.cron = patch_data.cron
+
+    if patch_data.definition is not None:
+        old_definition = (
+            db_workflow.active_version.definition
+            if db_workflow.active_version and db_workflow.active_version.definition
+            else {}
+        )
+        old_def_no_vp = {k: v for k, v in old_definition.items() if k != "viewport"}
+        new_def_no_vp = {
+            k: v for k, v in patch_data.definition.items() if k != "viewport"
+        }
+        if old_def_no_vp != new_def_no_vp:
+            versioned_fields_changed = True
+
+    return versioned_fields_changed
