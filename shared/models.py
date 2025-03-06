@@ -10,6 +10,7 @@ class User(SQLModel, table=True):
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
     clerk_id: str = Field(index=True, unique=True)
     email: Optional[str] = None
+    username: Optional[str] = None
 
     workflows: List["Workflow"] = Relationship(
         back_populates="user", cascade_delete=True
@@ -136,7 +137,7 @@ class WorkflowVersionBase(SQLModel):
     definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     execution_plan: Optional[List] = Field(default=None, sa_column=Column(JSON))
 
-    created_by: Optional[UUID] = Field(
+    created_by: Optional[str] = Field(
         default=None, description="User who created this version"
     )
     parent_version_id: Optional[UUID] = Field(
