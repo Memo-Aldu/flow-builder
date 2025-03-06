@@ -47,4 +47,4 @@ async def verify_clerk_token(request: Request) -> Optional[Dict[str, Any]]:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Unauthorized: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Unauthorized: {str(e)}") from e

@@ -113,7 +113,7 @@ async def update_workflow_endpoint(
         new_version = await create_new_workflow_version(
             session,
             workflow_id,
-            local_user.id,
+            local_user.username or str(local_user.id),
             WorkflowVersionCreate(
                 version_number=-1,
                 definition=(

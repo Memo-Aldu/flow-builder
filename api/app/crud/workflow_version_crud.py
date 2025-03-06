@@ -59,7 +59,7 @@ async def get_workflow_versions_by_workflow_id(
 async def create_new_workflow_version(
     session: AsyncSession,
     workflow_id: UUID,
-    user_id: UUID,
+    username: str,
     workflow_version: WorkflowVersionCreate,
 ) -> WorkflowVersion:
     stmt = select(func.max(WorkflowVersion.version_number)).where(
@@ -71,7 +71,7 @@ async def create_new_workflow_version(
 
     new_version = WorkflowVersion(
         workflow_id=workflow_id,
-        created_by=user_id,
+        created_by=username,
         version_number=new_version_num,
         **workflow_version.model_dump(
             exclude={"workflow_id", "version_number", "created_by"}
