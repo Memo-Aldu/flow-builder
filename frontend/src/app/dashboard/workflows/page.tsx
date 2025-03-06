@@ -41,7 +41,6 @@ const UserWorkflowSkeleton = () => {
 
 
 const UserWorkflows = async () => {
-  // 2. Retrieve user/token from Clerk in a server component
   const { userId, getToken } = await auth()
 
   if (!userId) {
