@@ -249,13 +249,7 @@ const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
 
                   {/* Created By */}
                   <TableCell className="text-center">
-                    {version.created_by ? (
-                      <Badge variant="outline" className="uppercase">
-                        {version.created_by}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">unknown</span>
-                    )}
+                    <span className="text-sm">{version.created_by ?? "unknown"}</span>
                   </TableCell>
 
                   {/* Created At */}

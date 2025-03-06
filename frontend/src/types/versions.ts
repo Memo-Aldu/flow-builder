@@ -1,4 +1,5 @@
 export interface WorkflowVersion {
+    id: string;
     version_number: number;
     created_at: string;
     definition: Record<string, any> | null;

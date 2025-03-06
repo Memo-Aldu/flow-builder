@@ -12,8 +12,10 @@ export interface TimelineNodeData {
     [key: string]: any;
     label: string;
     createdBy?: string;
+    createdAt?: string;
+    isLatest?: boolean;
+    isSelected?: boolean;
 }
-
 
 export interface AppNode extends Node {
     data: AppNodeData
