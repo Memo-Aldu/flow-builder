@@ -76,11 +76,8 @@ const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
   const [selectedVersions, setSelectedVersions] = useState<WorkflowVersion[]>([]);
 
   const latestVersion = useMemo(() => {
-    if (!query.data?.length) return null;
-    return query.data.reduce((acc, v) =>
-      v.version_number > acc.version_number ? v : acc,
-      query.data[0]
-    );
+    if (!query.data) return null;
+    return query.data.find((v) => v.is_active);
   }, [query.data])
 
   const toggleVersion = (version: WorkflowVersion) => {

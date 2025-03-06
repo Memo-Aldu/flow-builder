@@ -13,7 +13,6 @@ const nodeHeight = 150;
 const buildTimeline = (versions: WorkflowVersion[]) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  const latestVersion = versions.reduce((acc, v) => (v.version_number > acc.version_number ? v : acc), versions[0]);
 
   versions.forEach((v) => {
     nodes.push({
@@ -23,8 +22,8 @@ const buildTimeline = (versions: WorkflowVersion[]) => {
         label: `Version ${v.version_number}`,
         createdBy: v.created_by,
         createdAt: v.created_at,
-        isLatest: latestVersion.id === v.id,
-        isSelected: false,
+        isLatest: v.is_active,
+        isSelected: v.is_active
       } as TimelineNodeData,
       position: { x: 0, y: 0 },
     });

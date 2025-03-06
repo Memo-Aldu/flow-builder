@@ -19,7 +19,7 @@ const TimelineNodeComponent = memo((props: NodeProps) => {
   return (
     <div
       className={cn(
-        "group relative flex flex-col items-start p-3 border gap-1 rounded shadow min-w-[180px] max-w-[240px] text-left cursor-pointer transition-colors",
+        "group relative flex flex-col items-start p-3 border gap-1 rounded shadow min-w-[200px] max-w-[240px] text-left cursor-pointer transition-colors",
         nodeData.isSelected
           ? "bg-accent border-primary"
           : "bg-background border-border hover:bg-accent/30"

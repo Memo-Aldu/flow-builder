@@ -2,7 +2,6 @@ import { getWorkflowVersionByNumber } from '@/lib/api/versions';
 import { auth } from '@clerk/nextjs/server';
 import React, { Suspense } from 'react'
 import VersionCompare from '@/app/workflow/versions/[workflowId]/compare/_components/VersionCompare';
-import { ReactFlowProvider } from '@xyflow/react';
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
 import { InboxIcon, Loader2Icon } from 'lucide-react';
 
@@ -19,7 +18,6 @@ const compare = async ({ params, searchParams }: CompareProps) => {
   const { version_1, version_2 } = resolvedSearchParams;
 
   return (
-    <ReactFlowProvider>
       <div className='w-full h-full overflow-auto'>
           <TopBar workflowId={workflowId}
             hideButtons
@@ -36,7 +34,6 @@ const compare = async ({ params, searchParams }: CompareProps) => {
             <CompareVersionsWrapper workflowId={workflowId} version_1={Number(version_1)} version_2={Number(version_2)}/>
       </Suspense>
       </div>
-    </ReactFlowProvider>
   )
 }
 
@@ -102,7 +99,7 @@ const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { w
 
   return (
     <div className="container w-full py-6">
-      <VersionCompare versionA={vA} versionB={vB} />
+      <VersionCompare versionA={vA} versionB={vB} workflowId={workflowId} />
     </div>
   )
 }

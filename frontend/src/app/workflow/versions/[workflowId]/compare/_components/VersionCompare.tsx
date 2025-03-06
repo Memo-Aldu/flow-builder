@@ -1,51 +1,136 @@
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+"use client";
+
 import { WorkflowVersion } from '@/types/versions'
-import { format } from 'date-fns/format';
 import React from 'react'
+import { Edge } from '@xyflow/react';
+import { AppNode } from '@/types/nodes';
+import VersionCard from './VersionCard';
+import useFlowDiff from '@/hooks/use-FlowDiff';
+import { useAuth } from '@clerk/nextjs';
+import { rollbackWorkflow } from '@/lib/api/workflows';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 
 type CompareProps = {
     versionA: WorkflowVersion;
     versionB: WorkflowVersion;
+    workflowId: string;
 }
 
-const VersionCompare = ({ versionA, versionB } : CompareProps) => {
+const VersionCompare = ({ versionA, versionB, workflowId }: CompareProps) => {
+  const { getToken } = useAuth();
+  const router = useRouter();
+  
+  const nodesA = (versionA.definition?.nodes as AppNode[]) || [];
+  const edgesA = (versionA.definition?.edges as Edge[]) || [];
+  const viewportA = versionA.definition?.viewport || { x: 0, y: 0, zoom: 1 };
+
+  const nodesB = (versionB.definition?.nodes as AppNode[]) || [];
+  const edgesB = (versionB.definition?.edges as Edge[]) || [];
+  const viewportB = versionB.definition?.viewport || { x: 0, y: 0, zoom: 1 };
+
+  const {
+    highlightNodesA,
+    highlightNodesB,
+    changedInputsMapA,
+    changedInputsMapB,
+    highlightEdgesA,
+    highlightEdgesB,
+  } = useFlowDiff(nodesA, edgesA, nodesB, edgesB);
+
+  const styledNodesA = nodesA.map((node) => {
+    if (highlightNodesA.includes(node.id)) {
+      return { ...node, style: { ...node.style, border: "2px solid #facc15" } };
+    }
+    if (changedInputsMapA.has(node.id)) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          changedInputs: changedInputsMapA.get(node.id),
+        },
+        style: { ...node.style, border: "2px solid #facc15" },
+      };
+    }
+    return node;
+  });
+
+  const styledEdgesA = edgesA.map((edge) => {
+    if (edge.id && highlightEdgesA.includes(edge.id)) {
+      return {
+        ...edge,
+        style: { ...edge.style, stroke: "#facc15", strokeWidth: 2 },
+      };
+    }
+    return edge;
+  });
+
+  const styledNodesB = nodesB.map((node) => {
+    if (highlightNodesB.includes(node.id)) {
+      return { ...node, style: { ...node.style, border: "2px solid !#facc15" } };
+    }
+    if (changedInputsMapB.has(node.id)) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          changedInputs: changedInputsMapB.get(node.id),
+        },
+        style: { ...node.style, border: "2px solid !#facc15" },
+      };
+    }
+    return node;
+  });
+
+  const styledEdgesB = edgesB.map((edge) => {
+    if (edge.id && highlightEdgesB.includes(edge.id)) {
+      return {
+        ...edge,
+        style: { ...edge.style, stroke: "#facc15", strokeWidth: 2 },
+      };
+    }
+    return edge;
+  });
+
+  const onRollbackVersion = async (versionId: string) => {
+    console.log("Rollback version", versionId, "in workflow", workflowId);
+    const token = await getToken();
+    if (!token) {
+      return;
+    }
+    try {
+      await rollbackWorkflow(workflowId, versionId, token);
+      toast.success(`Rolled back to version ${versionA.id === versionId ? 
+        versionA.version_number : versionB.version_number}`);
+      router.push(`/workflow/versions/${workflowId}`);
+    }
+    catch (error) {
+      toast.error("Failed to rollback version");
+      console.error("Failed to rollback version", error);
+    }
+
+  };
+
   return (
     <div className="w-full h-full flex">
       {/* Left version */}
-      <Card className="flex-1 h-full rounded-none border-r">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            Version {versionA.version_number}
-            <Badge variant="outline">
-              {format(new Date(versionA.created_at), "yyyy-MM-dd HH:mm")}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-[calc(100%-60px)] p-0">
-          <div className="">
-            TODO - Display version A
-          </div>
-        </CardContent>
-      </Card>
+      <VersionCard
+        version={versionA}
+        nodes={styledNodesA}
+        edges={styledEdgesA}
+        viewport={viewportA}
+        onRollback={onRollbackVersion}
+      />
 
       {/* Right version */}
-      <Card className="flex-1 h-full rounded-none border-l">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            Version {versionB.version_number}
-            <Badge variant="outline">
-              {format(new Date(versionB.created_at), "yyyy-MM-dd HH:mm")}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-[calc(100%-60px)] p-0">
-          <div className="">
-            TODO - Display version B
-          </div>
-        </CardContent>
-      </Card>
+      <VersionCard
+        version={versionB}
+        nodes={styledNodesB}
+        edges={styledEdgesB}
+        viewport={viewportB}
+        onRollback={onRollbackVersion}
+      />
     </div>
   );
 }

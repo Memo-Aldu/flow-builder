@@ -29,7 +29,7 @@ const VersionControl = ({ workflowId, initialData }: Props) => {
         queryKey: ["versions", workflowId],
         queryFn: async () => {
             if (!token) return [];
-            return await getWorkflowVersions(workflowId, token);
+            return await getWorkflowVersions(workflowId, token, 1, 50);
         },
 
         refetchInterval: 10000,
