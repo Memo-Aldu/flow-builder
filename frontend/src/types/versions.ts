@@ -6,6 +6,7 @@ export interface WorkflowVersion {
     execution_plan: Record<string, any> | null;
     created_by: string | null;
     parent_version_id: string | null;
+    is_active: boolean;
 }
 
 

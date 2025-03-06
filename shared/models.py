@@ -136,6 +136,7 @@ class WorkflowVersionBase(SQLModel):
 
     definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     execution_plan: Optional[List] = Field(default=None, sa_column=Column(JSON))
+    is_active: Optional[bool] = Field(default=False)
 
     created_by: Optional[str] = Field(
         default=None, description="User who created this version"
