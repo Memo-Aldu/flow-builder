@@ -36,11 +36,11 @@ const SaveBtn = ({ workflowId }: { workflowId: string }) => {
     variant={'outline'} 
     className='flex items-center gap-2'
     onClick={() => {
+        toast.loading("Saving workflow", { id: "save-workflow" });
         const workflowDef = toObject()
         const workflowUpdateRequest: WorkflowUpdateRequest = {
             definition: workflowDef
         }
-        toast.loading("Saving workflow", { id: "save-workflow" });
         mutate({ id: workflowId, values: workflowUpdateRequest })
     }}> 
         <CheckIcon size={16} className='stroke-green-400'/>

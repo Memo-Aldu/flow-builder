@@ -1,9 +1,9 @@
+import { WorkflowPublishRequest } from './../../types/workflows';
 import {
   WorkflowListResponse,
   WorkflowSingleResponse,
   WorkflowUpdateRequest,
   Workflow,
-  WorkflowStatusEnum,
   WorkflowSortField,
 } from "@/types/workflows";
 import { CreateWorkflowSchemaType, createWorkflowSchema } from "@/schema/workflow";
@@ -41,7 +41,7 @@ export async function createWorkflow(
     throw new Error("Invalid form data");
   }
 
-  const payload = { ...data, status: WorkflowStatusEnum.DRAFT };
+  const payload = { ...data, status: 'draft' };
 
   const response: AxiosResponse<Workflow> = await api.post("/api/v1/workflows", payload, {
     headers: getAuthHeaders(token),
@@ -76,6 +76,32 @@ export async function updateWorkflow(
       headers: getAuthHeaders(token),
     }
   );
+  return response.data;
+}
+
+export async function publishWorkflow(
+  WorkflowPublishRequest: WorkflowPublishRequest,
+  workflowId: string,
+  token: string
+): Promise<Workflow> {
+  const response: AxiosResponse<Workflow> = await api.patch(
+    `/api/v1/workflows/${workflowId}/publish`,
+    WorkflowPublishRequest,
+    {
+      headers: getAuthHeaders(token),
+    }
+  );
+  return response.data;
+}
+
+export async function unPublishWorkflow(
+  workflowId: string,
+  token: string
+): Promise<Workflow> {
+  const response: AxiosResponse<Workflow> = await api.patch(
+    `/api/v1/workflows/${workflowId}/unpublish`, null, {
+    headers: getAuthHeaders(token),
+  });
   return response.data;
 }
 

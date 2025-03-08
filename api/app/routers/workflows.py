@@ -1,3 +1,4 @@
+from turtle import pu
 from uuid import UUID
 from typing import List
 
@@ -24,6 +25,7 @@ from shared.crud.workflow_crud import (
 from shared.models import (
     Workflow,
     WorkflowCreate,
+    WorkflowPublish,
     WorkflowRead,
     WorkflowStatus,
     WorkflowUpdate,
@@ -153,6 +155,89 @@ async def update_workflow_endpoint(
 
     updated = await update_workflow(session, workflow, workflow_in)
     return updated
+
+
+@router.patch("/{workflow_id}/publish", response_model=WorkflowRead)
+async def publish_workflow(
+    workflow_id: UUID,
+    publish_request: WorkflowPublish,
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> Workflow:
+    """Publish a workflow"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    if workflow.status != WorkflowStatus.DRAFT:
+        raise HTTPException(
+            status_code=400, detail="Only draft workflows can be published"
+        )
+
+    if (
+        not publish_request
+        or not publish_request.definition
+        or not publish_request.execution_plan
+        or not publish_request.credits_cost
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Definition, execution plan and credits cost must be provided",
+        )
+
+    if not workflow.active_version:
+        version = await create_new_workflow_version(
+            session,
+            workflow_id,
+            local_user.username or str(local_user.id),
+            WorkflowVersionCreate(
+                is_active=True,
+                version_number=-1,
+                definition=publish_request.definition,
+                execution_plan=publish_request.execution_plan,
+            ),
+        )
+        workflow.active_version_id = version.id
+    else:
+        version = workflow.active_version
+        version.definition = publish_request.definition
+        version.execution_plan = publish_request.execution_plan
+
+    workflow.credits_cost = publish_request.credits_cost
+    workflow.status = WorkflowStatus.PUBLISHED
+    updated = await update_workflow(session, workflow, WorkflowUpdate())
+    return updated
+
+
+@router.patch("/{workflow_id}/unpublish", response_model=WorkflowRead)
+async def unpublish_workflow(
+    workflow_id: UUID,
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> Workflow:
+    """Unpublish a workflow"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    if workflow.status != WorkflowStatus.PUBLISHED:
+        raise HTTPException(
+            status_code=400, detail="Only published workflows can be unpublished"
+        )
+    if workflow.active_version:
+        workflow.active_version.execution_plan = []
+    return await update_workflow(session, workflow, WorkflowUpdate(
+        credits_cost=0,
+        status=WorkflowStatus.DRAFT
+    ))
 
 
 @router.patch("/{workflow_id}/rollback", response_model=WorkflowRead)

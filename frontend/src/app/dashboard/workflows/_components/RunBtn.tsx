@@ -1,38 +1,21 @@
-"use client";
-
-import useExecutionPlan from '@/components/hooks/useExecutionPlan';
 import { Button } from '@/components/ui/button';
 import { createExecution } from '@/lib/api/executions';
-import { updateWorkflow } from '@/lib/api/workflows';
 import { ExecutionStatus, ExecutionTrigger, WorkflowExecutionCreate } from '@/types/executions';
-import { WorkflowUpdateRequest } from '@/types/workflows';
 import { useAuth } from '@clerk/nextjs';
 import { useMutation } from '@tanstack/react-query';
 import { PlayIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation';
 import React from 'react'
 import { toast } from 'sonner';
 
-
-type ExecuteBtnProps = {
-    workflowId: string,
-    isPublished: boolean,
-}
-
-
-const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
-  const generate  = useExecutionPlan()
+const RunBtn = ({ workflowId } : {workflowId : string}) => {
   const { getToken } = useAuth();
   const router = useRouter();
-
   const mutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string, values: WorkflowUpdateRequest }) => {
+    mutationFn: async ({ id }: { id: string }) => {
       const token  = await getToken();
       if (!token) {
         throw new Error("User not authenticated");
-      }
-      if (!isPublished) {
-        await updateWorkflow(id, values, token)
       }
       const workflowExecution: WorkflowExecutionCreate = {
         workflow_id: id,
@@ -51,20 +34,16 @@ const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
       toast.error("Execution Failed", { id: "execution-started" });
   }})
   return (
-    <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
+    <Button variant={'outline'} className='flex items-center gap-2' size={'sm'}
+    disabled={mutation.isPending} 
+    onClick={() => {
         toast.loading("Starting Execution", { id: "execution-started" });
-        const plan = generate()
-        if (!plan) {
-            return 
-        }
-        const workflowUpdateRequest = { execution_plan: plan } as WorkflowUpdateRequest
-        mutation.mutate({ id: workflowId, values: workflowUpdateRequest })
-    }}
-    >
+        mutation.mutate({ id: workflowId })
+    }}>
         <PlayIcon size={16} className='stroke-green-400'/>
-        Execute
+        Run
     </Button>
   )
 }
 
-export default ExecuteBtn
+export default RunBtn

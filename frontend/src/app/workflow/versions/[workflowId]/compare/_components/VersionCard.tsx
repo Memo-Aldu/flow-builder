@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { GitBranch, RotateCcw, User } from "lucide-react";
 import { ReactFlowProvider, Edge, Node } from "@xyflow/react";
 import { WorkflowVersion } from "@/types/versions";
-import ReadOnlyFlowViewer from "./ReadOnlyFlowViewer";
+import ReadOnlyFlowViewer from "../../../../../../components/ReadOnlyFlowViewer";
 import { format } from "date-fns/format";
 
 type VersionCardProps = {
