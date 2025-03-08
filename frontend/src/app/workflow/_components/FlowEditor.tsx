@@ -22,6 +22,7 @@ import NodeComponent from '@/app/workflow/_components/nodes/NodeComponent';
 import { AppNode } from '@/types/nodes';
 import DeletableEdge from '@/app/workflow/_components/edges/DeletableEdge';
 import { TaskRegistry } from '@/lib/workflow/task/registry';
+import ReadOnlyFlowViewer from '@/components/ReadOnlyFlowViewer';
 
 const nodeTypes = {
     FlowBuilderNode: NodeComponent
@@ -34,7 +35,7 @@ const edgeTypes = {
 const snapGrid: [number, number] = [50, 50];
 const fitViewOptions = { padding: 0.5 };
 
-const FlowEditor = ({ workflow }: { workflow: Workflow }) => {
+const FlowEditor = ({ workflow, isPublished }: { workflow: Workflow, isPublished: boolean }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { setViewport, screenToFlowPosition, updateNodeData } = useReactFlow();
@@ -124,6 +125,13 @@ const FlowEditor = ({ workflow }: { workflow: Workflow }) => {
 
   return (
     <main className='h-full w-full'>
+      { isPublished ? (
+        <ReadOnlyFlowViewer
+          nodes={nodes}
+          edges={edges}>
+
+        </ReadOnlyFlowViewer>
+      ) : (
         <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -143,6 +151,7 @@ const FlowEditor = ({ workflow }: { workflow: Workflow }) => {
             <Controls position='top-left' fitViewOptions={fitViewOptions}/>
             <Background variant={BackgroundVariant.Dots} gap={24} size={1}/>
         </ReactFlow>
+      )}
     </main>
   )
 }

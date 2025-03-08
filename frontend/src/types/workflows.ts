@@ -4,13 +4,7 @@ import { TaskParam, TaskType } from "@/types/task";
 import { AppNode } from "@/types/nodes";
 import { WorkflowVersion } from "./versions";
 
-export type WorkflowStatus = "draft" | "active" | "disabled";
-
-export enum WorkflowStatusEnum {
-    DRAFT = "draft",
-    ACTIVE = "active",
-    DISABLED = "disabled",
-}
+export type WorkflowStatus = "draft" | "published" | "disabled";
 
 export enum WorkflowSortField {
     NAME = "name",
@@ -62,6 +56,13 @@ export interface WorkflowUpdateRequest {
   last_run_at?: string | null;
   next_run_at?: string | null;
   active_version_id?: string | null;
+}
+
+
+export interface WorkflowPublishRequest {
+  credits_cost: number;
+  execution_plan: WorkflowExecutionPlan;
+  definition: Record<string, any> | null;
 }
 
 

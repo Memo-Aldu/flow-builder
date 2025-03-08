@@ -15,11 +15,12 @@ import { toast } from 'sonner';
 
 
 type ExecuteBtnProps = {
-    workflowId: string
+    workflowId: string,
+    isPublished: boolean,
 }
 
 
-const ExecuteBtn = ( { workflowId }: ExecuteBtnProps) => {
+const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
   const generate  = useExecutionPlan()
   const { getToken } = useAuth();
   const router = useRouter();
@@ -30,8 +31,9 @@ const ExecuteBtn = ( { workflowId }: ExecuteBtnProps) => {
       if (!token) {
         throw new Error("User not authenticated");
       }
-      await updateWorkflow(id, values, token)
-      // TODO: ADD STARTED DATE MAYBE
+      if (!isPublished) {
+        await updateWorkflow(id, values, token)
+      }
       const workflowExecution: WorkflowExecutionCreate = {
         workflow_id: id,
         trigger: ExecutionTrigger.MANUAL,
@@ -50,11 +52,11 @@ const ExecuteBtn = ( { workflowId }: ExecuteBtnProps) => {
   }})
   return (
     <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
+        toast.loading("Starting Execution", { id: "execution-started" });
         const plan = generate()
         if (!plan) {
             return 
         }
-        console.log(plan)
         const workflowUpdateRequest = { execution_plan: plan } as WorkflowUpdateRequest
         mutation.mutate({ id: workflowId, values: workflowUpdateRequest })
     }}
