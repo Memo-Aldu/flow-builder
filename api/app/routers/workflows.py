@@ -213,6 +213,33 @@ async def publish_workflow(
     return updated
 
 
+@router.patch("/{workflow_id}/unpublish", response_model=WorkflowRead)
+async def unpublish_workflow(
+    workflow_id: UUID,
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> Workflow:
+    """Unpublish a workflow"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    if workflow.status != WorkflowStatus.PUBLISHED:
+        raise HTTPException(
+            status_code=400, detail="Only published workflows can be unpublished"
+        )
+    if workflow.active_version:
+        workflow.active_version.execution_plan = []
+    return await update_workflow(session, workflow, WorkflowUpdate(
+        credits_cost=0,
+        status=WorkflowStatus.DRAFT
+    ))
+
+
 @router.patch("/{workflow_id}/rollback", response_model=WorkflowRead)
 async def rollback_version(
     workflow_id: UUID,
