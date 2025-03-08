@@ -34,7 +34,7 @@ class User(SQLModel, table=True):
 
 class WorkflowStatus(str, enum.Enum):
     DRAFT = "draft"
-    ACTIVE = "active"
+    PUBLISHED = "published"
     DISABLED = "disabled"
 
 
@@ -121,6 +121,14 @@ class WorkflowUpdate(SQLModel):
     definition: Optional[Dict] = None
     execution_plan: Optional[List] = None
     active_version_id: Optional[UUID] = None
+
+
+class WorkflowPublish(SQLModel):
+    """Fields required to publish a workflow."""
+
+    execution_plan: List
+    definition: Dict
+    credits_cost: int
 
 
 #
