@@ -10,6 +10,7 @@ import { Workflow } from '@/types/workflows';
 import { FileTextIcon, MoreVerticalIcon, PlayIcon, ShieldOffIcon, ShuffleIcon, TrashIcon } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
+import RunBtn from '@/app/dashboard/workflows/_components/RunBtn';
 
 export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
   const statusColors = {
@@ -51,6 +52,7 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                 </div>
             </div>
             <div className="flex items-center space-x-2">
+                {!isDraft && <RunBtn workflowId={workflow.id} />}
                 <Link href={`/workflow/editor/${workflow.id}`} 
                       className={cn(
                         buttonVariants({
