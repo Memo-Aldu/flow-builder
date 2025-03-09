@@ -6,6 +6,7 @@ from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.cron import get_next_run_date
 from shared.models import (
     Workflow,
     WorkflowUpdate,
@@ -32,7 +33,19 @@ async def update_workflow(
     update_data = workflow_updates.model_dump(
         exclude_unset=True, exclude={"definition", "execution_plan"}
     )
-    print(update_data)
+    print(update_data.get("cron"), existing_workflow.cron)
+
+    if (
+        update_data.get("cron") is not None
+        and update_data.get("cron") != existing_workflow.cron
+    ):
+        try:
+            next_run_date = get_next_run_date(update_data["cron"])
+            print("next date", next_run_date)
+        except ValueError as e:
+            raise ValueError("Invalid cron expression") from e
+        update_data["next_run_at"] = next_run_date
+
     for field, value in update_data.items():
         setattr(existing_workflow, field, value)
     existing_workflow.updated_at = datetime.now()

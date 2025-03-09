@@ -1,10 +1,10 @@
-import { WorkflowPublishRequest } from './../../types/workflows';
 import {
   WorkflowListResponse,
   WorkflowSingleResponse,
   WorkflowUpdateRequest,
   Workflow,
   WorkflowSortField,
+  WorkflowPublishRequest
 } from "@/types/workflows";
 import { CreateWorkflowSchemaType, createWorkflowSchema } from "@/schema/workflow";
 import { api, getAuthHeaders } from "@/lib/api/axios";
@@ -78,6 +78,20 @@ export async function updateWorkflow(
   );
   return response.data;
 }
+
+export const unscheduleWorkflow = async (
+  workflowId: string,
+  token: string
+): Promise<Workflow> => {
+  const response: AxiosResponse<Workflow> = await api.patch(
+    `/api/v1/workflows/${workflowId}/unschedule`,
+    null,
+    {
+      headers: getAuthHeaders(token),
+    }
+  );
+  return response.data;
+};
 
 export async function publishWorkflow(
   WorkflowPublishRequest: WorkflowPublishRequest,

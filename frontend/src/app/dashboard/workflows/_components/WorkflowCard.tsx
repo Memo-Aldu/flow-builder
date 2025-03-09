@@ -7,10 +7,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Workflow } from '@/types/workflows';
-import { FileTextIcon, MoreVerticalIcon, PlayIcon, ShieldOffIcon, ShuffleIcon, TrashIcon } from 'lucide-react';
+import { ChevronRightIcon, ClockIcon, CoinsIcon, CornerDownRightIcon, FileTextIcon, MoreVerticalIcon, MoveRightIcon, PlayIcon, ShieldOffIcon, ShuffleIcon, TrashIcon } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 import RunBtn from '@/app/dashboard/workflows/_components/RunBtn';
+import ScheduleDialog from './ScheduleDialog';
+import { Badge } from '@/components/ui/badge';
+import ExecutionStatusIndicator, { ExecutionStatusLabel } from '@/app/workflow/runs/[workflowId]/_components/ExecutionStatusIndicator';
+import { ExecutionStatus } from '@/types/executions';
+import { format, formatDistanceToNow } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
   const statusColors = {
@@ -20,7 +26,7 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
   }
 
   const statusIcons = {
-    'draft': <FileTextIcon className='h-5 w-5'/>,
+    'draft': <FileTextIcon className='h-5 w-5' />,
     'published': <PlayIcon className='h-5 w-5 text-white'/>,
     'disabled': <ShieldOffIcon className='h-5 w-5 text-red-600'/>,
   }
@@ -37,18 +43,27 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                 </div>
                 <div className="">
                     <h3 className="text-base font-bold text-muted-foreground flex items-center" >
-                        <Link href={`/workflow/editor/${workflow.id}`} 
-                        className='flex items-center hover:underline'>
-                            {workflow.name}
-                        </Link>
+                        <TooltipWrapper content={workflow.description}>
+                            <Link href={`/workflow/editor/${workflow.id}`} 
+                            className='flex items-center hover:underline'>
+                                {workflow.name}
+                            </Link>
+                        </TooltipWrapper>
+
                         {isDraft && (
                             <span className='ml-2 px-2 py-0.5 text-xs font-medium bg-yellow-100
-                            text-yellow-800 rounded-full'>
+                             text-yellow-800 rounded-full'>
                                 Draft
                             </span>
 
                         )}
                     </h3>
+                    <ScheduleSection 
+                        isDraft={isDraft} 
+                        creditsCost={workflow.credits_cost!} 
+                        workflowId={workflow.id} 
+                        cron={workflow.cron ? workflow.cron : ''}
+                    />
                 </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -66,6 +81,7 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                 <WorkflowActions workflowName={workflow.name} workflowId={workflow.id}/>
             </div>
         </CardContent>
+        <LastRunDetails workflow={workflow} />
     </Card>
   )
 }
@@ -102,6 +118,58 @@ export const WorkflowActions = ({ workflowName, workflowId }: {workflowName: str
         </DropdownMenu>
     </>
   )
+}
+
+
+const ScheduleSection = ({ isDraft, creditsCost, workflowId, cron }: 
+    { isDraft: boolean, creditsCost: number, workflowId: string, cron: string }) => {
+    if (isDraft) return null;
+    return <div className="flex items-center gap-2">
+        <CornerDownRightIcon className='text-muted-foreground h-4 w-4'/>
+        <ScheduleDialog workflowId={workflowId} cron={cron} key={`${cron}-${workflowId}`} />
+        <MoveRightIcon className='text-muted-foreground h-4 w-4 mt-1'/>
+        <TooltipWrapper content="Credits consumption for running this workflow">
+            <div className="flex items-center gap-3 mt-1">
+                <Badge variant={"outline"} className='space-x-2 text-muted-foreground rounded-sm'>
+                    <CoinsIcon className='h-4 w-4 text-primary '/>
+                    <span className='text-sm'>{creditsCost}</span>
+                </Badge>
+            </div>
+        </TooltipWrapper>
+    </div>
+}
+
+
+const LastRunDetails = ({ workflow }: { workflow: Workflow }) => {
+    if (workflow.status === 'draft') return null;
+    const formattedStartedAt = workflow.last_run_at ? formatDistanceToNow(new Date(workflow.last_run_at), { addSuffix: true }) : '';
+    const nextSchedule = workflow.next_run_at && format(new Date(workflow.next_run_at), 'yyyy-MM-dd HH:mm')
+    const nextScheduleUTC = workflow.next_run_at && formatInTimeZone(new Date(workflow.next_run_at), 'UTC', 'HH:mm')
+
+    console.log("next run at", workflow.next_run_at, nextScheduleUTC)
+    return (
+        <div className="bg-primary/5 px-4 py-1 flex justify-between items-center text-muted-foreground">
+            <div className="flex items-center text-sm gap-2">
+                { workflow.last_run_at && (<Link href={`/workflow/runs/${workflow.id}/${workflow.last_run_id}`} className='flex items-center text-sm gap-2 group'>
+                    <span>Last run:</span>
+                    <ExecutionStatusIndicator status={workflow.last_run_status as ExecutionStatus} />
+                    <ExecutionStatusLabel status={workflow.last_run_status as ExecutionStatus} />
+                    <span>{formattedStartedAt}</span>
+                    <ChevronRightIcon className='-translate-x-[2px] group-hover:translate-x-0 transition' size={14}/>
+                </Link>
+                )}
+                {!workflow.last_run_at && <p>No runs yet</p>}
+            </div>
+            {workflow.next_run_at && (
+                <div className="flex items-center text-sm gap-2">
+                    <ClockIcon className='' size={14}/>
+                    <span>Next run at:</span>
+                    <span>{nextSchedule}</span>
+                    <span className='text-xs'>({nextScheduleUTC} UTC)</span>
+                </div>
+            )}
+        </div>
+    )
 }
 
 
