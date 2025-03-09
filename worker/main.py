@@ -4,13 +4,13 @@ import asyncio
 from uuid import UUID
 from typing import NoReturn
 from datetime import datetime
-from croniter import croniter
 
 from worker import logger
 from worker.runner.workflow_runner import WorkflowRunner
 
 from shared.db import async_session
 from shared.sqs import get_sqs_client
+from shared.cron import get_next_run_date
 from shared.models import WorkflowUpdate
 from shared.crud.execution_crud import get_execution_by_id_and_user
 from shared.crud.workflow_crud import get_workflow_by_id_and_user, update_workflow
@@ -58,8 +58,10 @@ async def process_message(message_body: dict) -> None:
 
         next_run_at = None
         if workflow.cron:
-            cron = croniter(workflow.cron, datetime.now())
-            next_run_at = cron.get_next(datetime)
+            try:
+                next_run_at = get_next_run_date(workflow.cron)
+            except ValueError:
+                logger.error("Invalid cron expression: %s", workflow.cron)
 
         await update_workflow(
             session,
