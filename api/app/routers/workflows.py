@@ -1,4 +1,3 @@
-from turtle import pu
 from uuid import UUID
 from typing import List
 
@@ -104,7 +103,7 @@ async def update_workflow_endpoint(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    if workflow.status != WorkflowStatus.DRAFT:
+    if workflow.status != WorkflowStatus.DRAFT and workflow_in.cron is None:
         raise HTTPException(
             status_code=400, detail="Only draft workflows can be updated"
         )
@@ -234,10 +233,35 @@ async def unpublish_workflow(
         )
     if workflow.active_version:
         workflow.active_version.execution_plan = []
-    return await update_workflow(session, workflow, WorkflowUpdate(
-        credits_cost=0,
-        status=WorkflowStatus.DRAFT
-    ))
+    return await update_workflow(
+        session, workflow, WorkflowUpdate(credits_cost=0, status=WorkflowStatus.DRAFT)
+    )
+    
+
+@router.patch("/{workflow_id}/unschedule", response_model=WorkflowRead)
+async def unschedule_workflow(
+    workflow_id: UUID,
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> Workflow:
+    """Unschedule a workflow"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    if workflow.status != WorkflowStatus.PUBLISHED:
+        raise HTTPException(
+            status_code=400, detail="Only published workflows can be unscheduled"
+        )
+
+    if workflow.cron:
+        workflow.cron = None
+        workflow.next_run_at = None
+    return await update_workflow(session, workflow, WorkflowUpdate())
 
 
 @router.patch("/{workflow_id}/rollback", response_model=WorkflowRead)
@@ -313,11 +337,6 @@ def partial_update_workflow(db_workflow: Workflow, patch_data: WorkflowUpdate) -
         if patch_data.description != db_workflow.description:
             versioned_fields_changed = True
         db_workflow.description = patch_data.description
-
-    if patch_data.cron is not None:
-        if patch_data.cron != db_workflow.cron:
-            versioned_fields_changed = True
-        db_workflow.cron = patch_data.cron
 
     if patch_data.definition is not None:
         old_definition = (
