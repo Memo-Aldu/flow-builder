@@ -9,6 +9,7 @@ type TooltipWrapperProps = {
 }
 
 export const TooltipWrapper = (props: TooltipWrapperProps) => {
+  if (!props.content) return <>{props.children}</>
   return (
     <TooltipProvider delayDuration={0}>
         <Tooltip>

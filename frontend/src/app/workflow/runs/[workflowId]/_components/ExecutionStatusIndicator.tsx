@@ -15,4 +15,17 @@ const ExecutionStatusIndicator = ({ status }: {status: ExecutionStatus}) => {
   )
 }
 
+const labelMap: Record<string, string> = {
+  'pending': 'text-stale-400',
+  'running': 'text-yellow-400',
+  'failed': 'text-red-400',
+  'completed': 'text-green-400',
+}
+
+export const ExecutionStatusLabel = ({ status }: {status: ExecutionStatus}) => {
+  return (
+    <span className={cn('lowercase text-xs', labelMap[status])}>{status}</span>
+  )
+}
+
 export default ExecutionStatusIndicator
