@@ -7,7 +7,6 @@ from sqlmodel import select
 
 from shared.models import (
     WorkflowExecution,
-    WorkflowExecutionCreate,
 )
 
 
@@ -24,17 +23,6 @@ class SortField(str, Enum):
     CREDITS_CONSUMED = "credits_consumed"
     STATUS = "status"
     TRIGGER = "trigger"
-
-
-async def create_execution(
-    session: AsyncSession, user_id: UUID, exec_data: WorkflowExecutionCreate
-) -> WorkflowExecution:
-    """Create a new workflow execution record."""
-    new_execution = WorkflowExecution(**exec_data.model_dump(), user_id=user_id)
-    session.add(new_execution)
-    await session.commit()
-    await session.refresh(new_execution)
-    return new_execution
 
 
 async def get_executions_for_user(

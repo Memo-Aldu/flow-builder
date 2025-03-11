@@ -53,3 +53,15 @@ async def update_workflow(
     await session.commit()
     await session.refresh(existing_workflow)
     return existing_workflow
+
+
+async def get_due_workflows(session: AsyncSession) -> list[Workflow]:
+    """Retrieve all workflows that are scheduled and next_run_at <= now()."""
+    stmt = select(Workflow).where(
+        Workflow.cron is not None and 
+        Workflow.next_run_at is not None and
+        Workflow.next_run_at <= datetime.now()
+    )
+    result = await session.execute(stmt)
+    print("due workflows", result.scalars().all())
+    return [wf for wf in result.scalars().all()]
