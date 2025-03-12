@@ -5,13 +5,15 @@ from uuid import UUID
 from typing import NoReturn
 from datetime import datetime
 
+from pytz import timezone
+
 from worker import logger
 from worker.runner.workflow_runner import WorkflowRunner
 
-from shared.db import async_session
 from shared.sqs import get_sqs_client
 from shared.cron import get_next_run_date
 from shared.models import WorkflowUpdate
+from shared.db import Session
 from shared.crud.execution_crud import get_execution_by_id_and_user
 from shared.crud.workflow_crud import get_workflow_by_id_and_user, update_workflow
 
@@ -38,7 +40,7 @@ async def process_message(message_body: dict) -> None:
     user_id = UUID(user_id_str)
     execution_id = UUID(execution_id_str)
 
-    async with async_session() as session:
+    async with Session() as session:
         workflow = await get_workflow_by_id_and_user(session, workflow_id, user_id)
         if not workflow:
             logger.warning("Workflow %s not found for user %s", workflow_id, user_id)
@@ -51,6 +53,16 @@ async def process_message(message_body: dict) -> None:
 
         logger.info(
             "Processing workflow %s for execution %s", workflow_id, execution_id
+        )
+
+        await update_workflow(
+            session,
+            workflow,
+            WorkflowUpdate(
+                last_run_id=execution_id,
+                last_run_status="RUNNING",
+                last_run_at=datetime.now(tz=timezone("US/Eastern")),
+            ),
         )
 
         runner = WorkflowRunner(session)
@@ -67,9 +79,8 @@ async def process_message(message_body: dict) -> None:
             session,
             workflow,
             WorkflowUpdate(
-                last_run_id=execution_id,
                 last_run_status=status,
-                last_run_at=datetime.now(),
+                last_run_at=datetime.now(tz=timezone("US/Eastern")),
                 next_run_at=next_run_at,
             ),
         )
