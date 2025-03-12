@@ -4,6 +4,7 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from api.app.routers import logger
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.credentials_crud import (
@@ -34,9 +35,13 @@ async def list_credentials_endpoint(
     order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[Credential]:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     creds = await list_credentials_for_user(
         session, local_user.id, page, limit, sort, order
     )
+    logger.info(f"Getting credentials for user: {local_user.id}")
     return creds
 
 
@@ -47,10 +52,14 @@ async def create_credential_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     secret_arn = create_secret(credential_in.name, credential_in.value)
     new_cred = await create_credential(
         session, local_user.id, secret_arn, credential_in
     )
+    logger.info(f"Created credential: {new_cred.id}")
     return new_cred
 
 
@@ -61,9 +70,13 @@ async def get_credential_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
+    logger.info(f"Getting credential: {cred.id}")
     return cred
 
 
@@ -74,6 +87,9 @@ async def delete_credential_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> None:
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
@@ -83,4 +99,5 @@ async def delete_credential_endpoint(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete secret")
 
+    logger.info(f"Deleting credential: {cred.id}")
     await delete_credential(session, cred)

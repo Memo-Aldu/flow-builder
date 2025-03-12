@@ -14,10 +14,13 @@ from api.app.routers import (
     versions,
 )
 from api.app.routers import executions, users, workflows, credentials
+from api.app import logger
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Initialize and dispose of the database engine."""
+    logger.info("Initializing database connection")
     await init_db()
     yield
     await app.state.engine.dispose()

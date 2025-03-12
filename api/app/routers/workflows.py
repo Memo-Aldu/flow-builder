@@ -14,6 +14,7 @@ from api.app.crud.workflow_crud import (
     get_workflows_for_user,
     delete_workflow,
 )
+from api.app.routers import logger
 from api.app.crud.workflow_version_crud import create_new_workflow_version
 from shared.crud.workflow_version_crud import get_workflow_version_by_id
 from shared.db import get_session
@@ -49,6 +50,7 @@ async def list_workflows_endpoint(
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    logger.info(f"Getting workflows for user {local_user.id}")
     workflows = await get_workflows_for_user(
         session, local_user.id, page, limit, sort, order
     )
@@ -66,6 +68,7 @@ async def create_workflow_endpoint(
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    logger.info(f"Creating workflow for user {local_user.id}")
     new_workflow = await create_workflow(session, local_user.id, workflow_in)
     return new_workflow
 
@@ -84,6 +87,8 @@ async def get_workflow_endpoint(
 
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    logger.info(f"Getting workflow {workflow_id} for user {local_user.id}")
     return workflow
 
 
@@ -110,7 +115,7 @@ async def update_workflow_endpoint(
 
     changed = partial_update_workflow(workflow, workflow_in)
     if changed:
-        print("Versioned fields changed, creating new version")
+        logger.info(f"Creating new version for workflow {workflow_id}")
         new_version = await create_new_workflow_version(
             session,
             workflow_id,
@@ -149,9 +154,10 @@ async def update_workflow_endpoint(
         and workflow.active_version
         and workflow.active_version.execution_plan != workflow_in.execution_plan
     ):
-        print("Execution plan changed, creating new version")
+        logger.info(f"Updating execution plan for workflow {workflow_id}")
         workflow.active_version.execution_plan = workflow_in.execution_plan
 
+    logger.info(f"Updating workflow {workflow_id} for user {local_user.id}")
     updated = await update_workflow(session, workflow, workflow_in)
     return updated
 
@@ -189,6 +195,7 @@ async def publish_workflow(
         )
 
     if not workflow.active_version:
+        logger.info(f"Creating new version for workflow {workflow_id}")
         version = await create_new_workflow_version(
             session,
             workflow_id,
@@ -202,6 +209,7 @@ async def publish_workflow(
         )
         workflow.active_version_id = version.id
     else:
+        logger.info(f"Updating active version for workflow {workflow_id}")
         version = workflow.active_version
         version.definition = publish_request.definition
         version.execution_plan = publish_request.execution_plan
@@ -209,6 +217,7 @@ async def publish_workflow(
     workflow.credits_cost = publish_request.credits_cost
     workflow.status = WorkflowStatus.PUBLISHED
     updated = await update_workflow(session, workflow, WorkflowUpdate())
+    logger.info(f"Published workflow {workflow_id} for user {local_user.id}")
     return updated
 
 
@@ -233,10 +242,12 @@ async def unpublish_workflow(
         )
     if workflow.active_version:
         workflow.active_version.execution_plan = []
+
+    logger.info(f"Unpublishing workflow {workflow_id} for user {local_user.id}")
     return await update_workflow(
         session, workflow, WorkflowUpdate(credits_cost=0, status=WorkflowStatus.DRAFT)
     )
-    
+
 
 @router.patch("/{workflow_id}/unschedule", response_model=WorkflowRead)
 async def unschedule_workflow(
@@ -261,6 +272,8 @@ async def unschedule_workflow(
     if workflow.cron:
         workflow.cron = None
         workflow.next_run_at = None
+
+    logger.info(f"Unscheduling workflow {workflow_id} for user {local_user.id}")
     return await update_workflow(session, workflow, WorkflowUpdate())
 
 
@@ -295,11 +308,11 @@ async def rollback_version(
         )
 
     if workflow.active_version:
-        print("Deactivating current active version")
         workflow.active_version.is_active = False
 
     version.is_active = True
     workflow.active_version_id = version_id
+    logger.info(f"Rolling back workflow {workflow_id} to version {version_id}")
     updated = await update_workflow(session, workflow, WorkflowUpdate())
     return updated
 
@@ -318,7 +331,7 @@ async def delete_workflow_endpoint(
     workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-
+    logger.info(f"Deleting workflow {workflow_id} for user {local_user.id}")
     await delete_workflow(session, workflow)
 
 

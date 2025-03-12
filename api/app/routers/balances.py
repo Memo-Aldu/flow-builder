@@ -3,6 +3,7 @@ from api.app.crud.balance_crud import create_balance, get_balance_by_user_id
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.app.routers import logger
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from shared.models import UserBalance, UserBalanceRead
@@ -22,4 +23,5 @@ async def get_user_balance(
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
+    logger.info(f"Getting balance for user: {user.id}")
     return await get_balance_by_user_id(session, user.id)

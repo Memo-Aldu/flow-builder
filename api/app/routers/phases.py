@@ -1,9 +1,11 @@
+from math import log
 from uuid import UUID
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.app.routers import logger
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 
@@ -28,9 +30,13 @@ async def get_phase_endpoint(
 ) -> ExecutionPhase:
     """Get a phase by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     phase = await get_phase_by_id_and_user(session, phase_id, local_user.id)
     if not phase:
         raise HTTPException(status_code=404, detail="Phase not found")
+    logger.info(f"Getting phase: {phase.id}")
     return phase
 
 
@@ -49,7 +55,8 @@ async def list_phases_endpoint(
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    workflows = await get_phases_by_execution_and_user(
+    phases = await get_phases_by_execution_and_user(
         session, execution_id, local_user.id, page, limit, sort, order
     )
-    return workflows
+    logger.info(f"Getting phases for execution: {execution_id}")
+    return phases

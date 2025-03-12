@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.app.routers import logger
 from api.app.auth import verify_clerk_token
-from api.app.crud.user_crud import get_local_user_by_clerk_id, create_local_user
+from api.app.crud.user_crud import get_local_user_by_clerk_id
+
 from shared.models import User
 from shared.db import get_session
 
@@ -16,10 +18,10 @@ async def get_user(
     _auth_user: dict = Depends(verify_clerk_token),
 ) -> User:
     clerk_id = _auth_user.get("id", "")
-    print("@USER", _auth_user)
     user = await get_local_user_by_clerk_id(session, clerk_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+    logger.info(f"Getting user: {user.id}")
     return user
 
 
@@ -39,4 +41,5 @@ async def create_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
+    logger.info(f"Created user: {user.id}")
     return user
