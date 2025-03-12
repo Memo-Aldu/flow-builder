@@ -2,7 +2,8 @@ import enum
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Optional, List, Dict, ClassVar
-from sqlmodel import SQLModel, Field, Relationship, Column, JSON
+from pytz import timezone
+from sqlmodel import DateTime, SQLModel, Field, Relationship, Column, JSON
 
 
 class User(SQLModel, table=True):
@@ -51,15 +52,25 @@ class WorkflowBase(SQLModel):
     cron: Optional[str] = None
     status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT)
 
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
 
     credits_cost: Optional[int] = None
 
     last_run_id: Optional[UUID] = None
     last_run_status: Optional[str] = None
-    last_run_at: Optional[datetime] = None
-    next_run_at: Optional[datetime] = None
+    last_run_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
+    next_run_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
 
 
 class Workflow(WorkflowBase, table=True):
@@ -140,7 +151,10 @@ class WorkflowVersionBase(SQLModel):
     version_number: int = Field(
         index=True, description="Monotonically increasing version number"
     )
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
 
     definition: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     execution_plan: Optional[List] = Field(default=None, sa_column=Column(JSON))
@@ -210,11 +224,20 @@ class WorkflowExecutionBase(SQLModel):
     trigger: ExecutionTrigger = Field(default=ExecutionTrigger.MANUAL)
     status: ExecutionStatus = Field(default=ExecutionStatus.PENDING)
 
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+    started_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
+    completed_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
     credits_consumed: Optional[int] = None
 
 
@@ -266,8 +289,13 @@ class ExecutionPhaseBase(SQLModel):
     name: Optional[str] = None
     status: ExecutionPhaseStatus = Field(default=ExecutionPhaseStatus.PENDING)
 
-    started_at: Optional[datetime] = Field(default_factory=datetime.now)
-    completed_at: Optional[datetime] = None
+    started_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+    completed_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
 
     node: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     inputs: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
@@ -320,7 +348,10 @@ class ExecutionLogBase(SQLModel):
     log_level: LogLevel = Field(default=LogLevel.INFO)
     message: str
 
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
 
 
 class ExecutionLog(ExecutionLogBase, table=True):
@@ -350,7 +381,10 @@ class UserBalanceBase(SQLModel):
 class UserBalance(UserBalanceBase, table=True):
     __tablename__: ClassVar[str] = "user_balance"
     user_id: UUID = Field(primary_key=True, foreign_key="user.id")
-    updated_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
     user: Optional["User"] = Relationship(back_populates="balance")
 
 
@@ -378,7 +412,10 @@ class Credential(CredentialBase, table=True):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
     secret_arn: str = Field(index=True)
     user_id: UUID = Field(foreign_key="user.id", index=True)
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
 
     user: Optional["User"] = Relationship(back_populates="credentials")
 
@@ -403,7 +440,10 @@ class UserPurchaseBase(SQLModel):
     description: Optional[str] = None
     amount: int
     currency: str = "USD"
-    date: datetime = Field(default_factory=datetime.now)
+    date: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
 
 
 class UserPurchase(UserPurchaseBase, table=True):

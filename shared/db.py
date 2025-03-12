@@ -1,44 +1,54 @@
 import os
-
 from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    async_sessionmaker,
+    AsyncSession,
+    AsyncEngine,
+)
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
 
-def get_db_password() -> str:
-    return os.getenv("DB_PASSWORD", "rootpassword")
+def get_database_url() -> str:
+    user = os.getenv("DB_USER", "root")
+    password = os.getenv("DB_PASSWORD", "rootpassword")
+    host = os.getenv("DB_HOST", "localhost")
+    port = os.getenv("DB_PORT", "5433")
+    db_name = os.getenv("DB_NAME", "flow-builder")
+    return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db_name}"
 
 
-def get_db_user() -> str:
-    return os.getenv("DB_USER", "root")
-
-
-def get_db_host() -> str:
-    return os.getenv("DB_HOST", "localhost")
-
-
-def get_db_port() -> str:
-    return os.getenv("DB_PORT", "5433")
-
-
-DATABASE_URL = f"postgresql+asyncpg://{get_db_user()}:{get_db_password()}@{get_db_host()}:{get_db_port()}/flow-builder"
-
-# Echo = True will log all the queries
+DATABASE_URL = get_database_url()
 engine = create_async_engine(DATABASE_URL, echo=False, future=True)
-
-# Session factory
-async_session = async_sessionmaker(engine, expire_on_commit=False)
+Session = async_sessionmaker(engine, expire_on_commit=False)
 
 
-# Dependency to get the session
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session() as session:
+    """
+    FastAPI dependency that yields a new session from the global sessionmaker.
+    """
+    async with Session() as session:
         yield session
 
 
-# Initialize the database
+def create_lambda_engine_and_session() -> (
+    tuple[AsyncEngine, async_sessionmaker[AsyncSession]]
+):
+    """
+    For AWS Lambda: create a new engine + sessionmaker each time.
+    This avoids 'attached to a different loop' errors.
+    """
+    local_engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+    local_session = async_sessionmaker(local_engine, expire_on_commit=False)
+    return local_engine, local_session
+
+
 async def init_db() -> None:
-    async with engine.begin() as conn:
-        print("Creating tables")
+    """
+    Creates tables if needed, called once (e.g. at server startup).
+    """
+    db_url = get_database_url()
+    temp_engine = create_async_engine(db_url, echo=False, future=True)
+    async with temp_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    await temp_engine.dispose()
