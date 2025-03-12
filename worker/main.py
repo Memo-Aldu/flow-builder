@@ -66,7 +66,7 @@ async def process_message(message_body: dict) -> None:
         )
 
         runner = WorkflowRunner(session)
-        status = await runner.run_workflow(workflow, execution)
+        exec_status, wf_status = await runner.run_workflow(workflow, execution)
 
         next_run_at = None
         if workflow.cron:
@@ -79,9 +79,10 @@ async def process_message(message_body: dict) -> None:
             session,
             workflow,
             WorkflowUpdate(
-                last_run_status=status,
+                last_run_status=exec_status,
                 last_run_at=datetime.now(tz=timezone("US/Eastern")),
                 next_run_at=next_run_at,
+                status=wf_status,
             ),
         )
 
