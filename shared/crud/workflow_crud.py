@@ -2,6 +2,7 @@ from uuid import UUID
 from typing import Optional
 from datetime import datetime
 
+from pytz import timezone
 from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,10 +58,11 @@ async def update_workflow(
 async def get_due_workflows(session: AsyncSession) -> list[Workflow]:
     """Retrieve all workflows that are scheduled and next_run_at <= now()."""
     stmt = select(Workflow).where(
-        Workflow.cron is not None
-        and Workflow.next_run_at is not None
-        and Workflow.status == WorkflowStatus.PUBLISHED
-        and Workflow.next_run_at <= datetime.now()
+        Workflow.cron is not None,
+        Workflow.status == WorkflowStatus.PUBLISHED,
+        Workflow.next_run_at is not None and 
+        Workflow.next_run_at <= datetime.now(tz=timezone("UTC"))
     )
     result = await session.execute(stmt)
-    return [workflow for workflow in result.scalars().all()]
+    workflows = [workflow for workflow in result.scalars().all()]
+    return workflows
