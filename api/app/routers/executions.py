@@ -1,3 +1,4 @@
+from math import log
 import os
 import json
 from uuid import UUID
@@ -6,12 +7,12 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from api.app.routers import logger
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.execution_crud import (
     SortField,
     SortOrder,
-    create_execution,
     get_executions_for_user,
     get_executions_by_workflow_id_and_user,
     delete_execution,
@@ -21,6 +22,7 @@ from shared.db import get_session
 from shared.sqs import get_sqs_client
 from shared.crud.execution_crud import (
     get_execution_by_id_and_user,
+    create_execution,
     update_execution,
 )
 from shared.models import (
@@ -52,6 +54,10 @@ async def list_executions_endpoint(
 ) -> List[WorkflowExecution]:
     """Gets all executions for a given workflow ID or all executions for a user"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     if workflow_id:
         executions = await get_executions_by_workflow_id_and_user(
             session, workflow_id, local_user.id, page, limit, sort, order
@@ -61,6 +67,7 @@ async def list_executions_endpoint(
     executions = await get_executions_for_user(
         session, local_user.id, page, limit, sort, order
     )
+    logger.info(f"Getting executions for user: {local_user.id}")
     return executions
 
 
@@ -74,6 +81,10 @@ async def create_execution_endpoint(
 ) -> WorkflowExecution:
     """Creates a new execution and sends a message to the SQS queue."""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     workflow = await get_workflow_by_id_and_user(
         session, exec_in.workflow_id, local_user.id
     )
@@ -96,9 +107,11 @@ async def create_execution_endpoint(
             MessageBody=json.dumps(message_body),
         )
     except Exception as e:
+        logger.warning("Failed to send message to SQS: %s", e)
         raise HTTPException(
             status_code=500, detail="Failed to send message to SQS: " + str(e)
-        )
+        ) from e
+    logger.info(f"Created execution: {new_execution.id}")
     return new_execution
 
 
@@ -110,9 +123,13 @@ async def get_execution_endpoint(
 ) -> WorkflowExecution:
     """Gets a single execution by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
     execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
+    logger.info(f"Getting execution: {execution.id}")
     return execution
 
 
@@ -125,11 +142,15 @@ async def update_execution_endpoint(
 ) -> WorkflowExecution:
     """Updates a single execution by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
 
     updated_exec = await update_execution(session, execution, exec_in)
+    logger.info(f"Updated execution {execution_id}")
     return updated_exec
 
 
@@ -141,8 +162,12 @@ async def delete_execution_endpoint(
 ) -> None:
     """Deletes a single execution by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
 
+    logger.info(f"Deleting execution: {execution_id}")
     await delete_execution(session, execution)

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import (
     WorkflowExecution,
+    WorkflowExecutionCreate,
     WorkflowExecutionUpdate,
 )
 
@@ -35,3 +36,14 @@ async def update_execution(
     await session.commit()
     await session.refresh(execution)
     return execution
+
+
+async def create_execution(
+    session: AsyncSession, user_id: UUID, exec_data: WorkflowExecutionCreate
+) -> WorkflowExecution:
+    """Create a new workflow execution record."""
+    new_execution = WorkflowExecution(**exec_data.model_dump(), user_id=user_id)
+    session.add(new_execution)
+    await session.commit()
+    await session.refresh(new_execution)
+    return new_execution

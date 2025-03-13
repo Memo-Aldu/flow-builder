@@ -1,14 +1,16 @@
 import asyncio
 from uuid import UUID, uuid4
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.crud.balance_crud import decrement_balance
 from shared.models import (
+    ExecutionTrigger,
     LogLevel,
     Workflow,
     WorkflowExecution,
+    WorkflowStatus,
     WorkflowExecutionUpdate,
     ExecutionPhase,
     ExecutionPhaseCreate,
@@ -32,7 +34,7 @@ class WorkflowRunner:
 
     async def run_workflow(
         self, workflow: Workflow, execution: WorkflowExecution
-    ) -> ExecutionStatus:
+    ) -> Tuple[ExecutionStatus, WorkflowStatus]:
         """
         Run the workflow by executing each node in the execution plan.
         """
@@ -41,7 +43,7 @@ class WorkflowRunner:
         if not workflow.active_version:
             logger.error(f"Workflow {workflow.id} has no active version.")
             await self.update_execution(execution, ExecutionStatus.FAILED)
-            return ExecutionStatus.FAILED
+            return ExecutionStatus.FAILED, WorkflowStatus.DISABLED
 
         phases_list = workflow.active_version.execution_plan or []
 
@@ -64,13 +66,15 @@ class WorkflowRunner:
             await self.update_execution(
                 execution, ExecutionStatus.COMPLETED, total_credits_consumed
             )
-            return ExecutionStatus.COMPLETED
+            return ExecutionStatus.COMPLETED, workflow.status
         except Exception as e:
             logger.error(f"Workflow {workflow.id} execution failed: {str(e)}")
             await self.update_execution(
                 execution, ExecutionStatus.FAILED, total_credits_consumed
             )
-            return ExecutionStatus.FAILED
+            if execution.trigger == ExecutionTrigger.SCHEDULED:
+                return ExecutionStatus.FAILED, WorkflowStatus.DISABLED
+            return ExecutionStatus.FAILED, workflow.status
         finally:
             await env.cleanup()
 

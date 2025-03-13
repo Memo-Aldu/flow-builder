@@ -4,6 +4,11 @@ node_modules/
 .pnp.js
 coverage/
 
+# Ignore the build artifacts
+scheduler_lambda/build_temp/
+scheduler_lambda/scheduler_lambda.zip
+
+
 # next.js
 .next/
 out/

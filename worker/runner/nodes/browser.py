@@ -43,7 +43,7 @@ class LaunchBrowserNode(NodeExecutor):
                 phase.add_log("Started Playwright engine.", LogLevel.DEBUG)
 
             if env.browser is None:
-                env.browser = await env.playwright.chromium.launch(headless=False)
+                env.browser = await env.playwright.chromium.launch(headless=True)
                 phase.add_log("Launched Chromium browser.", LogLevel.DEBUG)
 
             page = await env.browser.new_page()

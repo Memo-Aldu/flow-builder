@@ -1,10 +1,10 @@
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-
+from api.app.routers import logger
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.log_crud import (
@@ -30,6 +30,10 @@ async def get_log_endpoint(
 ) -> ExecutionLog:
     """Get a log by ID"""
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     log = await get_log_by_id(session, log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
@@ -42,6 +46,7 @@ async def get_log_endpoint(
         )
     if execution_phase.id != log.execution_phase_id:
         raise HTTPException(status_code=404, detail="Log not found")
+    logger.info(f"Getting log: {log.id}")
     return log
 
 
@@ -72,4 +77,5 @@ async def get_logs_endpoint(
     logs = await get_logs_by_execution_phase_id(
         session, execution_phase_id, page, limit, sort, order
     )
+    logger.info(f"Getting logs for execution phase: {execution_phase_id}")
     return logs
