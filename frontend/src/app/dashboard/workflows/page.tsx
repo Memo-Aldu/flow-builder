@@ -6,7 +6,7 @@ import UserWorkflows from '@/app/dashboard/workflows/_components/UserWorkflows'
 import { getWorkflows } from '@/lib/api/workflows'
 import { auth } from '@clerk/nextjs/server'
 import { Alert, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle, User } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 const page = () => {
   return (
