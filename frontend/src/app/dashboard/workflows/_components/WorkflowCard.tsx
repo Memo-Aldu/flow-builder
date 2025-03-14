@@ -6,7 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Workflow } from '@/types/workflows';
+import { Workflow, WorkflowStatus } from '@/types/workflows';
 import { ChevronRightIcon, ClockIcon, CoinsIcon, CornerDownRightIcon, FileTextIcon, MoreVerticalIcon, MoveRightIcon, PlayIcon, PowerOffIcon, ShieldOffIcon, ShuffleIcon, TrashIcon } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
@@ -17,6 +17,7 @@ import ExecutionStatusIndicator, { ExecutionStatusLabel } from '@/app/workflow/r
 import { ExecutionStatus } from '@/types/executions';
 import { format, formatDistanceToNow } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { DisableWorkflowDialog } from '@/app/dashboard/workflows/_components/DisableWorkflowDialog';
 
 export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
   const statusColors = {
@@ -76,9 +77,12 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                         }), 
                         'flex items-center gap-2')}>
                         <ShuffleIcon size={16} />
-                        Edit
+                        { isDraft ? 'Edit' : 'View' }
                 </Link>
-                <WorkflowActions workflowName={workflow.name} workflowId={workflow.id}/>
+                <WorkflowActions 
+                 workflowName={workflow.name}
+                 workflowStatus={workflow.status}
+                 workflowId={workflow.id}/>
             </div>
         </CardContent>
         <LastRunDetails workflow={workflow} />
@@ -86,14 +90,21 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
   )
 }
 
-export const WorkflowActions = ({ workflowName, workflowId }: {workflowName: string, workflowId: string}) => {
+export const WorkflowActions = ({ workflowName, workflowStatus, workflowId }: {workflowName: string, workflowStatus: WorkflowStatus, workflowId: string}) => {
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [showDisableDialog, setShowDisableDialog] = React.useState(false);
   return (
     <>
         <DeleteWorkflowDialog 
             open={showDeleteDialog} 
             setOpen={setShowDeleteDialog}
             workflowName={workflowName} 
+            workflowId={workflowId}
+        />
+        <DisableWorkflowDialog
+            open={showDisableDialog}
+            setOpen={setShowDisableDialog}
+            disableWorkflow={workflowStatus === 'disabled'}
             workflowId={workflowId}
         />
         <DropdownMenu>
@@ -109,6 +120,17 @@ export const WorkflowActions = ({ workflowName, workflowId }: {workflowName: str
             <DropdownMenuContent align='end'>
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator/>
+                {workflowStatus !== 'draft' && (
+                    <>
+                        <DropdownMenuItem className='flex items-center gap-2'
+                        onSelect={() => setShowDisableDialog((prev) => !prev)}>
+                            <TrashIcon size={16} />
+                            {workflowStatus === 'disabled' ? 'Enable' : 'Disable'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator/>
+                    </>
+
+                )}
                 <DropdownMenuItem className='text-destructive flex items-center gap-2'
                 onSelect={() => setShowDeleteDialog((prev) => !prev)}>
                     <TrashIcon size={16} />

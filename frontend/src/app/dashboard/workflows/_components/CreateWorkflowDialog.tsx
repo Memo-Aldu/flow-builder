@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import React, { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Layers2Icon, Loader2 } from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { CustomDialogHeader } from '@/components/CustomDialogHeader'
@@ -32,6 +32,7 @@ type CreateWorkflowDialogProps = {
 
 export const CreateWorkflowDialog = ({ triggerText }: CreateWorkflowDialogProps) => {
   const [open, setOpen] = React.useState(false)
+  const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const router = useRouter();
 
@@ -51,6 +52,7 @@ export const CreateWorkflowDialog = ({ triggerText }: CreateWorkflowDialogProps)
 	onSuccess: (workflow) => {
 	  toast.success("Workflow created successfully", { id: "create-workflow" });
 	  setOpen(false);
+	  queryClient.invalidateQueries({ queryKey: ["workflows"] });
 	  router.push(`/workflow/editor/${workflow.id}`);
 	},
 	onError: (err) => {
