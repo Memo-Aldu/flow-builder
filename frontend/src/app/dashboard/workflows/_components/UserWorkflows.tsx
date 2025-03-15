@@ -33,8 +33,8 @@ const UserWorkflows = ({ initialData }: UserWorkflowsProps) => {
             const workflows = await getWorkflows(token, 1, 50);
             return workflows;
         },
-        // Every minute
-        refetchInterval: 60000,
+        // 10 seconds
+        refetchInterval: 10000,
         initialData,
         enabled: !!token,
     });

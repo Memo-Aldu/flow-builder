@@ -11,7 +11,7 @@ const statusMap: Record<string, string> = {
 }
 
 const ExecutionStatusIndicator = ({ status }: {status: ExecutionStatus}) => {
-  if (status === "RUNNING") {
+  if (status === "running") {
     return <Loader2Icon className='w-2 h-2 animate-spin text-yellow-400'/>
   } 
   return (
@@ -20,9 +20,9 @@ const ExecutionStatusIndicator = ({ status }: {status: ExecutionStatus}) => {
 }
 
 const labelMap: Record<string, string> = {
-  'PENDING': 'text-stale-400',
-  'FAILED': 'text-red-400',
-  'COMPLETE': 'text-green-400',
+  'pending': 'text-stale-400',
+  'failed': 'text-red-400',
+  'complete': 'text-green-400',
 }
 
 export const ExecutionStatusLabel = ({ status }: {status: ExecutionStatus}) => {

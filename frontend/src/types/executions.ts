@@ -5,11 +5,11 @@ export enum ExecutionTrigger {
 }
 
 export enum ExecutionStatus {
-  PENDING = "PENDING",
-  RUNNING = "RUNNING",
-  COMPLETED = "COMPLETED",
-  FAILED = "FAILED",
-  CANCELED = "CANCELED",
+  PENDING = "pending",
+  RUNNING = "running",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  CANCELED = "cancelled",
 }
 
 
