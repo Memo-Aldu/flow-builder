@@ -9,7 +9,6 @@ import TaskMenu from '@/app/workflow/_components/TaskMenu';
 import { WorkflowValidationContextProvider } from '@/components/context/WorkflowValidationContext';
 
 const Editor = ({ workflow }: { workflow: Workflow }) => {
-  const isPublished = workflow.status === 'published'
   return (
     <WorkflowValidationContextProvider>
       <ReactFlowProvider>
@@ -18,10 +17,10 @@ const Editor = ({ workflow }: { workflow: Workflow }) => {
               title="Workflow Editor" 
               subtitle={workflow.name}
               workflowId={workflow.id}
-              isPublished={isPublished}/>
+              workflowStatus={workflow.status}/>
               <section className='flex h-full overflow-auto'>
-                { !isPublished && <TaskMenu/> }
-                <FlowEditor workflow={workflow} isPublished={isPublished}/>
+                { workflow.status === 'draft' && <TaskMenu/> }
+                <FlowEditor workflow={workflow}/>
               </section>
           </div>
       </ReactFlowProvider>

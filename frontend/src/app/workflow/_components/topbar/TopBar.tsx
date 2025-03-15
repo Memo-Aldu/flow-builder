@@ -9,16 +9,18 @@ import ExecuteBtn from '@/app/workflow/_components/topbar/ExecuteBtn';
 import NavigationTabs from '@/app/workflow/_components/topbar/NavigationTabs';
 import PublishBtn from './PublishBtn';
 import UnPublishBtn from './UnpublishBtn';
+import { WorkflowStatus } from '@/types/workflows';
+import EnableBtn from './EnableBtn';
 
 type TopBarProps = {
     title: string
     subtitle?: string
     workflowId: string
     hideButtons?: boolean,
-    isPublished?: boolean
+    workflowStatus?: WorkflowStatus
 }
 
-const TopBar = ({ title, subtitle, workflowId, hideButtons = false, isPublished = false }: TopBarProps) => {
+const TopBar = ({ title, subtitle, workflowId, hideButtons = false, workflowStatus}: TopBarProps) => {
   const router = useRouter()
 
   return (
@@ -41,14 +43,15 @@ const TopBar = ({ title, subtitle, workflowId, hideButtons = false, isPublished 
         <div className="flex gap-1 flex-1 justify-end">
             { hideButtons === false && (
                 <>
-                    <ExecuteBtn workflowId={workflowId} isPublished/>
-                    { isPublished && <UnPublishBtn workflowId={workflowId}/>}
-                    {! isPublished && (
+                    {workflowStatus !== 'disabled' && <ExecuteBtn workflowId={workflowId} isPublished/>}
+                    { workflowStatus === 'published' && <UnPublishBtn workflowId={workflowId}/>}
+                    {workflowStatus === 'draft' && (
                         <>
                             <SaveBtn workflowId={workflowId}/>
                             <PublishBtn workflowId={workflowId}/>
                         </>)
                     }
+                    { workflowStatus === 'disabled' && <EnableBtn workflowId={workflowId}/>}
                 </>
             )}
         </div>
