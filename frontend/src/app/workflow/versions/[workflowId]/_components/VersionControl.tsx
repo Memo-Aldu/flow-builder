@@ -15,26 +15,19 @@ type Props = {
 
 const VersionControl = ({ workflowId, initialData }: Props) => {
     const { getToken } = useAuth();
-    const [token, setToken] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
-
-    useEffect(() => {
-        (async () => {
-            const retrievedToken = await getToken();
-            setToken(retrievedToken);
-        })();
-    }, [getToken]);
 
     const versionsQuery = useQuery({
         queryKey: ["versions", workflowId],
         queryFn: async () => {
+            const token = await getToken();
             if (!token) return [];
             return await getWorkflowVersions(workflowId, token, 1, 50);
         },
 
         refetchInterval: 10000,
         initialData,
-        enabled: !!token, 
+        enabled: !!getToken,
     });
 
   return (

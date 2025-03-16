@@ -4,7 +4,7 @@ import { getWorkflows } from '@/lib/api/workflows';
 import { useAuth } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, InboxIcon } from 'lucide-react';
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { CreateWorkflowDialog } from '@/app/dashboard/workflows/_components/CreateWorkflowDialog';
 import { WorkflowCard } from '@/app/dashboard/workflows/_components/WorkflowCard';
 import { AppLoading } from '@/components/AppLoading';
@@ -16,27 +16,20 @@ type UserWorkflowsProps = {
 
 const UserWorkflows = ({ initialData }: UserWorkflowsProps) => {
     const { getToken } = useAuth();
-    const [token, setToken] = useState<string | null>(null);
-
-    useEffect(() => {
-        async function fetchAuth() {
-            const t = await getToken();
-            setToken(t);
-        }
-        fetchAuth()
-    }, [getToken])
 
     const query = useQuery({
-        queryKey: ["workflows", token],
+        queryKey: ["workflows"],
         queryFn: async () => {
-            if (!token) return [];
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No valid token found.');
+            }
             const workflows = await getWorkflows(token, 1, 50);
             return workflows;
         },
         // 10 seconds
         refetchInterval: 10000,
         initialData,
-        enabled: !!token,
     });
 
     if (query.isFetching && !query.data) {

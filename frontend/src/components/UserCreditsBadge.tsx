@@ -10,22 +10,16 @@ import { buttonVariants } from './ui/button';
 
 const UserCreditsBadge = () => {
     const { getToken } = useAuth();
-    const [token, setToken] = useState<string | null>(null);
-
-    useEffect(() => {
-        (async () => {
-            const retrievedToken = await getToken();
-            setToken(retrievedToken);
-        })();
-    }, [getToken]);
     
   const query = useQuery({
     queryKey: ['userCredits'],
     queryFn: async () => {
-        if (!token) throw new Error("No token available");
+        const token = await getToken()
+        if (!token) {
+            throw new Error('No valid token found.')
+        }
         return getCredit(token)
     },
-    // Refetch the data every 30 seconds
     refetchInterval: 30 * 1000,
   })
   return (

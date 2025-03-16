@@ -30,7 +30,6 @@ type VersionTableProps = {
 
 const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
   const { getToken } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
 
   const {
@@ -52,16 +51,10 @@ const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
   );
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  useEffect(() => {
-    (async () => {
-      const retrievedToken = await getToken();
-      setToken(retrievedToken);
-    })();
-  }, [getToken]);
-
   const query = useQuery({
     queryKey: ["versions", workflowId, page, limit, sortField, sortDir],
     queryFn: async () => {
+      const token = await getToken();
       if (!token) return [];
       const resp = await getWorkflowVersions(workflowId, token, page, limit, sortField, sortDir);
       updateCanGoNext(resp.length >= limit);
@@ -69,7 +62,7 @@ const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
     },
     initialData,
     refetchInterval: 10000,
-    enabled: !!token,
+    enabled: !!getToken
   });
   
 

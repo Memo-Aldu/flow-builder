@@ -1,30 +1,24 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createUser } from "@/lib/api/users";
 
 export default function SignUpSuccessPage() {
   const router = useRouter();
   const { getToken } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  
-  useEffect(() => {(async () => {
-        const retrievedToken = await getToken( {template: "backend_template"});
-        setToken(retrievedToken);
-    })();
-  }, [getToken]);
 
   useEffect(() => {
     const createUserAndRedirect = async () => {
+      const token = await getToken( {template: "backend_template"});
       if (token) {
         await createUser(token);
         router.push("/dashboard");
       }
     };
     createUserAndRedirect();
-  }, [token]);
+  }, [getToken]);
 
   return (
     <div className="flex flex-col items-center mt-20">

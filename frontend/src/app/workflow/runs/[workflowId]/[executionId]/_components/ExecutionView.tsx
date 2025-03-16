@@ -24,34 +24,29 @@ import { PhaseLogs } from '@/app/workflow/runs/[workflowId]/[executionId]/_compo
 
 const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: WorkflowExecution, initialPhases: ExecutionPhase[] }) => {
     const { getToken } = useAuth();
-    const [token, setToken] = useState<string | null>(null);
     const [selectedPhase, setSelectedPhase] = useState<ExecutionPhase | null>(null);
-
-    useEffect(() => {
-        (async () => {
-            const retrievedToken = await getToken();
-            setToken(retrievedToken);
-        })();
-    }, [getToken]);
 
     const executionQuery = useQuery({
         queryKey: ['execution', initialExecution.id],
         queryFn: async () => {
+            const token = await getToken();
             if (!token) throw new Error("No token available");
             return getExecution(token, initialExecution.id);
         },
         refetchInterval: (q) => q.state.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
-        enabled: !!token, 
+        enabled: !!getToken, 
+        initialData: initialExecution
     });
 
     const phasesQuery = useQuery({
         queryKey: ['phases', initialExecution.id],
         queryFn: async () => {
+            const token = await getToken();
             if (!token) throw new Error("No token available");
             return listPhases(token, initialExecution.id)
         },
         refetchInterval: () => executionQuery.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
-        enabled: !!token,
+        enabled: !!getToken,
         initialData: initialPhases, 
     });
 
@@ -168,7 +163,6 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
                             />
                             <PhaseLogs
                                     phase={selectedPhase}
-                                    token={token!}
                                     isRunning={isRunning}
                             />
                         </div>
