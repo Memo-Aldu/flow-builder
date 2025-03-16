@@ -2,7 +2,7 @@
 
 import { unscheduleWorkflow, updateWorkflow } from '@/lib/api/workflows';
 import { useAuth } from '@clerk/nextjs';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react'
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
   const [readableCron, setReadableCron] = React.useState<string>('');
   const { getToken } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     try {
@@ -41,10 +42,8 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
         throw new Error("User not authenticated");
       }
       try {
-        // TODO: ADD TIMEZONE { tz: 'UTC' }
-        // for now no timezone is added
         const interval = parser.parse(cron);
-        const next = interval.next().toISOString()?.replace('Z', '')
+        const next = interval.next().toISOString()
         return await updateWorkflow(props.workflowId, {
           cron: cron,
           next_run_at: next
@@ -58,6 +57,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
     },
     onSuccess: () => {
       toast.success("Workflow scheduled successfully", { id: "schedule-workflow" });
+      queryClient.invalidateQueries({ queryKey: ["workflows"] });
       router.push(`/dashboard/workflows`);
     },
     onError: (err) => {
@@ -81,6 +81,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
     },
     onSuccess: () => {
       toast.success("Workflow unscheduled successfully", { id: "unschedule-workflow" });
+      queryClient.invalidateQueries({ queryKey: ["workflows"] });
       router.push(`/dashboard/workflows`);
     },
     onError: (err) => {

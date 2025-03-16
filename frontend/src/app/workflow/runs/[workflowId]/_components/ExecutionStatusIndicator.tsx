@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { ExecutionStatus } from '@/types/executions'
+import { Loader2Icon } from 'lucide-react'
 import React from 'react'
 
 const statusMap: Record<string, string> = {
@@ -10,6 +11,9 @@ const statusMap: Record<string, string> = {
 }
 
 const ExecutionStatusIndicator = ({ status }: {status: ExecutionStatus}) => {
+  if (status === "running") {
+    return <Loader2Icon className='w-2 h-2 animate-spin text-yellow-400'/>
+  } 
   return (
     <div className={cn('w-2 h-2 rounded-full', statusMap[status])}/>
   )
@@ -17,9 +21,8 @@ const ExecutionStatusIndicator = ({ status }: {status: ExecutionStatus}) => {
 
 const labelMap: Record<string, string> = {
   'pending': 'text-stale-400',
-  'running': 'text-yellow-400',
   'failed': 'text-red-400',
-  'completed': 'text-green-400',
+  'complete': 'text-green-400',
 }
 
 export const ExecutionStatusLabel = ({ status }: {status: ExecutionStatus}) => {

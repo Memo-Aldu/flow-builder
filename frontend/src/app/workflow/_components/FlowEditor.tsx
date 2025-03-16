@@ -35,7 +35,7 @@ const edgeTypes = {
 const snapGrid: [number, number] = [50, 50];
 const fitViewOptions = { padding: 0.5 };
 
-const FlowEditor = ({ workflow, isPublished }: { workflow: Workflow, isPublished: boolean }) => {
+const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { setViewport, screenToFlowPosition, updateNodeData } = useReactFlow();
@@ -123,9 +123,11 @@ const FlowEditor = ({ workflow, isPublished }: { workflow: Workflow, isPublished
     return !detectedCycle;
   }, [nodes, edges]);
 
+  const isViewOnly = workflow.status === 'published' || workflow.status === 'disabled';
+
   return (
     <main className='h-full w-full'>
-      { isPublished ? (
+      { isViewOnly ? (
         <ReadOnlyFlowViewer
           nodes={nodes}
           edges={edges}>

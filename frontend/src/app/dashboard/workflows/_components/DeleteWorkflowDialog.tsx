@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { deleteWorkflow } from '@/lib/api/workflows'
 import { useAuth } from '@clerk/nextjs'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 import { toast } from 'sonner'
@@ -27,6 +27,7 @@ type DeleteWorkflowDialogProps = {
 
 export const DeleteWorkflowDialog = ({ open, setOpen, workflowName, workflowId }: DeleteWorkflowDialogProps) => {
   const [confirmText, setConfirmText] = React.useState('')
+  const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const router = useRouter();   
   
@@ -41,7 +42,7 @@ export const DeleteWorkflowDialog = ({ open, setOpen, workflowName, workflowId }
     onSuccess: () => {
         toast.success("Workflow deleted successfully", { id: workflowId });
         setConfirmText('')
-        router.refresh()
+        queryClient.invalidateQueries({ queryKey: ["workflows"] });
 
     },
     onError: (err) => {

@@ -9,19 +9,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@clerk/nextjs";
 
 interface PhaseLogsProps {
   phase: ExecutionPhase;
-  token: string;
   isRunning: boolean;
 }
 
-export function PhaseLogs({ phase, token, isRunning }: Readonly<PhaseLogsProps>) {
+export function PhaseLogs({ phase, isRunning }: Readonly<PhaseLogsProps>) {
+    const { getToken } = useAuth();
+
     const logsQuery = useQuery<ExecutionLog[]>({
         queryKey: ["phaseLogs", phase.id],
-        queryFn: () => getLogs(token, phase.id),
+        queryFn: async () => {
+            const token = await getToken();
+            if (!phase) return [];
+            if (!token) return [];
+            return getLogs(token, phase.id);
+        },
         refetchInterval: isRunning ? 1000 : false,
-        enabled: !!phase && !!token
+        enabled: !!phase && !!getToken,
       });
     
       if (logsQuery.isLoading || logsQuery.isFetching) {

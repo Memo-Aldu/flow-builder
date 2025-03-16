@@ -37,7 +37,14 @@ class WorkflowStatus(str, enum.Enum):
     DRAFT = "draft"
     PUBLISHED = "published"
     DISABLED = "disabled"
+    
 
+class ExecutionStatus(str, enum.Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELED = "canceled"
 
 class WorkflowBase(SQLModel):
     name: str
@@ -126,7 +133,7 @@ class WorkflowUpdate(SQLModel):
     status: Optional[WorkflowStatus] = None
     credits_cost: Optional[int] = None
     last_run_id: Optional[UUID] = None
-    last_run_status: Optional[str] = None
+    last_run_status: Optional[ExecutionStatus] = None
     last_run_at: Optional[datetime] = None
     next_run_at: Optional[datetime] = None
     definition: Optional[Dict] = None
@@ -208,14 +215,6 @@ class ExecutionTrigger(str, enum.Enum):
     SCHEDULED = "scheduled"
     MANUAL = "manual"
     API = "api"
-
-
-class ExecutionStatus(str, enum.Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELED = "canceled"
 
 
 class WorkflowExecutionBase(SQLModel):

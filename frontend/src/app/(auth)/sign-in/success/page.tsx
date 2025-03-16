@@ -8,16 +8,11 @@ import { getUser } from "@/lib/api/users";
 export default function SignInSuccessPage() {
   const router = useRouter();
   const { getToken } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  
-  useEffect(() => {(async () => {
-        const retrievedToken = await getToken( {template: "backend_template"});
-        setToken(retrievedToken);
-    })();
-  }, [getToken]);
+
 
   useEffect(() => {
     const getUserAndRedirect = async () => {
+      const token = await getToken( {template: "backend_template"});
       if (!token) return;
       try {
         await getUser(token);
@@ -27,7 +22,7 @@ export default function SignInSuccessPage() {
       }
     }
     getUserAndRedirect();
-  }, [token]);
+  }, [getToken]);
 
   return (
     <div className="flex flex-col items-center mt-20">

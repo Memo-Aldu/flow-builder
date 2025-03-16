@@ -4,6 +4,7 @@ import React, { Suspense } from 'react'
 import VersionCompare from '@/app/workflow/versions/[workflowId]/compare/_components/VersionCompare';
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
 import { InboxIcon, Loader2Icon } from 'lucide-react';
+import { getWorkflow } from '@/lib/api/workflows';
 
 
 type CompareProps = {
@@ -72,12 +73,14 @@ const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { w
     )
   }
 
-  const [vA, vB] = await Promise.all([
+  const [vA, vB, workflow] = await Promise.all([
     getWorkflowVersionByNumber(workflowId, version_1, token),
     getWorkflowVersionByNumber(workflowId, version_2, token),
-  ]).catch(() => [null, null]);
+    getWorkflow(workflowId, token)
+  ]).catch(() => [null, null, null]);
+  
 
-  if (!vA || !vB) {
+  if (!vA || !vB || !workflow) {
     return (
       <div className="container w-full py-6">
           <div className="flex items-center flex-col gap-2 justify-center h-full w-full">
@@ -99,7 +102,7 @@ const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { w
 
   return (
     <div className="container w-full py-6">
-      <VersionCompare versionA={vA} versionB={vB} workflowId={workflowId} />
+      <VersionCompare versionA={vA} versionB={vB} workflow={workflow}  />
     </div>
   )
 }

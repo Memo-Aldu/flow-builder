@@ -20,7 +20,6 @@ import { SortDir } from '@/types/base';
 
 const ExecutionTable = ({ workflowId, initialData }: { workflowId: string, initialData: WorkflowExecution[]}) => {
     const { getToken } = useAuth();
-    const [token, setToken] = useState<string | null>(null);
     const router = useRouter();
 
     const {
@@ -39,16 +38,10 @@ const ExecutionTable = ({ workflowId, initialData }: { workflowId: string, initi
     const [sortField, setSortField] = useState<WorkflowExecutionSortField>(WorkflowExecutionSortField.STARTED_AT);
     const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-    useEffect(() => {
-          (async () => {
-              const retrievedToken = await getToken();
-              setToken(retrievedToken);
-          })();
-      }, [getToken]);
-
     const query = useQuery({
         queryKey: ["executions", workflowId, page, limit, sortField, sortDir],
         queryFn: async () => {
+          const token = await getToken();
           if (!token) return [];
           const executions = await getExecutions(token, workflowId, page, limit, sortField, sortDir);
           console.log(executions.length, limit);
@@ -57,7 +50,7 @@ const ExecutionTable = ({ workflowId, initialData }: { workflowId: string, initi
         },
         initialData,
         refetchInterval: 5000,
-        enabled: !!token,
+        enabled: !!getToken,
     });
 
   return (

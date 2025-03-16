@@ -12,7 +12,7 @@ from worker.runner.workflow_runner import WorkflowRunner
 
 from shared.sqs import get_sqs_client
 from shared.cron import get_next_run_date
-from shared.models import WorkflowUpdate
+from shared.models import ExecutionStatus, WorkflowUpdate
 from shared.db import Session
 from shared.crud.execution_crud import get_execution_by_id_and_user
 from shared.crud.workflow_crud import get_workflow_by_id_and_user, update_workflow
@@ -60,7 +60,7 @@ async def process_message(message_body: dict) -> None:
             workflow,
             WorkflowUpdate(
                 last_run_id=execution_id,
-                last_run_status="RUNNING",
+                last_run_status=ExecutionStatus.RUNNING,
                 last_run_at=datetime.now(tz=timezone("US/Eastern")),
             ),
         )

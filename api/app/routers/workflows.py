@@ -108,13 +108,8 @@ async def update_workflow_endpoint(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    if workflow.status != WorkflowStatus.DRAFT and workflow_in.cron is None:
-        raise HTTPException(
-            status_code=400, detail="Only draft workflows can be updated"
-        )
-
     changed = partial_update_workflow(workflow, workflow_in)
-    if changed:
+    if changed and workflow.status == WorkflowStatus.DRAFT:
         logger.info(f"Creating new version for workflow {workflow_id}")
         new_version = await create_new_workflow_version(
             session,

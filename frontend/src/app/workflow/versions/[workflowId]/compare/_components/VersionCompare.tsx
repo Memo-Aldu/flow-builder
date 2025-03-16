@@ -10,15 +10,16 @@ import { useAuth } from '@clerk/nextjs';
 import { rollbackWorkflow } from '@/lib/api/workflows';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { Workflow } from '@/types/workflows';
 
 
 type CompareProps = {
     versionA: WorkflowVersion;
     versionB: WorkflowVersion;
-    workflowId: string;
+    workflow: Workflow;
 }
 
-const VersionCompare = ({ versionA, versionB, workflowId }: CompareProps) => {
+const VersionCompare = ({ versionA, versionB, workflow }: CompareProps) => {
   const { getToken } = useAuth();
   const router = useRouter();
   
@@ -94,16 +95,26 @@ const VersionCompare = ({ versionA, versionB, workflowId }: CompareProps) => {
   });
 
   const onRollbackVersion = async (versionId: string) => {
-    console.log("Rollback version", versionId, "in workflow", workflowId);
     const token = await getToken();
     if (!token) {
       return;
     }
+
+    if (workflow.active_version_id === versionId) {
+      toast.warning("Cannot rollback to the active version");
+      return;
+    }
+
+    if (workflow.status !== "draft") {
+      toast.warning("Cannot rollback a published workflow, please unpublish it first");
+      return;
+    }
+
     try {
-      await rollbackWorkflow(workflowId, versionId, token);
+      await rollbackWorkflow(workflow.id, versionId, token);
       toast.success(`Rolled back to version ${versionA.id === versionId ? 
         versionA.version_number : versionB.version_number}`);
-      router.push(`/workflow/versions/${workflowId}`);
+      router.push(`/workflow/versions/${workflow.id}`);
     }
     catch (error) {
       toast.error("Failed to rollback version");
