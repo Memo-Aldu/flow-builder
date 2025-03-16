@@ -78,8 +78,9 @@ const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { w
     getWorkflowVersionByNumber(workflowId, version_2, token),
     getWorkflow(workflowId, token)
   ]).catch(() => [null, null, null]);
+  
 
-  if (!vA || !vB) {
+  if (!vA || !vB || !workflow) {
     return (
       <div className="container w-full py-6">
           <div className="flex items-center flex-col gap-2 justify-center h-full w-full">
