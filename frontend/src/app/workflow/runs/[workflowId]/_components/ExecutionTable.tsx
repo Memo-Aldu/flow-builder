@@ -7,7 +7,7 @@ import { DatesToDurationString } from '@/lib/helper/dates';
 import { WorkflowExecution, WorkflowExecutionSortField, WorkflowExecutionSortFieldLabels } from '@/types/executions'
 import { useAuth } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import ExecutionStatusIndicator from '@/app/workflow/runs/[workflowId]/_components/ExecutionStatusIndicator';
 import { CoinsIcon, SortAscIcon, SortDescIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
