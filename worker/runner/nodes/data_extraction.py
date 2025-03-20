@@ -12,7 +12,7 @@ from shared.models import LogLevel
 from shared.secrets_manager import get_secret_value
 from shared.crud.credentials_crud import get_credential_by_id
 
-from worker.runner.environment import Environment, Node
+from worker.runner.environment import Environment, Node, Phase
 from worker.runner.nodes.base import NodeExecutor
 
 
@@ -135,14 +135,14 @@ class OpenAICallNode(NodeExecutor):
         openai.api_key = openai_api_key
 
         try:
-            response = await self.call_openai_async(prompt, content)
+            response = await self.call_openai_async(phase, prompt, content)
             phase.add_log("AI call completed successfully.", level=LogLevel.INFO)
             return {"Extracted Data": response}
         except Exception as e:
             logger.warning(f"OpenAI call failed: {str(e)}")
             raise ValueError(f"OpenAI call failed: {str(e)}")
 
-    async def call_openai_async(self, prompt: str, content: str) -> Dict[str, Any]:
+    async def call_openai_async(self, phase: Phase, prompt: str, content: str) -> str:
 
         def sync_openai_call() -> ChatCompletion:
             system_prompt = """
@@ -156,13 +156,25 @@ class OpenAICallNode(NodeExecutor):
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
                     {"role": "user", "content": content},
+                    {"role": "user", "content": prompt},
                 ],
+                temperature=0.5,
             )
             return completion
 
-        result = await asyncio.to_thread(sync_openai_call)
-        msg_dict = result.choices[0].message.to_dict()
-        logger.info(f"OpenAI response: {msg_dict}")
-        return {"response": msg_dict}
+        response = await asyncio.to_thread(sync_openai_call)
+        if response.usage:
+            phase.add_log(
+                "Prompts Tokens used: " + str(response.usage.prompt_tokens),
+                level=LogLevel.INFO,
+            )
+            phase.add_log(
+                "Completion Tokens used: " + str(response.usage.completion_tokens),
+                level=LogLevel.INFO,
+            )
+        result = response.choices[0].message.content
+        if not result:
+            raise ValueError("Empty response from OpenAI.")
+        logger.info(f"OpenAI response: {result}")
+        return result

@@ -60,8 +60,8 @@ async def get_due_workflows(session: AsyncSession) -> list[Workflow]:
     stmt = select(Workflow).where(
         Workflow.cron is not None,
         Workflow.status == WorkflowStatus.PUBLISHED,
-        Workflow.next_run_at is not None and 
-        Workflow.next_run_at <= datetime.now(tz=timezone("UTC"))
+        Workflow.next_run_at is not None
+        and Workflow.next_run_at <= datetime.now(tz=timezone("UTC")),
     )
     result = await session.execute(stmt)
     workflows = [workflow for workflow in result.scalars().all()]

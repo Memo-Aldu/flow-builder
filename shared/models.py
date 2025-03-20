@@ -37,7 +37,7 @@ class WorkflowStatus(str, enum.Enum):
     DRAFT = "draft"
     PUBLISHED = "published"
     DISABLED = "disabled"
-    
+
 
 class ExecutionStatus(str, enum.Enum):
     PENDING = "pending"
@@ -45,6 +45,7 @@ class ExecutionStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELED = "canceled"
+
 
 class WorkflowBase(SQLModel):
     name: str
