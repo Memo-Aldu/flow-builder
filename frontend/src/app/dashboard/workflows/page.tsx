@@ -33,8 +33,8 @@ const page = () => {
 const UserWorkflowSkeleton = () => {
     return <div className='space-y-2'>
         {
-            [1, 2, 3, 4, 5].map((_, index) => 
-            <Skeleton className='h-32 w-full' key={index} />)
+            [1, 2, 3, 4, 5].map((item) => 
+            <Skeleton className='h-32 w-full' key={item} />)
         }  
     </div>
 }

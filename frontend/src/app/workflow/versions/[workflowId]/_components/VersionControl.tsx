@@ -4,7 +4,7 @@ import { getWorkflowVersions } from '@/lib/api/versions';
 import { WorkflowVersion } from '@/types/versions';
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import VersionTable from '@/app/workflow/versions/[workflowId]/_components/VersionTable';
 import VersionTimeline from '@/app/workflow/versions/[workflowId]/_components/VersionTimeline';
 

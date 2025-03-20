@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query'
 import { CoinsIcon, Loader2Icon } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import CountUpWrapper from './CountUpWrapper';
 import { buttonVariants } from './ui/button';
 
