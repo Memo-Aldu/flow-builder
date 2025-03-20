@@ -4,6 +4,7 @@ import StringParam from '@/app/workflow/_components/nodes/param/StringParam'
 import { useReactFlow } from '@xyflow/react'
 import { AppNode } from '@/types/nodes'
 import BrowserInstanceParam from '@/app/workflow/_components/nodes/param/BrowserInstanceParam'
+import CredentialParam from '@/app/workflow/_components/nodes/param/CredentialParam'
 
 const NodeParamField = ({ param, nodeId, disabled }: { param : TaskParam, nodeId: string, disabled: boolean }) => {
     const { updateNodeData, getNode } = useReactFlow()
@@ -27,6 +28,10 @@ const NodeParamField = ({ param, nodeId, disabled }: { param : TaskParam, nodeId
         case TaskParamType.BROWSER_INSTANCE:
             return (
                 <BrowserInstanceParam param={param} value={""} updateNodeParamValue={updateNodeParamValue}/>
+            )
+        case TaskParamType.CREDENTIAL:
+            return (
+                <CredentialParam param={param} value={value} updateNodeParamValue={updateNodeParamValue}/>
             )
         default:
             return (
