@@ -1,4 +1,3 @@
-from math import e
 from typing import Any, Dict
 from playwright.async_api import (
     async_playwright,
@@ -158,4 +157,4 @@ class ClickElementNode(NodeExecutor):
                 f"Original error: {type(e).__name__} - {str(e)}"
             )
             logger.warning(friendly)
-            raise ValueError(friendly) from None
+            raise ValueError(friendly) from e
