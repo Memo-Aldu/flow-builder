@@ -2,7 +2,7 @@ import { TaskParamType, TaskType } from "@/types/task";
 import { WorkflowTask } from "@/types/workflows";
 import { BrainIcon, LucideProps } from "lucide-react";
 
-export const ExtractDataOpenAI = {
+export const ExtractDataOpenAITask = {
     type: TaskType.EXTRACT_DATA_OPENAI,
     label: "Use OpenAI to Extract Data",
     icon: (props: LucideProps) => <BrainIcon className="stroke-rose-400" {...props} />,
@@ -14,6 +14,7 @@ export const ExtractDataOpenAI = {
             type: TaskParamType.STRING,
             required: true,
             variant: "textarea",
+            helperText: "Prompt to send to OpenAI API",
         },
         {
             name: "Content",

@@ -14,11 +14,13 @@ export const GetTextFromHtmlTask = {
             type: TaskParamType.STRING,
             required: true,
             variant: "textarea",
+            helperText: "HTML content to extract text from",
         },
         {
             name: "Selector",
             type: TaskParamType.STRING,
             required: true,
+            helperText: "CSS selector of the element to extract text from",
         }
     ],
     outputs: [
