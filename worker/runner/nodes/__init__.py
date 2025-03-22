@@ -12,6 +12,7 @@ from worker.runner.nodes.browser import (
     ClickElementNode,
 )
 from worker.runner.nodes.data_storage import ReadPropertyFromJsonNode
+from worker.runner.nodes.timing import DelayNode, WaitElementNode
 
 NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "launch_browser": LaunchBrowserNode,
@@ -21,6 +22,8 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "get_text_from_html": GetTextFromHTMLNode,
     "extract_data_openai": OpenAICallNode,
     "read_property_from_json": ReadPropertyFromJsonNode,
+    "wait_for_element": WaitElementNode,
+    "delay": DelayNode,
 }
 
 
@@ -32,4 +35,6 @@ NODE_CREDIT_COSTS = {
     "get_text_from_html": 2,
     "extract_data_openai": 4,
     "read_property_from_json": 1,
+    "wait_for_element": 1,
+    "delay": 1,
 }
