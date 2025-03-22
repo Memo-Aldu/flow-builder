@@ -31,4 +31,5 @@ NODE_CREDIT_COSTS = {
     "get_html": 2,
     "get_text_from_html": 2,
     "extract_data_openai": 4,
+    "read_property_from_json": 1,
 }
