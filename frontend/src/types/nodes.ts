@@ -29,6 +29,7 @@ export type ParamProps = {
     param: TaskParam
     value: string
     disabled?: boolean
+    options?: { value: string, label: string }[]
     updateNodeParamValue: (newValue: string) => void
 }
 
