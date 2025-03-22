@@ -15,7 +15,10 @@ const TaskMenu = () => {
   return (
     <aside className='w-[340px] min-w-[340px] max-w-[340px] border-r-2
     border-separate h-full p-2 px-4 overflow-auto'>
-        <Accordion type='multiple' className='w-full' defaultValue={['Extraction', 'Entrypoint']}>
+        <Accordion 
+            type='multiple' 
+            className='w-full' 
+            defaultValue={['Extraction', 'Entrypoint', 'Storage']}>
             <AccordionItem value='Entrypoint'>
                 <AccordionTrigger className='font-bold'>
                     Browser Automation
@@ -34,6 +37,14 @@ const TaskMenu = () => {
                     <TaskMenuBtn taskType={TaskType.GET_HTML} />
                     <TaskMenuBtn taskType={TaskType.GET_TEXT_FROM_HTML} />
                     <TaskMenuBtn taskType={TaskType.EXTRACT_DATA_OPENAI} />
+                </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value='Storage'>
+                <AccordionTrigger className='font-bold'>
+                    Data Storage
+                </AccordionTrigger>
+                <AccordionContent className='flex flex-col gap-1'>
+                    <TaskMenuBtn taskType={TaskType.READ_PROPERTY_FROM_JSON} />
                 </AccordionContent>
             </AccordionItem>
         </Accordion>

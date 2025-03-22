@@ -5,6 +5,7 @@ export enum TaskType {
     CLICK_ELEMENT = "click_element",
     FILL_INPUT = "fill_input",
     EXTRACT_DATA_OPENAI = "extract_data_openai",
+    READ_PROPERTY_FROM_JSON = "read_property_from_json",
 }
 
 export enum TaskParamType {

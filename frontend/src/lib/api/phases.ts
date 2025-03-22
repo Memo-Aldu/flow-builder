@@ -20,7 +20,7 @@ export async function listPhases(
   token: string,
   executionId: string,
   page: number = 1,
-  limit: number = 10,
+  limit: number = 25,
   sortField: ExecutionPhaseSortField = ExecutionPhaseSortField.STARTED_AT,
   sortDir: SortDir = "asc"
 ): Promise<ExecutionPhase[]> {

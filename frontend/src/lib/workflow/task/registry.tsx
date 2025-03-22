@@ -6,6 +6,7 @@ import { TaskType } from "@/types/task";
 import { ClickElement } from "@/lib/workflow/task/ClickElement";
 import { FillInput } from "@/lib/workflow/task/FillInput";
 import { ExtractDataOpenAI } from "@/lib/workflow/task/ExtractDataOpenAI";
+import { ReadPropertyFromJson } from "@/lib/workflow/task/ReadPropertyFromJson";
 
 
 type Registry = {
@@ -18,5 +19,6 @@ export const TaskRegistry: Registry = {
     get_text_from_html: GetTextFromHtmlTask,
     click_element: ClickElement,
     fill_input: FillInput,
-    extract_data_openai: ExtractDataOpenAI
+    extract_data_openai: ExtractDataOpenAI,
+    read_property_from_json: ReadPropertyFromJson,
 }
