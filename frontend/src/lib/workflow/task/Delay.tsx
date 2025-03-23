@@ -1,19 +1,21 @@
 import { TaskParamType, TaskType } from "@/types/task";
 import { WorkflowTask } from "@/types/workflows";
-import { LucideProps, MousePointerClickIcon } from "lucide-react";
+import { LucideProps, TimerIcon } from "lucide-react";
 
-export const ClickElementTask = {
-    type: TaskType.CLICK_ELEMENT,
-    label: "Click Element",
-    icon: (props: LucideProps) => <MousePointerClickIcon className="stroke-orange-400" {...props} />,
-    description: "Click on an element on a web page",
+export const DelayTask = {
+    type: TaskType.DELAY,
+    label: "Delay",
+    icon: (props: LucideProps) => <TimerIcon className="stroke-emerald-400" {...props} />,
+    description: "Delay for a specified amount of time",
     isEntryPoint: false,
     inputs: [
         {
-            name: "Selector",
-            type: TaskParamType.STRING,
+            name: "Duration",
+            type: TaskParamType.NUMBER,
             required: true,
-            helperText: "CSS selector of the element to click",
+            min : 1,
+            max : 10,
+            helperText : "Enter a number between 1 and 10"
         },
         {
             name: "Web Page",

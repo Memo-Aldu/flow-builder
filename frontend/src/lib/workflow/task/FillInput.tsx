@@ -2,7 +2,7 @@ import { TaskParamType, TaskType } from "@/types/task";
 import { WorkflowTask } from "@/types/workflows";
 import { LucideProps, RectangleEllipsisIcon } from "lucide-react";
 
-export const FillInput = {
+export const FillInputTask = {
     type: TaskType.FILL_INPUT,
     label: "Fill Input on Page",
     icon: (props: LucideProps) => <RectangleEllipsisIcon className="stroke-orange-400" {...props} />,
@@ -13,11 +13,13 @@ export const FillInput = {
             name: "Selector",
             type: TaskParamType.STRING,
             required: true,
+            helperText: "CSS selector of the input to fill",
         },
         {
             name: "Value",
             type: TaskParamType.STRING,
             required: true,
+            helperText: "Value to fill in the input",
         },
         {
             name: "Web Page",

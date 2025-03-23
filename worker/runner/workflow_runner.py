@@ -139,13 +139,11 @@ class WorkflowRunner:
         )
 
         phase_env_obj = env.create_phase(exec_phase_db.id, node_type)
-        await asyncio.sleep(1)
         started_at = datetime.now()
         await self.update_phase(
             exec_phase_db,
             {"status": ExecutionPhaseStatus.RUNNING, "started_at": started_at},
         )
-        await asyncio.sleep(2)
         phase_env_obj.status = ExecutionPhaseStatus.RUNNING
         phase_env_obj.start_time = started_at
 

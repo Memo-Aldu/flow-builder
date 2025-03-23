@@ -1,26 +1,11 @@
 "use client";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getCredentials } from '@/lib/api/credential';
 import { ParamProps } from '@/types/nodes';
-import { useAuth } from '@clerk/nextjs';
-import { useQuery } from '@tanstack/react-query';
 import React, { useId } from 'react'
 
-const CredentialParam = ({ param, value, updateNodeParamValue }: ParamProps) => {
+const SelectParam = ({ param, value, updateNodeParamValue }: ParamProps) => {
   const id = useId();
-  const { getToken } = useAuth();
-  const query = useQuery({
-    queryKey: ['credentials-for-input'],
-    queryFn: async () => {
-      const token = await getToken();
-      if (!token) {
-        return;
-      }
-      return getCredentials(token)
-    },
-    refetchInterval: 10000,
-  })
   return (
     <div className="flex flex-col gap-1 w-full">
       <Label htmlFor={id} className='text-xs flex'>
@@ -35,21 +20,18 @@ const CredentialParam = ({ param, value, updateNodeParamValue }: ParamProps) => 
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectLabel>Credentials</SelectLabel>
-              {query.data?.map((credential) => (
-                <SelectItem key={credential.id} value={credential.id}>
-                  {credential.name}
+              <SelectLabel>Options</SelectLabel>
+              {param.options.map((option: {value: string, label: string}) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectGroup>
           </SelectContent>
       </Select>
-      {param.helperText && (
-            <p className='text-xs text-muted-foreground px-2'>{param.helperText}</p>
-        )}
     </div>
 
   )
 }
 
-export default CredentialParam
+export default SelectParam

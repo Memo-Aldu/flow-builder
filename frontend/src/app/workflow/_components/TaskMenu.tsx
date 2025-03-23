@@ -18,7 +18,7 @@ const TaskMenu = () => {
         <Accordion 
             type='multiple' 
             className='w-full' 
-            defaultValue={['Extraction', 'Entrypoint', 'Storage']}>
+            defaultValue={['Extraction', 'Entrypoint', 'Timing', 'Storage']}>
             <AccordionItem value='Entrypoint'>
                 <AccordionTrigger className='font-bold'>
                     Browser Automation
@@ -37,6 +37,15 @@ const TaskMenu = () => {
                     <TaskMenuBtn taskType={TaskType.GET_HTML} />
                     <TaskMenuBtn taskType={TaskType.GET_TEXT_FROM_HTML} />
                     <TaskMenuBtn taskType={TaskType.EXTRACT_DATA_OPENAI} />
+                </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value='Timing'>
+                <AccordionTrigger className='font-bold'>
+                    Timing Controls
+                </AccordionTrigger>
+                <AccordionContent className='flex flex-col gap-1'>
+                    <TaskMenuBtn taskType={TaskType.DELAY} />
+                    <TaskMenuBtn taskType={TaskType.WAIT_FOR_ELEMENT} />
                 </AccordionContent>
             </AccordionItem>
             <AccordionItem value='Storage'>
