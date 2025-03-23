@@ -44,6 +44,9 @@ const CredentialParam = ({ param, value, updateNodeParamValue }: ParamProps) => 
             </SelectGroup>
           </SelectContent>
       </Select>
+      {param.helperText && (
+            <p className='text-xs text-muted-foreground px-2'>{param.helperText}</p>
+        )}
     </div>
 
   )

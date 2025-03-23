@@ -20,11 +20,14 @@ export const ExtractDataOpenAITask = {
             name: "Content",
             type: TaskParamType.STRING,
             required: true,
+            helperText: "Content to extract data from",
         },
         {
             name: "API Key",
             type: TaskParamType.CREDENTIAL,
             required: true,
+            hideHandle: true,
+            helperText: "API Key for OpenAI API",
         }
     ],
     outputs: [
