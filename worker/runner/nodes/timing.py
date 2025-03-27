@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any, Dict
-from playwright.async_api import (
+from patchright.async_api import (
     Error as PlaywrightError,
     TimeoutError as PlaywrightTimeoutError,
 )

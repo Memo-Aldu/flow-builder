@@ -4,7 +4,7 @@ from uuid import UUID
 from typing import Any, Dict
 
 from bs4 import BeautifulSoup
-from playwright.async_api import Error as PlaywrightError
+from patchright.async_api import Error as PlaywrightError
 from openai.types.chat.chat_completion import ChatCompletion
 
 from shared.logging import get_logger

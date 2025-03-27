@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from playwright.async_api import (
+from patchright.async_api import (
     async_playwright,
     Error as PlaywrightError,
     TimeoutError as PlaywrightTimeoutError,
@@ -42,7 +42,12 @@ class LaunchBrowserNode(NodeExecutor):
                 phase.add_log("Started Playwright engine.", LogLevel.DEBUG)
 
             if env.browser is None:
-                env.browser = await env.playwright.chromium.launch(headless=True)
+                env.browser = await env.playwright.chromium.launch_persistent_context(
+                    user_data_dir="./playwright_data",
+                    channel="chrome",
+                    headless=False,
+                    no_viewport=True,
+                )
                 phase.add_log("Launched Chromium browser.", LogLevel.DEBUG)
 
             page = await env.browser.new_page()
@@ -50,6 +55,9 @@ class LaunchBrowserNode(NodeExecutor):
             if not response:
                 raise ValueError(f"Failed to navigate to {url}.")
             if response.status < 200 or response.status >= 400:
+                logger.warning(
+                    f"Failed to navigate to {url}. Status code: {response.status}. Response: {response.json()}"
+                )
                 raise ValueError(
                     f"Failed to navigate to {url}. Status code: {response.status}"
                 )

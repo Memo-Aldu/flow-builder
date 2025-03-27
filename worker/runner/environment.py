@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from playwright.async_api import Browser, Playwright, Page
+from patchright.async_api import BrowserContext, Playwright, Page
 from shared.models import LogLevel
 from worker.runner import logger
 
@@ -53,7 +53,7 @@ class Environment:
 
     def __init__(self) -> None:
         self.phases: Dict[UUID, Phase] = {}
-        self.browser: Optional[Browser] = None
+        self.browser: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
         self.playwright: Optional[Playwright] = None
         self.resources: Dict[str, Dict[str, Any]] = {}
