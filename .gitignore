@@ -57,3 +57,7 @@ Thumbs.db
 .idea/
 *.iml
 .vscode/
+
+
+# Playwright
+playwright_data/
