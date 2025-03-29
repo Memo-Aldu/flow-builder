@@ -36,6 +36,7 @@ const TaskMenu = () => {
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.GET_HTML} />
                     <TaskMenuBtn taskType={TaskType.GET_TEXT_FROM_HTML} />
+                    <TaskMenuBtn taskType={TaskType.MINIMIZE_HTML} />
                     <TaskMenuBtn taskType={TaskType.EXTRACT_DATA_OPENAI} />
                 </AccordionContent>
             </AccordionItem>

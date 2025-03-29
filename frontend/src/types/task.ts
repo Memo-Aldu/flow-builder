@@ -8,6 +8,7 @@ export enum TaskType {
     READ_PROPERTY_FROM_JSON = "read_property_from_json",
     WAIT_FOR_ELEMENT = "wait_for_element",
     DELAY = "delay",
+    MINIMIZE_HTML = "minimize_html",
 }
 
 export enum TaskParamType {
