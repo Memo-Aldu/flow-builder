@@ -8,7 +8,7 @@ import useWorkflowValidation from '@/components/hooks/useWorkflowValidation'
 
 export const NodeInputs = ({ children }: {children: React.ReactNode}) => {
   return (
-    <div className='flex flex-col divide-y gap-1'>
+    <div className='flex flex-col space-y-1'>
         {children}
     </div>
   )
@@ -30,27 +30,31 @@ export const NodeInput = ({ input, nodeId } : { input: TaskParam, nodeId: string
 
     console.log("isChanged", isChanged)
 
-  return (
-    <div className={cn(
-      "flex justify-start relative p-3 bg-secondary w-full",
-  hasInvalidInputs
-    ? "!bg-destructive/30"
-    : isChanged
-    ? "!bg-amber-300/40"
-    : ""
-    )}>
-      <NodeParamField param={input} nodeId={nodeId} disabled={isConnected} />
-      {!input.hideHandle && (
-              <Handle 
-              id={input.name} 
-              isConnectable={!isConnected}
-              type="target" 
-              position={Position.Left} 
-              className={cn("!bg-muted-foreground !border-2 !border-background !-left-2 !w-4 !h-4",
-                  ColorForHandle[input.type]
-              )}
-              />
-      )}
-    </div>
-  )
-}
+    return (
+      <div
+        className={cn(
+          'relative flex items-center p-2 border bg-secondary/40 w-full text-sm',
+          hasInvalidInputs
+            ? 'border-destructive bg-destructive/30'
+            : isChanged
+            ? 'border-amber-300 bg-amber-300/20'
+            : 'border-border'
+        )}
+      >
+        <NodeParamField param={input} nodeId={nodeId} disabled={isConnected} />
+  
+        {!input.hideHandle && (
+          <Handle
+            id={input.name}
+            isConnectable={!isConnected}
+            type="target"
+            position={Position.Left}
+            className={cn(
+              '!bg-muted-foreground !border-2 !border-background !-left-2 !w-4 !h-4',
+              ColorForHandle[input.type]
+            )}
+          />
+        )}
+      </div>
+    )
+  }
