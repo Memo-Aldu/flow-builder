@@ -4,7 +4,7 @@ from worker.runner.nodes.base import NodeExecutor
 from worker.runner.nodes.data_extraction import (
     GetHTMLNode,
     GetTextFromHTMLNode,
-    MinimizeHTMLNode,
+    CondenseHTMLNode,
     OpenAICallNode,
 )
 from worker.runner.nodes.browser import (
@@ -13,6 +13,7 @@ from worker.runner.nodes.browser import (
     ClickElementNode,
 )
 from worker.runner.nodes.data_storage import ReadPropertyFromJsonNode
+from worker.runner.nodes.delivery import DeliverToWebhookNode
 from worker.runner.nodes.timing import DelayNode, WaitElementNode
 
 NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
@@ -25,7 +26,8 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "read_property_from_json": ReadPropertyFromJsonNode,
     "wait_for_element": WaitElementNode,
     "delay": DelayNode,
-    "minimize_html": MinimizeHTMLNode,
+    "condense_html": CondenseHTMLNode,
+    "deliver_to_webhook": DeliverToWebhookNode,
 }
 
 
@@ -39,5 +41,6 @@ NODE_CREDIT_COSTS = {
     "read_property_from_json": 1,
     "wait_for_element": 1,
     "delay": 1,
-    "minimize_html": 2,
+    "condense_html": 2,
+    "deliver_to_webhook": 2,
 }
