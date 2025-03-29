@@ -3,7 +3,7 @@ import asyncio
 from uuid import UUID
 from typing import Any, Dict
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from patchright.async_api import Error as PlaywrightError
 from openai.types.chat.chat_completion import ChatCompletion
 
@@ -178,3 +178,61 @@ class OpenAICallNode(NodeExecutor):
             raise ValueError("Empty response from OpenAI.")
         logger.info(f"OpenAI response: {result}")
         return result
+
+
+class MinimizeHTMLNode(NodeExecutor):
+    """
+    Takes a large HTML string and returns a minimized/sanitized subset:
+      - Strips <script>, <style>, and comments
+      - Optionally keeps only a specific portion (via 'Selector')
+      - Optionally enforces a max character length
+    Outputs 'Reduced Html'\
+    """
+
+    __name__ = "Minimize HTML Node"
+
+    required_input_keys = ["Html"]
+    output_keys = ["Reduced Html"]
+
+    async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
+        self.validate(node, env)
+        phase = env.get_phase_of_node(node.id)
+
+        html_content = node.inputs["Html"]
+        selector = node.inputs.get("Selector")
+        max_length_str = node.inputs.get("Max Length")
+        try:
+            max_length = int(max_length_str) if max_length_str else None
+        except ValueError:
+            max_length = None
+
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # Remove scripts, styles, comments
+        for tag in soup.find_all(["script", "style"]):
+            tag.decompose()
+        for comment in soup.find_all(string=lambda s: isinstance(s, Comment)):
+            comment.extract()
+
+        if selector:
+            selected = soup.select(selector)
+            if not selected:
+                phase.add_log(
+                    f"No elements found for selector '{selector}'. Returning empty.",
+                    level=LogLevel.INFO,
+                )
+                reduced_html = ""
+            else:
+                reduced_html = "".join(str(el) for el in selected)
+        else:
+            reduced_html = str(soup.body if soup.body else soup)
+
+        if max_length and len(reduced_html) > max_length and max_length > 0:
+            reduced_html = reduced_html[:max_length] + "..."
+
+        phase.add_log(
+            f"Minimized HTML content from {len(html_content)} to {len(reduced_html)} characters.",
+            level=LogLevel.INFO,
+        )
+
+        return {"Reduced Html": reduced_html}

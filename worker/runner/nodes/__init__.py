@@ -4,6 +4,7 @@ from worker.runner.nodes.base import NodeExecutor
 from worker.runner.nodes.data_extraction import (
     GetHTMLNode,
     GetTextFromHTMLNode,
+    MinimizeHTMLNode,
     OpenAICallNode,
 )
 from worker.runner.nodes.browser import (
@@ -24,6 +25,7 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "read_property_from_json": ReadPropertyFromJsonNode,
     "wait_for_element": WaitElementNode,
     "delay": DelayNode,
+    "minimize_html": MinimizeHTMLNode,
 }
 
 
@@ -37,4 +39,5 @@ NODE_CREDIT_COSTS = {
     "read_property_from_json": 1,
     "wait_for_element": 1,
     "delay": 1,
+    "minimize_html": 2,
 }
