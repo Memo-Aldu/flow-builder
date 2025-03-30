@@ -1,3 +1,5 @@
+from logging import Logger
+from turtle import up
 from uuid import UUID
 from typing import List
 
@@ -57,22 +59,6 @@ async def list_workflows_endpoint(
     return workflows
 
 
-@router.post("", response_model=WorkflowRead, status_code=status.HTTP_201_CREATED)
-async def create_workflow_endpoint(
-    workflow_in: WorkflowCreate,
-    user_info: dict = Depends(verify_clerk_token),
-    session: AsyncSession = Depends(get_session),
-) -> Workflow:
-    """Create a new workflow"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    logger.info(f"Creating workflow for user {local_user.id}")
-    new_workflow = await create_workflow(session, local_user.id, workflow_in)
-    return new_workflow
-
-
 @router.get("/{workflow_id}", response_model=WorkflowRead)
 async def get_workflow_endpoint(
     workflow_id: UUID,
@@ -92,6 +78,39 @@ async def get_workflow_endpoint(
     return workflow
 
 
+@router.post("", response_model=WorkflowRead, status_code=status.HTTP_201_CREATED)
+async def create_workflow_endpoint(
+    workflow_in: WorkflowCreate,
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> Workflow:
+    """Create a new workflow"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    logger.info(f"Creating workflow for user {local_user.id}")
+    new_workflow = await create_workflow(session, local_user.id, workflow_in)
+    if not new_workflow:
+        raise HTTPException(status_code=400, detail="Workflow creation failed")
+    workflow_version = await create_new_workflow_version(
+        session,
+        new_workflow.id,
+        local_user.username or str(local_user.id),
+        WorkflowVersionCreate(
+            is_active=True,
+            version_number=-1,
+            definition={},
+            execution_plan=[],
+        ),
+    )
+    if not workflow_version:
+        raise HTTPException(status_code=400, detail="Workflow version creation failed")
+    new_workflow.active_version_id = workflow_version.id
+    new_workflow.active_version = workflow_version
+    return new_workflow
+
+
 @router.patch("/{workflow_id}", response_model=WorkflowRead)
 async def update_workflow_endpoint(
     workflow_id: UUID,
@@ -108,52 +127,22 @@ async def update_workflow_endpoint(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    changed = partial_update_workflow(workflow, workflow_in)
-    if changed and workflow.status == WorkflowStatus.DRAFT:
-        logger.info(f"Creating new version for workflow {workflow_id}")
-        new_version = await create_new_workflow_version(
-            session,
-            workflow_id,
-            local_user.username or str(local_user.id),
-            WorkflowVersionCreate(
-                is_active=True,
-                version_number=-1,
-                definition=(
-                    workflow_in.definition
-                    if workflow_in.definition is not None
-                    else (
-                        workflow.active_version.definition
-                        if workflow.active_version
-                        else {}
-                    )
-                ),
-                execution_plan=(
-                    workflow_in.execution_plan
-                    if workflow_in.execution_plan is not None
-                    else (
-                        workflow.active_version.execution_plan
-                        if workflow.active_version
-                        else []
-                    )
-                ),
-                parent_version_id=workflow.active_version_id,
-            ),
-        )
-        if workflow.active_version:
-            workflow.active_version.is_active = False
-        workflow.active_version_id = new_version.id
-
     if (
-        workflow_in.execution_plan is not None
-        and not changed
-        and workflow.active_version
-        and workflow.active_version.execution_plan != workflow_in.execution_plan
+        workflow.status != WorkflowStatus.DRAFT
+        and len(workflow_in.model_dump(exclude_unset=True)) > 1
+        and workflow_in.status is None
+        and workflow_in.cron is None
     ):
-        logger.info(f"Updating execution plan for workflow {workflow_id}")
-        workflow.active_version.execution_plan = workflow_in.execution_plan
+        raise HTTPException(
+            status_code=400,
+            detail="Only status can be updated for non-draft workflows",
+        )
 
-    logger.info(f"Updating workflow {workflow_id} for user {local_user.id}")
+    if workflow_in.credits_cost and workflow_in.credits_cost < 0:
+        raise HTTPException(status_code=400, detail="Credits cost cannot be negative")
+
     updated = await update_workflow(session, workflow, workflow_in)
+    logger.info("Updating workflow %s for user %s", workflow_id, local_user.id)
     return updated
 
 
@@ -178,6 +167,11 @@ async def publish_workflow(
             status_code=400, detail="Only draft workflows can be published"
         )
 
+    if not workflow.active_version:
+        raise HTTPException(
+            status_code=400, detail="Workflow does not have an active version"
+        )
+
     if (
         not publish_request
         or not publish_request.definition
@@ -189,29 +183,17 @@ async def publish_workflow(
             detail="Definition, execution plan and credits cost must be provided",
         )
 
-    if not workflow.active_version:
-        logger.info(f"Creating new version for workflow {workflow_id}")
-        version = await create_new_workflow_version(
-            session,
-            workflow_id,
-            local_user.username or str(local_user.id),
-            WorkflowVersionCreate(
-                is_active=True,
-                version_number=-1,
-                definition=publish_request.definition,
-                execution_plan=publish_request.execution_plan,
-            ),
-        )
-        workflow.active_version_id = version.id
-    else:
-        logger.info(f"Updating active version for workflow {workflow_id}")
-        version = workflow.active_version
-        version.definition = publish_request.definition
-        version.execution_plan = publish_request.execution_plan
-
-    workflow.credits_cost = publish_request.credits_cost
-    workflow.status = WorkflowStatus.PUBLISHED
-    updated = await update_workflow(session, workflow, WorkflowUpdate())
+    logger.info(f"Updating active version for workflow {workflow_id}")
+    updated = await update_workflow(
+        session,
+        workflow,
+        WorkflowUpdate(
+            status=WorkflowStatus.PUBLISHED,
+            credits_cost=publish_request.credits_cost,
+            definition=publish_request.definition,
+            execution_plan=publish_request.execution_plan,
+        ),
+    )
     logger.info(f"Published workflow {workflow_id} for user {local_user.id}")
     return updated
 
@@ -328,35 +310,3 @@ async def delete_workflow_endpoint(
         raise HTTPException(status_code=404, detail="Workflow not found")
     logger.info(f"Deleting workflow {workflow_id} for user {local_user.id}")
     await delete_workflow(session, workflow)
-
-
-def partial_update_workflow(db_workflow: Workflow, patch_data: WorkflowUpdate) -> bool:
-    """
-    Returns True if any of the "versioned" fields changed, otherwise False.
-    """
-    versioned_fields_changed = False
-
-    if patch_data.name is not None:
-        if patch_data.name != db_workflow.name:
-            versioned_fields_changed = True
-        db_workflow.name = patch_data.name
-
-    if patch_data.description is not None:
-        if patch_data.description != db_workflow.description:
-            versioned_fields_changed = True
-        db_workflow.description = patch_data.description
-
-    if patch_data.definition is not None:
-        old_definition = (
-            db_workflow.active_version.definition
-            if db_workflow.active_version and db_workflow.active_version.definition
-            else {}
-        )
-        old_def_no_vp = {k: v for k, v in old_definition.items() if k != "viewport"}
-        new_def_no_vp = {
-            k: v for k, v in patch_data.definition.items() if k != "viewport"
-        }
-        if old_def_no_vp != new_def_no_vp:
-            versioned_fields_changed = True
-
-    return versioned_fields_changed

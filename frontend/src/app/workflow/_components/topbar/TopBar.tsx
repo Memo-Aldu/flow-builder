@@ -43,7 +43,7 @@ const TopBar = ({ title, subtitle, workflowId, hideButtons = false, workflowStat
         <div className="flex gap-1 flex-1 justify-end">
             { hideButtons === false && (
                 <>
-                    {workflowStatus !== 'disabled' && <ExecuteBtn workflowId={workflowId} isPublished/>}
+                    {workflowStatus !== 'disabled' && <ExecuteBtn workflowId={workflowId} isPublished={workflowStatus === 'published'}/>}
                     { workflowStatus === 'published' && <UnPublishBtn workflowId={workflowId}/>}
                     {workflowStatus === 'draft' && (
                         <>

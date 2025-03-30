@@ -31,7 +31,9 @@ const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
       if (!token) {
         throw new Error("User not authenticated");
       }
-      await updateWorkflow(id, values, token)
+      if (!isPublished) {
+        await updateWorkflow(id, values, token)
+      }
       const workflowExecution: WorkflowExecutionCreate = {
         workflow_id: id,
         trigger: ExecutionTrigger.MANUAL,
