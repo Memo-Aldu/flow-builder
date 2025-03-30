@@ -18,7 +18,7 @@ const TaskMenu = () => {
         <Accordion 
             type='multiple' 
             className='w-full' 
-            defaultValue={['Extraction', 'Entrypoint', 'Timing', 'Storage']}>
+            defaultValue={['Extraction', 'Entrypoint', 'Timing', 'Storage', 'Deliver Results']}>
             <AccordionItem value='Entrypoint'>
                 <AccordionTrigger className='font-bold'>
                     Browser Automation
@@ -36,7 +36,7 @@ const TaskMenu = () => {
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.GET_HTML} />
                     <TaskMenuBtn taskType={TaskType.GET_TEXT_FROM_HTML} />
-                    <TaskMenuBtn taskType={TaskType.MINIMIZE_HTML} />
+                    <TaskMenuBtn taskType={TaskType.CONDENSE_HTML} />
                     <TaskMenuBtn taskType={TaskType.EXTRACT_DATA_OPENAI} />
                 </AccordionContent>
             </AccordionItem>
@@ -55,6 +55,14 @@ const TaskMenu = () => {
                 </AccordionTrigger>
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.READ_PROPERTY_FROM_JSON} />
+                </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value='Deliver Results'>
+                <AccordionTrigger className='font-bold'>
+                    Deliver Results
+                </AccordionTrigger>
+                <AccordionContent className='flex flex-col gap-1'>
+                    <TaskMenuBtn taskType={TaskType.DELIVER_TO_WEBHOOK} />
                 </AccordionContent>
             </AccordionItem>
         </Accordion>

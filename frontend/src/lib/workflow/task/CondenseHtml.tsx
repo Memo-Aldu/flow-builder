@@ -2,11 +2,11 @@ import { TaskParamType, TaskType } from "@/types/task";
 import { WorkflowTask } from "@/types/workflows";
 import { LucideProps, Minimize2Icon } from "lucide-react";
 
-export const MinimizeHtmlTask = {
-    type: TaskType.MINIMIZE_HTML,
-    label: "Minimize HTML",
+export const CondenseHtmlTask = {
+    type: TaskType.CONDENSE_HTML,
+    label: "Condense HTML",
     icon: (props: LucideProps) => <Minimize2Icon className="stroke-rose-400" {...props} />,
-    description: "Minimize HTML content",
+    description: "Minimize HTML content by removing unnecessary tags and attributes",
     isEntryPoint: false,
     inputs: [
         {

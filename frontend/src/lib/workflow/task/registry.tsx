@@ -9,7 +9,8 @@ import { ExtractDataOpenAITask } from "@/lib/workflow/task/ExtractDataOpenAI";
 import { ReadPropertyFromJsonTask } from "@/lib/workflow/task/ReadPropertyFromJson";
 import { WaitForElementTask } from "@/lib/workflow/task/WaitForElement";
 import { DelayTask } from "@/lib/workflow/task/Delay";
-import { MinimizeHtmlTask } from "@/lib/workflow/task/MinimizeHtml";
+import { CondenseHtmlTask } from "@/lib/workflow/task/CondenseHtml";
+import { DeliverToWebhookTask } from "./DeliverToWebhook";
 
 
 type Registry = {
@@ -26,5 +27,6 @@ export const TaskRegistry: Registry = {
     read_property_from_json: ReadPropertyFromJsonTask,
     wait_for_element: WaitForElementTask,
     delay: DelayTask,
-    minimize_html: MinimizeHtmlTask,
+    condense_html: CondenseHtmlTask,
+    deliver_to_webhook: DeliverToWebhookTask,
 }

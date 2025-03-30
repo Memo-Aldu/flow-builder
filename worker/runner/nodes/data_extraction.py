@@ -176,11 +176,11 @@ class OpenAICallNode(NodeExecutor):
         result = response.choices[0].message.content
         if not result:
             raise ValueError("Empty response from OpenAI.")
-        logger.info(f"OpenAI response: {result}")
+        logger.info(f"OpenAI response: {result[:100]}...")
         return result
 
 
-class MinimizeHTMLNode(NodeExecutor):
+class CondenseHTMLNode(NodeExecutor):
     """
     Takes a large HTML string and returns a minimized/sanitized subset:
       - Strips <script>, <style>, and comments
@@ -189,7 +189,7 @@ class MinimizeHTMLNode(NodeExecutor):
     Outputs 'Reduced Html'\
     """
 
-    __name__ = "Minimize HTML Node"
+    __name__ = "Condense HTML Node"
 
     required_input_keys = ["Html"]
     output_keys = ["Reduced Html"]
