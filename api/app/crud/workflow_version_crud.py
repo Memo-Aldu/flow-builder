@@ -59,22 +59,26 @@ async def get_workflow_versions_by_workflow_id(
 async def create_new_workflow_version(
     session: AsyncSession,
     workflow_id: UUID,
-    username: str,
-    workflow_version: WorkflowVersionCreate,
+    workflow_version: WorkflowVersion,
 ) -> WorkflowVersion:
+    """
+    Creates a new version for a workflow, ensuring the version_number is
+    one higher than the current max for this workflow_id.
+    """
     stmt = select(func.max(WorkflowVersion.version_number)).where(
         WorkflowVersion.workflow_id == workflow_id
     )
     result = await session.execute(stmt)
     current_max = result.scalar() or 0
+
     new_version_num = current_max + 1
 
     new_version = WorkflowVersion(
         workflow_id=workflow_id,
-        created_by=username,
         version_number=new_version_num,
+        is_active=True,
         **workflow_version.model_dump(
-            exclude={"workflow_id", "version_number", "created_by"}
+            exclude={"workflow_id", "version_number", "is_active"}
         ),
     )
 

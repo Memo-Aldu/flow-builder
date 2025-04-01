@@ -31,6 +31,7 @@ from shared.models import (
     WorkflowRead,
     WorkflowStatus,
     WorkflowUpdate,
+    WorkflowVersion,
     WorkflowVersionCreate,
 )
 
@@ -83,32 +84,41 @@ async def create_workflow_endpoint(
     workflow_in: WorkflowCreate,
     user_info: dict = Depends(verify_clerk_token),
     session: AsyncSession = Depends(get_session),
-) -> Workflow:
-    """Create a new workflow"""
+) -> WorkflowRead:
+    """
+    Create a new workflow and initialize it with an active version.
+    """
     local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
     logger.info(f"Creating workflow for user {local_user.id}")
+
     new_workflow = await create_workflow(session, local_user.id, workflow_in)
     if not new_workflow:
         raise HTTPException(status_code=400, detail="Workflow creation failed")
+
     workflow_version = await create_new_workflow_version(
-        session,
-        new_workflow.id,
-        local_user.username or str(local_user.id),
-        WorkflowVersionCreate(
-            is_active=True,
+        session=session,
+        workflow_id=new_workflow.id,
+        workflow_version=WorkflowVersion(
+            workflow_id=new_workflow.id,
             version_number=-1,
             definition={},
             execution_plan=[],
+            created_by=local_user.username or str(local_user.id),
         ),
     )
     if not workflow_version:
         raise HTTPException(status_code=400, detail="Workflow version creation failed")
+
     new_workflow.active_version_id = workflow_version.id
-    new_workflow.active_version = workflow_version
-    return new_workflow
+
+    session.add(new_workflow)
+    await session.commit()
+    await session.refresh(new_workflow)
+    logger.info(f"Created new workflow {new_workflow.id} for user {local_user.id}")
+    return WorkflowRead.model_validate(new_workflow)
 
 
 @router.patch("/{workflow_id}", response_model=WorkflowRead)
