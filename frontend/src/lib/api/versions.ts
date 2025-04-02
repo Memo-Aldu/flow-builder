@@ -1,7 +1,7 @@
 import { api, getAuthHeaders } from "@/lib/api/axios";
 import { AxiosResponse } from "axios";
 import { SortDir } from "@/types/base";
-import { WorkflowVersion, WorkflowVersionSortField } from "@/types/versions";
+import { WorkflowVersion, WorkflowVersionCreate, WorkflowVersionSortField } from "@/types/versions";
 
 export const getWorkflowVersionByNumber = async (
   workflowId: string,
@@ -46,6 +46,17 @@ export const getWorkflowVersions = async (
       sort: sortField,
       order: sortDir
     }
+  });
+  return response.data;
+}
+
+export const createWorkflowVersion = async (
+  workflowId: string,
+  version: WorkflowVersionCreate,
+  token: string
+): Promise<WorkflowVersion> => {
+  const response: AxiosResponse<WorkflowVersion> = await api.post(`/api/v1/workflows/${workflowId}/versions`, version, {
+    headers: getAuthHeaders(token)
   });
   return response.data;
 }

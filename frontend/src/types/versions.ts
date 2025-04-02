@@ -9,6 +9,8 @@ export interface WorkflowVersion {
     is_active: boolean;
 }
 
+export type WorkflowVersionCreate = Omit<WorkflowVersion, "id" | "created_at" | "created_by" | "parent_version_id" | "is_active">;
+
 
 export enum WorkflowVersionSortField {
     CREATED_AT = "created_at",
