@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Optional, List, Dict, ClassVar
 from pytz import timezone
-from sqlmodel import DateTime, SQLModel, Field, Relationship, Column, JSON
+from sqlmodel import DateTime, SQLModel, Field, Relationship, Column, JSON, ForeignKey
 
 
 class User(SQLModel, table=True):
@@ -97,6 +97,8 @@ class Workflow(WorkflowBase, table=True):
         sa_relationship_kwargs={
             "foreign_keys": "[WorkflowVersion.workflow_id]",
             "primaryjoin": "Workflow.id == WorkflowVersion.workflow_id",
+            "cascade": "all, delete-orphan",
+            "passive_deletes": True,
         },
     )
     active_version: Optional["WorkflowVersion"] = Relationship(
@@ -180,7 +182,11 @@ class WorkflowVersion(WorkflowVersionBase, table=True):
     __tablename__: ClassVar[str] = "workflow_version"
 
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
-    workflow_id: UUID = Field(foreign_key="workflow.id", index=True)
+    workflow_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("workflow.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     workflow: "Workflow" = Relationship(
         back_populates="versions",
@@ -190,7 +196,7 @@ class WorkflowVersion(WorkflowVersionBase, table=True):
         },
     )
 
-    parent_version: "WorkflowVersion" = Relationship(
+    parent_version: Optional["WorkflowVersion"] = Relationship(
         sa_relationship_kwargs={
             "foreign_keys": "[WorkflowVersion.parent_version_id]",
             "primaryjoin": "WorkflowVersion.id == WorkflowVersion.parent_version_id",

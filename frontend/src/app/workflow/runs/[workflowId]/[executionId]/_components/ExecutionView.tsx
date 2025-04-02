@@ -33,11 +33,12 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
             if (!token) throw new Error("No token available");
             return getExecution(token, initialExecution.id);
         },
-        refetchInterval: (q) => q.state.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
+        refetchInterval: (q) => q.state.data?.status === ExecutionStatus.RUNNING 
+        || q.state.data?.status === ExecutionStatus.PENDING ? 1000 : false,
         enabled: !!getToken, 
-        initialData: initialExecution
+        initialData: initialExecution,
+        refetchIntervalInBackground: true,
     });
-
     const phasesQuery = useQuery({
         queryKey: ['phases', initialExecution.id],
         queryFn: async () => {
@@ -48,6 +49,7 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
         refetchInterval: () => executionQuery.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
         enabled: !!getToken,
         initialData: initialPhases, 
+        refetchIntervalInBackground: true,
     });
 
     const isRunning = executionQuery.data?.status === ExecutionStatus.RUNNING;

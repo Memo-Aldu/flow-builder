@@ -1,6 +1,7 @@
 "use client";
 
 import useExecutionPlan from '@/components/hooks/useExecutionPlan';
+import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
 import { createExecution } from '@/lib/api/executions';
 import { updateWorkflow } from '@/lib/api/workflows';
@@ -31,7 +32,9 @@ const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
       if (!token) {
         throw new Error("User not authenticated");
       }
-      await updateWorkflow(id, values, token)
+      if (!isPublished) {
+        await updateWorkflow(id, values, token)
+      }
       const workflowExecution: WorkflowExecutionCreate = {
         workflow_id: id,
         trigger: ExecutionTrigger.MANUAL,
@@ -49,6 +52,7 @@ const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
       toast.error("Execution Failed", { id: "execution-started" });
   }})
   return (
+    <TooltipWrapper content='Execute the workflow'>
     <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
         toast.loading("Starting Execution", { id: "execution-started" });
         const plan = generate()
@@ -62,6 +66,7 @@ const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
         <PlayIcon size={16} className='stroke-green-400'/>
         Execute
     </Button>
+    </TooltipWrapper>
   )
 }
 

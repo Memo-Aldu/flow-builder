@@ -1,4 +1,5 @@
 "use client"
+import { TooltipWrapper } from '@/components/TooltipWrapper'
 import { Button } from '@/components/ui/button'
 import { updateWorkflow } from '@/lib/api/workflows'
 import { useAuth } from '@clerk/nextjs'
@@ -34,6 +35,7 @@ const EnableBtn = ({ workflowId }: { workflowId: string }) => {
   })
 
   return (
+    <TooltipWrapper content='Enable workflow'>
     <Button 
     disabled={isPending}
     variant={'outline'} 
@@ -45,6 +47,7 @@ const EnableBtn = ({ workflowId }: { workflowId: string }) => {
         <CheckIcon size={16} className='stroke-green-400'/>
         Enable
     </Button>
+    </TooltipWrapper>
   )
 }
 

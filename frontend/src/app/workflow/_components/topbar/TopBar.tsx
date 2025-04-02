@@ -7,10 +7,11 @@ import React from 'react'
 import SaveBtn from '@/app/workflow/_components/topbar/SaveBtn';
 import ExecuteBtn from '@/app/workflow/_components/topbar/ExecuteBtn';
 import NavigationTabs from '@/app/workflow/_components/topbar/NavigationTabs';
-import PublishBtn from './PublishBtn';
-import UnPublishBtn from './UnpublishBtn';
+import PublishBtn from '@/app/workflow/_components/topbar/PublishBtn';
+import UnPublishBtn from '@/app/workflow/_components/topbar/UnpublishBtn';
 import { WorkflowStatus } from '@/types/workflows';
-import EnableBtn from './EnableBtn';
+import EnableBtn from '@/app/workflow/_components/topbar/EnableBtn';
+import VersionBtn from '@/app/workflow/_components/topbar/VersionBtn';
 
 type TopBarProps = {
     title: string
@@ -43,10 +44,11 @@ const TopBar = ({ title, subtitle, workflowId, hideButtons = false, workflowStat
         <div className="flex gap-1 flex-1 justify-end">
             { hideButtons === false && (
                 <>
-                    {workflowStatus !== 'disabled' && <ExecuteBtn workflowId={workflowId} isPublished/>}
+                    {workflowStatus !== 'disabled' && <ExecuteBtn workflowId={workflowId} isPublished={workflowStatus === 'published'}/>}
                     { workflowStatus === 'published' && <UnPublishBtn workflowId={workflowId}/>}
                     {workflowStatus === 'draft' && (
                         <>
+                            <VersionBtn workflowId={workflowId}/>
                             <SaveBtn workflowId={workflowId}/>
                             <PublishBtn workflowId={workflowId}/>
                         </>)

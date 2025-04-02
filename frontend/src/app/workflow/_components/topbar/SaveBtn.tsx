@@ -1,4 +1,5 @@
 "use client"
+import { TooltipWrapper } from '@/components/TooltipWrapper'
 import { Button } from '@/components/ui/button'
 import { updateWorkflow } from '@/lib/api/workflows'
 import { WorkflowUpdateRequest } from '@/types/workflows'
@@ -7,6 +8,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { CheckIcon } from 'lucide-react'
 import React from 'react'
+import { Tooltip } from 'recharts'
 import { toast } from 'sonner'
 
 const SaveBtn = ({ workflowId }: { workflowId: string }) => {
@@ -31,21 +33,23 @@ const SaveBtn = ({ workflowId }: { workflowId: string }) => {
   })
 
   return (
-    <Button 
-    disabled={isPending}
-    variant={'outline'} 
-    className='flex items-center gap-2'
-    onClick={() => {
-        toast.loading("Saving workflow", { id: "save-workflow" });
-        const workflowDef = toObject()
-        const workflowUpdateRequest: WorkflowUpdateRequest = {
-            definition: workflowDef
-        }
-        mutate({ id: workflowId, values: workflowUpdateRequest })
-    }}> 
-        <CheckIcon size={16} className='stroke-green-400'/>
-        Save
-    </Button>
+    <TooltipWrapper content='Save the workflow'>
+      <Button 
+      disabled={isPending}
+      variant={'outline'} 
+      className='flex items-center gap-2'
+      onClick={() => {
+          toast.loading("Saving workflow", { id: "save-workflow" });
+          const workflowDef = toObject()
+          const workflowUpdateRequest: WorkflowUpdateRequest = {
+              definition: workflowDef
+          }
+          mutate({ id: workflowId, values: workflowUpdateRequest })
+      }}> 
+          <CheckIcon size={16} className='stroke-green-400'/>
+          Save
+      </Button>
+    </TooltipWrapper>
   )
 }
 
