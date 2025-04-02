@@ -1,5 +1,6 @@
 "use client";
 
+import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
 import { unPublishWorkflow } from '@/lib/api/workflows';
 import { useAuth } from '@clerk/nextjs';
@@ -36,6 +37,7 @@ const UnPublishBtn = ( { workflowId }: PublishBtnProps) => {
       toast.error("Failed to unpublished workflow", { id: workflowId });
   }})
   return (
+    <TooltipWrapper content='Unpublish the workflow'>
     <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
       toast.loading("Unpublishing Workflow", { id: workflowId });  
       mutation.mutate({ id: workflowId})
@@ -44,6 +46,7 @@ const UnPublishBtn = ( { workflowId }: PublishBtnProps) => {
         <DownloadIcon size={16} className='stroke-green-400'/>
         Unpublish
     </Button>
+    </TooltipWrapper>
   )
 }
 

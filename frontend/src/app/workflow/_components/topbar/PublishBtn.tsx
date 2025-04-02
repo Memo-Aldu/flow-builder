@@ -1,6 +1,7 @@
 "use client";
 
 import useExecutionPlan from '@/components/hooks/useExecutionPlan';
+import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
 import { publishWorkflow } from '@/lib/api/workflows';
 import CalculateWorkflowCost from '@/lib/workflow/helper';
@@ -43,25 +44,27 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
       toast.error("Failed to publish workflow", { id: workflowId });
   }})
   return (
-    <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
-        toast.loading("Publishing Workflow", { id: workflowId });
-        const plan = generate()
-        if (!plan) {
-            return 
-        }
+    <TooltipWrapper content='Publish the workflow'>
+      <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
+          toast.loading("Publishing Workflow", { id: workflowId });
+          const plan = generate()
+          if (!plan) {
+              return 
+          }
 
-        const flowDefinition = toObject()
-        const workflowPublishRequest: WorkflowPublishRequest = {
-            execution_plan: plan,
-            definition: flowDefinition,
-            credits_cost: CalculateWorkflowCost(flowDefinition.nodes as AppNode[])
-        }
-        mutation.mutate({ id: workflowId, values: workflowPublishRequest })
-    }}
-    >
-        <UploadIcon size={16} className='stroke-green-400'/>
-        Publish
-    </Button>
+          const flowDefinition = toObject()
+          const workflowPublishRequest: WorkflowPublishRequest = {
+              execution_plan: plan,
+              definition: flowDefinition,
+              credits_cost: CalculateWorkflowCost(flowDefinition.nodes as AppNode[])
+          }
+          mutation.mutate({ id: workflowId, values: workflowPublishRequest })
+      }}
+      >
+          <UploadIcon size={16} className='stroke-green-400'/>
+          Publish
+      </Button>
+    </TooltipWrapper>
   )
 }
 
