@@ -139,4 +139,5 @@ async def create_version(
     logger.info(
         f"Created new workflow version: {new_version.version_number} for workflow {workflow_id}"
     )
+
     return WorkflowVersionRead.model_validate(new_version)
