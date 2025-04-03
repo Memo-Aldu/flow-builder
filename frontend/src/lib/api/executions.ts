@@ -25,6 +25,26 @@ export async function getExecutions(
   return res.data;
 }
 
+export async function getAllExecutions(
+  token: string, 
+  page: number = 1, 
+  limit: number = 10,
+  sortField: WorkflowExecutionSortField = WorkflowExecutionSortField.STARTED_AT,
+  sortDir: SortDir = "desc"
+): Promise<WorkflowExecution[]> {
+  const res = await api.get<WorkflowExecution[]>("/api/v1/executions", {
+    headers: { Authorization: `Bearer ${token}` },
+    params: {
+      page: page,
+      limit: limit,
+      sort: sortField,
+      order: sortDir
+    }
+  });
+  return res.data;
+}
+
+
 
 export async function getExecution(
   token: string,

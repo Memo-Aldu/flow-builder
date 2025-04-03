@@ -1,6 +1,7 @@
 "use client";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Period } from '@/types/base';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react'
 
@@ -11,11 +12,13 @@ const MONTH_NAMES = [
 ];
 
 
-const DateSelector = (periods: { periods: { year: number, month: number}[]}) => {
+const DateSelector = ({periods, selectedPeriod }: 
+    { periods: Period[], selectedPeriod: Period}) => {
   const searchParams = useSearchParams()
   const router = useRouter()
+  
   return (
-    <Select onValueChange={(value) => {
+    <Select value={`${selectedPeriod.year}-${selectedPeriod.month}`} onValueChange={(value) => {
         const [year, month] = value.split('-').map(Number);
         const params = new URLSearchParams(searchParams);
         params.set('year', year.toString());
@@ -27,9 +30,9 @@ const DateSelector = (periods: { periods: { year: number, month: number}[]}) => 
             <SelectValue placeholder='Select a date' />
         </SelectTrigger>
         <SelectContent>
-            {periods.periods.map((period) => (
+            {periods.map((period) => (
                 <SelectItem key={`${period.year}-${period.month}`} value={`${period.year}-${period.month}`}>
-                    {`${period.year} ${MONTH_NAMES[period.month - 1]}`}
+                    {`${period.year} ${MONTH_NAMES[period.month! - 1]}`}
                 </SelectItem>
             ))}
         </SelectContent>
