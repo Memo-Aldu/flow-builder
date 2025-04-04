@@ -1,9 +1,9 @@
-from math import log
 import os
 import json
 from uuid import UUID
 from typing import List, Optional
 from datetime import datetime, timezone
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -13,6 +13,7 @@ from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.crud.execution_crud import (
     SortField,
     SortOrder,
+    get_execution_stats,
     get_executions_for_user,
     get_executions_by_workflow_id_and_user,
     delete_execution,
@@ -37,6 +38,13 @@ WORKFLOW_QUEUE_URL = os.getenv(
     "WORKFLOW_QUEUE_URL",
     "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/flow-builder-queue",
 )
+
+
+class ExecutionStats(BaseModel):
+    num_executions: int
+    total_credits: int
+    num_phases: int
+
 
 router = APIRouter(tags=["Executions"])
 sqs_client = get_sqs_client()
@@ -69,6 +77,32 @@ async def list_executions_endpoint(
     )
     logger.info(f"Getting executions for user: {local_user.id}")
     return executions
+
+
+@router.get("/stats", response_model=ExecutionStats)
+async def get_execution_stats_endpoint(
+    start_date: datetime = Query(..., description="Start date for stats"),
+    end_date: datetime = Query(..., description="End date for stats"),
+    user_info: dict = Depends(verify_clerk_token),
+    session: AsyncSession = Depends(get_session),
+) -> ExecutionStats:
+    """Gets execution stats for a user within a date range"""
+    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+
+    if not local_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    executions = await get_execution_stats(session, local_user.id, start_date, end_date)
+
+    num_executions = len(executions)
+    total_credits = sum(e.credits_consumed or 0 for e in executions)
+    total_phases = sum(len(e.phases) for e in executions)
+
+    return ExecutionStats(
+        num_executions=num_executions,
+        total_credits=total_credits,
+        num_phases=total_phases,
+    )
 
 
 @router.post(
