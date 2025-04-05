@@ -45,6 +45,24 @@ export async function getAllExecutions(
 }
 
 
+export async function getExecutionStats(
+  token: string,
+  startDate: Date,
+  endDate: Date,
+): Promise<{ [key: string]: number }> {
+  const response: AxiosResponse<{ [key: string]: number }> = await api.get(
+    "/api/v1/executions/stats",
+    {
+      headers: getAuthHeaders(token),
+      params: {
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+      },
+    }
+  );
+  return response.data;
+}
+
 
 export async function getExecution(
   token: string,
