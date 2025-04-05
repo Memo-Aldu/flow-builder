@@ -2,7 +2,7 @@ import os
 import json
 from uuid import UUID
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -27,10 +27,12 @@ from shared.crud.execution_crud import (
     update_execution,
 )
 from shared.models import (
+    ExecutionStatus,
     WorkflowExecution,
     WorkflowExecutionCreate,
     WorkflowExecutionRead,
     WorkflowExecutionUpdate,
+    ExecutionPhase,
 )
 
 
@@ -44,6 +46,8 @@ class ExecutionStats(BaseModel):
     num_executions: int
     total_credits: int
     num_phases: int
+    execution_dates_status: List[dict]
+    credits_dates_status: List[dict]
 
 
 router = APIRouter(tags=["Executions"])
@@ -92,16 +96,89 @@ async def get_execution_stats_endpoint(
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    if start_date > end_date:
+        raise HTTPException(
+            status_code=400, detail="Start date must be before end date"
+        )
+
+    logger.info(
+        f"Getting execution stats for user: {local_user.id} from {start_date} to {end_date}"
+    )
+
     executions = await get_execution_stats(session, local_user.id, start_date, end_date)
 
     num_executions = len(executions)
     total_credits = sum(e.credits_consumed or 0 for e in executions)
     total_phases = sum(len(e.phases) for e in executions)
 
+    phases: List[ExecutionPhase] = []
+    for execution in executions:
+        for phase in execution.phases:
+            phases.append(phase)
+
+    execution_dates_status = {}
+    credits_phase_dates_status = {}
+    for single_date in (
+        start_date + timedelta(n) for n in range((end_date - start_date).days + 1)
+    ):
+        execution_dates_status[single_date.date()] = {
+            "success": 0,
+            "failure": 0,
+        }
+        credits_phase_dates_status[single_date.date()] = {
+            "success": 0,
+            "failure": 0,
+        }
+    for execution in executions:
+        if execution.status == ExecutionStatus.COMPLETED:
+            execution_dates_status[execution.created_at.date()]["success"] += 1
+        elif execution.status == ExecutionStatus.FAILED:
+            execution_dates_status[execution.created_at.date()]["failure"] += 1
+
+    for phase in phases:
+        if (
+            phase.status == ExecutionStatus.COMPLETED
+            and phase.credits_consumed
+            and phase.started_at
+        ):
+            credits_phase_dates_status[phase.started_at.date()]["success"] += (
+                phase.credits_consumed or 0
+            )
+        elif (
+            phase.status == ExecutionStatus.FAILED
+            and phase.credits_consumed
+            and phase.started_at
+        ):
+            credits_phase_dates_status[phase.started_at.date()]["failure"] += (
+                phase.credits_consumed or 0
+            )
+
+    status_array = []
+    for date, status in execution_dates_status.items():
+        status_array.append(
+            {
+                "date": date.isoformat(),
+                "success": status["success"],
+                "failure": status["failure"],
+            }
+        )
+
+    credits_array = []
+    for date, credits in credits_phase_dates_status.items():
+        credits_array.append(
+            {
+                "date": date.isoformat(),
+                "success": credits["success"],
+                "failure": credits["failure"],
+            }
+        )
+
     return ExecutionStats(
         num_executions=num_executions,
         total_credits=total_credits,
         num_phases=total_phases,
+        execution_dates_status=status_array,
+        credits_dates_status=credits_array,
     )
 
 
