@@ -1,4 +1,4 @@
-import { WorkflowExecution, WorkflowExecutionCreate, WorkflowExecutionSortField, WorkflowExecutionUpdate } from "@/types/executions";
+import { ExecutionStats, WorkflowExecution, WorkflowExecutionCreate, WorkflowExecutionSortField, WorkflowExecutionUpdate } from "@/types/executions";
 import { api, getAuthHeaders } from "@/lib/api/axios";
 import { AxiosResponse } from "axios";
 import { SortDir } from "@/types/base";
@@ -49,8 +49,8 @@ export async function getExecutionStats(
   token: string,
   startDate: Date,
   endDate: Date,
-): Promise<{ [key: string]: number }> {
-  const response: AxiosResponse<{ [key: string]: number }> = await api.get(
+): Promise<ExecutionStats> {
+  const response: AxiosResponse<ExecutionStats> = await api.get(
     "/api/v1/executions/stats",
     {
       headers: getAuthHeaders(token),

@@ -15,7 +15,13 @@ export const DatesToDurationString = (start: Date | null | undefined, end: Date 
 }
 
 export const PeriodToDateRange = (period: Period) => {
-    const startDate = startOfMonth(new Date(period.year, period.month - 1));
-    const endDate = endOfMonth(new Date(period.year, period.month - 1));
-    return { start: startDate, end: endDate };
+    const offset = -300; // EST offset in minutes
+    const startDate = startOfMonth(new Date(period.year, period.month - 1, 1));
+    startDate.setTime(startDate.getTime()+startDate.getTimezoneOffset()*60*1000);
+    const estStartDate = new Date(startDate.getTime() + offset*60*1000);
+
+    const endDate = endOfMonth(new Date(period.year, period.month - 1, 1));
+    endDate.setTime(endDate.getTime()+endDate.getTimezoneOffset()*60*1000);
+    const estEndDate = new Date(endDate.getTime() + offset*60*1000);
+    return { start: estStartDate, end: estEndDate };
 }
