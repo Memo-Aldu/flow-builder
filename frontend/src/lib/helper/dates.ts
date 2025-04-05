@@ -15,7 +15,7 @@ export const DatesToDurationString = (start: Date | null | undefined, end: Date 
 }
 
 export const PeriodToDateRange = (period: Period) => {
-    const startDate = startOfMonth(new Date(period.year, period.month));
-    const endDate = endOfMonth(new Date(period.year, period.month));
+    const startDate = startOfMonth(new Date(period.year, period.month - 1));
+    const endDate = endOfMonth(new Date(period.year, period.month - 1));
     return { start: startDate, end: endDate };
 }
