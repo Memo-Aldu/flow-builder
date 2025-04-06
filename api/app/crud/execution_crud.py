@@ -1,11 +1,14 @@
+from datetime import datetime
 from enum import Enum
 from uuid import UUID
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
+from sqlalchemy.orm import selectinload
 
 from shared.models import (
+    ExecutionPhase,
     WorkflowExecution,
 )
 
@@ -72,6 +75,23 @@ async def get_executions_by_workflow_id_and_user(
         )
         .offset((page - 1) * limit)
         .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return [execution for execution in result.scalars().all()]
+
+
+async def get_execution_stats(
+    session: AsyncSession, user_id: UUID, start_date: datetime, end_date: datetime
+) -> List[WorkflowExecution]:
+    """Retrieve all executions for a given user within a date range."""
+    stmt = (
+        select(WorkflowExecution)
+        .where(
+            WorkflowExecution.user_id == user_id,
+            WorkflowExecution.created_at >= start_date,
+            WorkflowExecution.created_at <= end_date,
+        )
+        .options(selectinload(WorkflowExecution.phases))  # type: ignore
     )
     result = await session.execute(stmt)
     return [execution for execution in result.scalars().all()]

@@ -64,3 +64,12 @@ export interface WorkflowExecutionUpdate {
   completed_at?: string | null;
   credits_consumed?: number | null;
 }
+
+
+export interface ExecutionStats {
+  num_executions: number;
+  total_credits: number;
+  num_phases: number;
+  execution_dates_status: Array<{ date: string; success: number; failure: number }>;
+  credits_dates_status: Array<{ date: string; success: number; failure: number }>;
+}

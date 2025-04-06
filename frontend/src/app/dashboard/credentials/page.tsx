@@ -22,8 +22,8 @@ const CredentialPage = () => {
         <div className="h-full py-6 space-y-8">
             <Alert>
                 <ShieldIcon className='h-4 w-4 stroke-primary'/>
-                <AlertTitle className='text-primary'>No credentials found</AlertTitle>
-                <AlertDescription className='text-primary'>All information is encrypted,
+                <AlertTitle className='text-primary'>Encrypted Credential</AlertTitle>
+                <AlertDescription className='text-foreground'>All information is encrypted,
                      ensuring your data remains safe.
                 </AlertDescription>
             </Alert>
