@@ -1,29 +1,53 @@
-"use client";
-
-import { useAuth } from "@clerk/nextjs";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Greeting from "@/components/Greeting";
+import { Logo } from "@/components/Logo";
 import { createUser } from "@/lib/api/users";
+import { auth } from "@clerk/nextjs/server";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 
-export default function SignUpSuccessPage() {
-  const router = useRouter();
-  const { getToken } = useAuth();
+export const dynamic = "force-dynamic";
 
-  useEffect(() => {
-    const createUserAndRedirect = async () => {
-      const token = await getToken( {template: "backend_template"});
-      if (token) {
-        await createUser(token);
-        router.push("/dashboard");
-      }
-    };
-    createUserAndRedirect();
-  }, [getToken]);
+export default async function SignUpSuccessPage() {
+  const { userId, getToken } = await auth();
+  const token = await getToken({ template: "backend_template" });
+
+  if (!userId || !token) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
+          <Logo iconSize={50} fontSize="text-3xl"/>
+          <Separator className="max-w-xs"/>
+          <div className="flex gap-2 items-center justify-center">
+              <p className="text-muted-foreground">Please log in again.</p>
+          </div>
+      </div>
+    )
+  }
+  console.log("Creating user with token:", token);
+  const user = await createUser(token).catch((error) => {
+    console.error("Error creating user:", error);
+    return null;
+  });
+
+  if (!user) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
+        <Logo iconSize={50} fontSize="text-3xl" />
+        <Separator className="max-w-xs" />
+        <div className="flex gap-2 items-center justify-center">
+          <p className="text-muted-foreground">
+            Something went wrong, try to again.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const greetingName = user.username ?? `${user.firstName} ${user.lastName}`;
 
   return (
-    <div className="flex flex-col items-center mt-20">
-      <h2 className="text-xl">Finishing up your account...</h2>
-      <p className="text-sm">Please wait.</p>
-    </div>
+    <>
+      <Logo iconSize={50} fontSize="text-3xl" />
+      <Separator className="max-w-xs" />
+      <Greeting welcomeMessage={`Welcome back, ${greetingName}!`} delayMs={2000} />
+    </>
   );
 }
