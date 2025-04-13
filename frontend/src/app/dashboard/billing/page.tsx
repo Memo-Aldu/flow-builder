@@ -5,6 +5,7 @@ import { getCredit } from "@/lib/api/balances";
 import { auth } from "@clerk/nextjs/server";
 import { CoinsIcon } from "lucide-react";
 import { Suspense } from "react";
+import CreditsPurchase from "@/app/dashboard/billing/_components/CreditsPurchase";
 
 const BillingPage = () => {
   return (
@@ -13,6 +14,7 @@ const BillingPage = () => {
       <Suspense fallback={ <Skeleton className="h-[166px] w-hull" /> } >
         <BalanceCard />
       </Suspense>
+      <CreditsPurchase />
     </div>
   )
 }
