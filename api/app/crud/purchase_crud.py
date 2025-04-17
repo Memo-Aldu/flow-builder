@@ -2,10 +2,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import UserPurchase, UserPurchaseCreate
 
+
 async def create_user_purchase(
-    session: AsyncSession,
-    user_id: UUID,
-    purchase_in: UserPurchaseCreate
+    session: AsyncSession, user_id: UUID, purchase_in: UserPurchaseCreate
 ) -> UserPurchase:
     """
     Saves a record in user_purchase to track the user’s purchase.
@@ -16,7 +15,7 @@ async def create_user_purchase(
         description=purchase_in.description,
         amount=purchase_in.amount,
         currency=purchase_in.currency,
-        date=purchase_in.date, 
+        date=purchase_in.date,
     )
     session.add(db_purchase)
     await session.commit()

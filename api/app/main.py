@@ -12,8 +12,9 @@ from api.app.routers import (
     phases,
     logs,
     versions,
+    executions,
+    payments,
 )
-from api.app.routers import executions, users, workflows, credentials
 from api.app import logger
 
 
@@ -53,6 +54,7 @@ app.include_router(
 app.include_router(executions.router, prefix="/api/v1/executions", tags=["Executions"])
 app.include_router(phases.router, prefix="/api/v1/phases", tags=["ExecutionPhase"])
 app.include_router(logs.router, prefix="/api/v1/logs", tags=["ExecutionLogs"])
+app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"])
 
 
 @app.get("/ping")
