@@ -1,6 +1,8 @@
+from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
+from pydantic import BaseModel
 import stripe
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -13,10 +15,17 @@ from shared.models import UserPurchaseCreate
 stripe.api_key = settings.secret_key
 
 
+class CheckoutSession(BaseModel):
+    """Stripe checkout session."""
+
+    id: str
+    url: str
+
+
 async def new_checkout_session(
     user_id: UUID,
     package_id: PackageID,
-) -> str:
+) -> CheckoutSession:
     """Return hosted‑checkout URL for the chosen package."""
     pkg: Package = _require_package(package_id)
 
@@ -34,7 +43,8 @@ async def new_checkout_session(
     )
     if not session.url:
         raise ValueError("Failed to create checkout session")
-    return session.url
+
+    return CheckoutSession(id=session.id, url=session.url)
 
 
 async def apply_checkout_completed(
@@ -45,8 +55,11 @@ async def apply_checkout_completed(
     stripe_session_id: str,
 ) -> None:
     """Grant credits & log purchase when Stripe says payment succeeded."""
-    package_id: PackageID = metadata.get("package_id")  # type: ignore
-    user_id = UUID(metadata.get("user_id"))
+    package_id: Optional[PackageID] = metadata.get("package_id", None)
+    user_id = UUID(metadata.get("user_id", None))
+
+    if not package_id or not user_id:
+        raise ValueError("Missing package_id or user_id in metadata")
 
     pkg: Package = _require_package(package_id)
 
@@ -57,12 +70,11 @@ async def apply_checkout_completed(
 
     purchase = UserPurchaseCreate(
         stripe_id=stripe_session_id,
-        description=f"{package_id} credits",
+        description=f"Purchased {pkg.credits} package.",
         amount=amount_paid,
         currency=currency.upper(),
     )
     await create_user_purchase(db, user_id, purchase)
-
     await db.commit()
 
 
