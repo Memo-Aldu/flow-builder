@@ -3,24 +3,31 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { createCheckoutSession } from '@/lib/api/payments'
 import { CreditsPackages, PackageType } from '@/types/billing'
 import { useAuth } from '@clerk/nextjs'
 import { useMutation } from '@tanstack/react-query'
 import { CoinsIcon, CreditCard } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import React from 'react'
 import { toast } from 'sonner'
 
 const CreditsPurchase = () => {
   const { getToken } = useAuth()
+    const router = useRouter()
   const [selectedPackage, setSelectedPackage] = React.useState(CreditsPackages[1].id)
 
   const mutation = useMutation( {
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: PackageType) => {
         const token  = await getToken();
         if (!token) {
             throw new Error("User not authenticated");
         }
-        // TODO: add purchase credits API call
+        const session = await createCheckoutSession(token, id);
+        if (!session) {
+            throw new Error("Failed to create checkout session");
+        }
+        router.push(session.url);
     },
     onSuccess: () => {
         toast.success("Credits purchased successfully", { id: "purchase-credits" });

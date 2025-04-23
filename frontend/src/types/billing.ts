@@ -39,3 +39,8 @@ export const CreditsPackages: CreditsPackage[] = [
 export const getCreditsPackageById = (id: PackageType): CreditsPackage | undefined => {
     return CreditsPackages.find((pkg) => pkg.id === id);
 }
+
+export interface CheckoutSession {
+    id: string;
+    url: string;
+}

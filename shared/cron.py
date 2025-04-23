@@ -24,3 +24,13 @@ def get_next_run_date(cron_expr: str, base: Optional[datetime] = None) -> dateti
         return itr.get_next(datetime)
     except CroniterBadCronError as e:
         raise ValueError("Invalid cron expression") from e
+
+
+def utcnow() -> datetime:
+    """
+    Returns the current UTC datetime.
+
+    Returns:
+        datetime: The current UTC datetime.
+    """
+    return datetime.now(datetime.timetz.utc)
