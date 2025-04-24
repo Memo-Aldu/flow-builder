@@ -45,7 +45,7 @@ class DeliverToWebhookNode(NodeExecutor):
         # Send the request
         try:
             response = requests.post(url, data=payload, headers=headers, timeout=15)
-            response.raise_for_status() 
+            response.raise_for_status()
             status_msg = f"✅ Delivered with status {response.status_code}"
             body = response.text
             phase.add_log(status_msg, level=LogLevel.INFO)

@@ -50,6 +50,8 @@ async def create_user(
         user = await get_local_user_by_clerk_id(session, clerk_id)
         if user:
             return user
-        raise HTTPException(status_code=500, detail="Could not create or retrieve user.") from e
+        raise HTTPException(
+            status_code=500, detail="Could not create or retrieve user."
+        ) from e
     await session.refresh(user)
     return user
