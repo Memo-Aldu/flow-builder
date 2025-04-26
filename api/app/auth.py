@@ -24,7 +24,6 @@ clerk_client = Clerk(bearer_auth=get_clerk_secret_key())
 # Middleware dependency to verify Clerk tokens
 async def verify_clerk_token(request: Request) -> Optional[Dict[str, Any]]:
     try:
-        # Convert starlette request to httpx request
         httpx_request = httpx.Request(
             method=request.method,
             url=str(request.url),
@@ -35,7 +34,7 @@ async def verify_clerk_token(request: Request) -> Optional[Dict[str, Any]]:
         request_state = authenticate_request(
             clerk_client,
             httpx_request,
-            AuthenticateRequestOptions(authorized_parties=get_authorized_party_url()),
+            AuthenticateRequestOptions(),
         )
 
         if not request_state.is_signed_in:

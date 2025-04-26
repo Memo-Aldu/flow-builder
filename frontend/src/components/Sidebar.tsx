@@ -47,7 +47,7 @@ function DesktopSidebar() {
         <div className='p-2'><UserCreditsBadge/></div>
         <div className='flex flex-col p-2'>
             {routes.map(route => (
-                <Link key={route.href} 
+                <Link key={`/${route.href}`} 
                 href={`/dashboard/${route.href}`}
                 className={buttonVariants({
                     variant: activeRoute.href === route.href ? 'sidebarItemActive' : 'sidebarItem',
@@ -81,7 +81,7 @@ export const MobileSidebar = () => {
                     <UserCreditsBadge />
                     <div className='flex flex-col gap-1'>
                         {routes.map(route => (
-                            <Link key={route.href} 
+                            <Link key={`/${route.href}`} 
                             href={`/dashboard/${route.href}`}
                             className={buttonVariants({
                                 variant: activeRoute.href === route.href ? 'sidebarItemActive' : 'sidebarItem',
