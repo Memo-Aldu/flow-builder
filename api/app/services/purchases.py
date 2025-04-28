@@ -1,16 +1,17 @@
-from typing import Optional
 from uuid import UUID
+from typing import Optional, List
 from datetime import datetime
 
-from pydantic import BaseModel
 import stripe
+from sqlmodel import select
+from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.config import settings, PACKAGES, Package, PackageID
 from api.app.crud.balance_crud import get_balance_by_user_id
 from api.app.crud.purchase_crud import create_user_purchase
 
-from shared.models import UserPurchaseCreate
+from shared.models import UserPurchase, UserPurchaseCreate, UserPurchaseRead
 
 stripe.api_key = settings.secret_key
 
@@ -20,6 +21,35 @@ class CheckoutSession(BaseModel):
 
     id: str
     url: str
+
+
+async def list_packages() -> dict:
+    """List all available packages."""
+    return {
+        package_id: {
+            "credits": pkg.credits,
+            "price_id": pkg.price_id,
+        }
+        for package_id, pkg in PACKAGES.items()
+        if pkg.price_id
+    }
+
+
+async def get_purchases(
+    db: AsyncSession,
+    user_id: UUID,
+    page: int = 1,
+    limit: int = 10,
+) -> List[UserPurchaseRead]:
+    stmt = (
+        select(UserPurchase)
+        .where(UserPurchase.user_id == user_id)
+        .order_by(getattr(UserPurchase, "date").desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+    result = await db.exec(stmt)
+    return [UserPurchaseRead.model_validate(purchase) for purchase in result.all()]
 
 
 async def new_checkout_session(

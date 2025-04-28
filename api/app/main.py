@@ -7,24 +7,24 @@ from shared.db import init_db
 from api.app.routers import (
     balances,
     credentials,
+    purchases,
     users,
     workflows,
     phases,
     logs,
     versions,
     executions,
-    payments,
 )
 from api.app import logger
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Initialize and dispose of the database engine."""
     logger.info("Initializing database connection")
     await init_db()
     yield
-    await app.state.engine.dispose()
+    await _app.state.engine.dispose()
 
 
 app = FastAPI(
@@ -54,7 +54,7 @@ app.include_router(
 app.include_router(executions.router, prefix="/api/v1/executions", tags=["Executions"])
 app.include_router(phases.router, prefix="/api/v1/phases", tags=["ExecutionPhase"])
 app.include_router(logs.router, prefix="/api/v1/logs", tags=["ExecutionLogs"])
-app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"])
+app.include_router(purchases.router, prefix="/api/v1/purchases", tags=[f"Purchases"])
 
 
 @app.get("/ping")
