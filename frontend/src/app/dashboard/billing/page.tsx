@@ -6,6 +6,11 @@ import { auth } from "@clerk/nextjs/server";
 import { CoinsIcon } from "lucide-react";
 import { Suspense } from "react";
 import CreditsPurchase from "@/app/dashboard/billing/_components/CreditsPurchase";
+import CreditUsageChart from "./_components/CreditUsageChart";
+import { Period } from "@/types/base";
+import { getExecutionStats } from "@/lib/api/executions";
+import { PeriodToDateRange } from "@/lib/helper/dates";
+import { getPurchases } from "@/lib/api/payments";
 
 const BillingPage = () => {
   return (
@@ -15,6 +20,12 @@ const BillingPage = () => {
         <BalanceCard />
       </Suspense>
       <CreditsPurchase />
+      <Suspense fallback={ <Skeleton className="h-[166px] w-hull" /> }>
+        <CreditsUsageCard />
+      </Suspense>
+      <Suspense fallback={ <Skeleton className="h-[166px] w-hull" /> }>
+        <TransactionHistoryCard />
+      </Suspense>
     </div>
   )
 }
@@ -54,4 +65,60 @@ const BalanceCard = async () => {
     </Card>
   )
 }
+
+
+const CreditsUsageCard = async () => {
+  const { getToken } = await auth()
+
+  const period: Period = {
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+  }
+
+  const token = await getToken()
+  if (!token) {
+      throw new Error('No valid token found.')
+  }
+  
+  const dateRange = PeriodToDateRange(period);
+  const stats = await getExecutionStats(token, dateRange.start, dateRange.end);
+
+
+  return <CreditUsageChart data={stats.credits_dates_status} title={"Credits spend"} 
+    description={"Daily credits consumed this month"}
+  />
+}
+
+
+const TransactionHistoryCard = async () => {
+  const { getToken } = await auth()
+
+  const token = await getToken()
+  if (!token) {
+      throw new Error('No valid token found.')
+  }
+
+  const transactions = await getPurchases(token, 1, 50)
+
+  return (
+    <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background
+    border-primary/20 shadow-lg flex justify-between flex-col overflow-hidden">
+      <CardContent className="p-6 relative items-center">
+        <div className="flex justify-between items-center">
+          <div className="">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              Transaction History
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              <pre>
+                {JSON.stringify(transactions, null, 2)}
+              </pre>
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 
