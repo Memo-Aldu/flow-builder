@@ -43,7 +43,7 @@ async def get_version_by_number(
     )
     if not workflow_version:
         raise HTTPException(status_code=404, detail="Workflow version not found")
-    logger.info(f"Get workflow version by number: {workflow_version}")
+    logger.info(f"Get workflow version by number: {workflow_version.version_number}")
     return WorkflowVersionRead.model_validate(workflow_version)
 
 
@@ -64,7 +64,7 @@ async def get_version_by_id(
     )
     if not workflow_version:
         raise HTTPException(status_code=404, detail="Workflow version not found")
-    logger.info(f"Get workflow version by ID: {workflow_version}")
+    logger.info(f"Get workflow version by ID: {version_id}")
     return WorkflowVersionRead.model_validate(workflow_version)
 
 

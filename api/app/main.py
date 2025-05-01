@@ -54,7 +54,7 @@ app.include_router(
 app.include_router(executions.router, prefix="/api/v1/executions", tags=["Executions"])
 app.include_router(phases.router, prefix="/api/v1/phases", tags=["ExecutionPhase"])
 app.include_router(logs.router, prefix="/api/v1/logs", tags=["ExecutionLogs"])
-app.include_router(purchases.router, prefix="/api/v1/purchases", tags=[f"Purchases"])
+app.include_router(purchases.router, prefix="/api/v1/purchases", tags=["Purchases"])
 
 
 @app.get("/ping")

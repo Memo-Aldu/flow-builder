@@ -5,7 +5,7 @@ from datetime import datetime
 import stripe
 from sqlmodel import select
 from pydantic import BaseModel
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.config import settings, PACKAGES, Package, PackageID
 from api.app.crud.balance_crud import get_balance_by_user_id
@@ -48,8 +48,10 @@ async def get_purchases(
         .offset((page - 1) * limit)
         .limit(limit)
     )
-    result = await db.exec(stmt)
-    return [UserPurchaseRead.model_validate(purchase) for purchase in result.all()]
+    result = await db.execute(stmt)
+    return [
+        UserPurchaseRead.model_validate(purchase) for purchase in result.scalars().all()
+    ]
 
 
 async def new_checkout_session(
