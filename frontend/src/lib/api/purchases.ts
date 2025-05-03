@@ -1,6 +1,6 @@
 import { api, getAuthHeaders } from "@/lib/api/axios";
 import { AxiosResponse } from "axios";
-import { PackageType, CheckoutSession } from '@/types/billing';
+import { PackageType, CheckoutSession, Purchase } from '@/types/billing';
 
 export async function createCheckoutSession(
   token: string,
@@ -21,8 +21,8 @@ export async function getPurchases(
   token: string,
   page: number = 1,
   limit: number = 10,
-): Promise<CheckoutSession[]> {
-  const response: AxiosResponse<CheckoutSession[]> = await api.get(
+): Promise<Purchase[]> {
+  const response: AxiosResponse<Purchase[]> = await api.get(
     "/api/v1/purchases", {
         headers: getAuthHeaders(token),
         params: {

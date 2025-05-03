@@ -1,16 +1,16 @@
 import CountUpWrapper from "@/components/CountUpWrapper";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCredit } from "@/lib/api/balances";
 import { auth } from "@clerk/nextjs/server";
-import { CoinsIcon } from "lucide-react";
+import { ArrowLeftRightIcon, CoinsIcon } from "lucide-react";
 import { Suspense } from "react";
 import CreditsPurchase from "@/app/dashboard/billing/_components/CreditsPurchase";
 import CreditUsageChart from "./_components/CreditUsageChart";
 import { Period } from "@/types/base";
 import { getExecutionStats } from "@/lib/api/executions";
 import { PeriodToDateRange } from "@/lib/helper/dates";
-import { getPurchases } from "@/lib/api/payments";
+import { getPurchases } from "@/lib/api/purchases";
 
 const BillingPage = () => {
   return (
@@ -24,7 +24,7 @@ const BillingPage = () => {
         <CreditsUsageCard />
       </Suspense>
       <Suspense fallback={ <Skeleton className="h-[166px] w-hull" /> }>
-        <TransactionHistoryCard />
+        <PurchaseHistoryCard />
       </Suspense>
     </div>
   )
@@ -90,7 +90,7 @@ const CreditsUsageCard = async () => {
 }
 
 
-const TransactionHistoryCard = async () => {
+const PurchaseHistoryCard = async () => {
   const { getToken } = await auth()
 
   const token = await getToken()
@@ -98,27 +98,58 @@ const TransactionHistoryCard = async () => {
       throw new Error('No valid token found.')
   }
 
-  const transactions = await getPurchases(token, 1, 50)
+  const purchases = await getPurchases(token, 1, 50)
 
   return (
-    <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background
-    border-primary/20 shadow-lg flex justify-between flex-col overflow-hidden">
-      <CardContent className="p-6 relative items-center">
-        <div className="flex justify-between items-center">
-          <div className="">
-            <h3 className="text-lg font-semibold text-foreground mb-1">
-              Transaction History
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              <pre>
-                {JSON.stringify(transactions, null, 2)}
-              </pre>
+    <Card className="">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold flex items-center gap-2">
+          <ArrowLeftRightIcon className="text-primary h-6 w-6" />
+          Purchase History
+        </CardTitle>
+        <CardDescription className="text-muted-foreground">
+          View your purchase history.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+          {purchases.length === 0 && (
+            <p className="text-muted-foreground text-sm">
+              No purchases found. You can buy credits in the billing page.
             </p>
-          </div>
-        </div>
-      </CardContent>
+          )}
+          {
+            purchases.map((purchase) => (
+              <div key={purchase.id} className="flex justify-between items-center py-3 border-b last:border-b-0">
+                <div className="">
+                  <p className="font-medium">{formatDate(purchase.date)}</p>
+                  <p className="text-xs text-muted-foreground">{purchase.description}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">
+                    {formatPrice(purchase.amount, purchase.currency)}
+                  </p>
+                </div>
+              </div>
+            ))
+          }
+        </CardContent>
     </Card>
   )
 }
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(date);
+}
+
+const formatPrice = (amount: number, currency: string) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount / 100);
+}
 

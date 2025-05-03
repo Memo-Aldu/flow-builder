@@ -47,7 +47,7 @@ export default async function SignUpSuccessPage() {
     <>
       <Logo iconSize={50} fontSize="text-3xl" />
       <Separator className="max-w-xs" />
-      <Greeting welcomeMessage={`Welcome back, ${greetingName}!`} delayMs={2000} />
+      <Greeting welcomeMessage={`Welcome, ${greetingName}!`} delayMs={2000} />
     </>
   );
 }
