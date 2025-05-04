@@ -466,3 +466,11 @@ class UserPurchaseCreate(UserPurchaseBase):
 
 class UserPurchaseRead(UserPurchaseBase):
     id: UUID
+    description: Optional[str] = None
+    amount: int
+    currency: str = "USD"
+    date: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+    stripe_id: Optional[str] = Field(default=None, exclude=True)

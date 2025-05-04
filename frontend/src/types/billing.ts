@@ -44,3 +44,12 @@ export interface CheckoutSession {
     id: string;
     url: string;
 }
+
+
+export interface Purchase {
+    id: string;
+    description: string | null;
+    amount: number;
+    currency: string;
+    date: string; // ISO 8601 date string
+}

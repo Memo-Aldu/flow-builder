@@ -1,5 +1,4 @@
-from httpx import get
-from api.app.crud.balance_crud import create_balance, get_balance_by_user_id
+from api.app.crud.balance_crud import get_balance_by_user_id
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 

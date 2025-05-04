@@ -159,5 +159,5 @@ async def _require_workflow(
 
 def _has_non_status_changes(data: WorkflowUpdate) -> bool:
     keys = set(data.model_dump(exclude_unset=True).keys())
-    allowed = {"status", "cron"}
+    allowed = {"status", "cron", "next_run_at"}
     return not keys.issubset(allowed)

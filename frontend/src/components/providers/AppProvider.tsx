@@ -12,6 +12,14 @@ type AppProviderProps = {
 
 export const AppProvider = ({ children }: AppProviderProps ) => {
   const [queryClient] = useState(() => new QueryClient())
+
+  const [isMounted, setIsMounted] = useState(false)
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+  if (!isMounted) {
+    return null
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <NextTopLoader color='#3c81f6' showSpinner={false}/>

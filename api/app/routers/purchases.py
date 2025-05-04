@@ -1,3 +1,5 @@
+from typing import List
+
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -6,12 +8,36 @@ from stripe.error import SignatureVerificationError  # type: ignore
 
 from api.app.routers import logger
 from api.app.config import settings, PackageID
-from api.app.services import payments as svc
+from api.app.services import purchases as svc
 from api.app.auth import verify_clerk_token
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 from shared.db import get_session
 
-router = APIRouter(tags=["Payments"])
+router = APIRouter(tags=["Purchases"])
+
+
+@router.get("/packages")
+async def list_packages() -> dict:
+    """List all available packages."""
+    return await svc.list_packages()
+
+
+@router.get(
+    "", response_model=List[svc.UserPurchaseRead], response_model_exclude={"stripe_id"}
+)
+async def get_purchases(
+    db: AsyncSession = Depends(get_session),
+    user_info: dict = Depends(verify_clerk_token),
+    page: int = 1,
+    limit: int = 10,
+) -> List[svc.UserPurchaseRead]:
+    """Get a list of purchases for the authenticated user."""
+    user = await get_local_user_by_clerk_id(db, user_info["sub"])
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    purchases = await svc.get_purchases(db, user.id, page, limit)
+    return purchases
 
 
 @router.post("/checkout")
