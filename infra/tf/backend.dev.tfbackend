@@ -1,0 +1,3 @@
+bucket = "flowbuilder-tf-state-bucket-memo"
+key    = "dev/terraform.tfstate"
+region = "us-east-1"
