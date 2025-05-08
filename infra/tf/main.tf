@@ -79,3 +79,125 @@ module "db" {
 
   tags = local.tags
 }
+
+# 3. ECR – one repo per image
+module "ecr" {
+  source = "./modules/ecr"
+
+  repositories = ["api", "worker", "scheduler"]
+  tags         = local.tags
+}
+
+# 4. SQS  – workflow request queue + DLQ
+module "workflow_queue" {
+  source = "./modules/sqs"
+
+  name                       = "${local.name_prefix}-workflow-requests"
+  max_receive_count          = 5
+  visibility_timeout_seconds = 300
+  tags                       = local.tags
+}
+
+# 5. ECS Cluster
+module "ecs_cluster" {
+  source  = "terraform-aws-modules/ecs/aws"
+  version = "5.7.0"
+
+  cluster_name = "${local.name_prefix}-cluster"
+  tags         = local.tags
+}
+
+# 6. ECS Services – API & Worker
+module "api_service" {
+  source = "./modules/ecs"
+
+  name             = "api"
+  aws_region       = var.aws_region
+  cluster_arn      = module.ecs_cluster.cluster_id
+  container_port   = 8080
+  desired_count    = 1
+  cpu              = 256
+  memory           = 512
+  image            = "${module.ecr.repository_urls["api"]}:latest"
+  subnet_ids       = module.vpc.private_subnets
+  alb_listener_arn = aws_lb_listener.http.arn
+  create_load_balancer = true
+
+  env_vars = {
+    POSTGRES_HOST     = module.db.db_instance_endpoint
+    POSTGRES_USER     = var.db_username
+    POSTGRES_PASSWORD = var.db_password
+    SQS_URL           = module.workflow_queue.queue_url
+  }
+
+  tags = local.tags
+}
+
+module "worker_service" {
+  source = "./modules/ecs"
+
+  name           = "worker"
+  aws_region     = var.aws_region
+  cluster_arn    = module.ecs_cluster.cluster_id
+  container_port = 8080
+  desired_count  = 0  # scale‑to‑0
+  cpu            = 512
+  memory         = 1024
+  image          = "${module.ecr.repository_urls["worker"]}:latest"
+  subnet_ids     = module.vpc.private_subnets
+  queue_arn      = module.workflow_queue.queue_arn
+
+  env_vars = {
+    POSTGRES_HOST     = module.db.db_instance_endpoint
+    POSTGRES_USER     = var.db_username
+    POSTGRES_PASSWORD = var.db_password
+    SQS_URL           = module.workflow_queue.queue_url
+  }
+
+  tags = local.tags
+}
+
+# 6a. Worker auto‑scaling driven by SQS depth
+resource "aws_appautoscaling_target" "worker" {
+  max_capacity       = 5
+  min_capacity       = 0
+  resource_id        = module.worker_service.service_autoscaling_resource_id
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+  depends_on         = [module.worker_service]
+}
+
+resource "aws_appautoscaling_policy" "worker_queue" {
+  name               = "${local.name_prefix}-worker-queue-scaling"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.worker.resource_id
+  scalable_dimension = aws_appautoscaling_target.worker.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      scaling_adjustment          = 1
+      metric_interval_lower_bound = 1
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "queue_depth" {
+  alarm_name          = "${local.name_prefix}-queue-depth"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 1
+  dimensions = {
+    QueueName = module.workflow_queue.queue_name
+  }
+  alarm_actions = [aws_appautoscaling_policy.worker_queue.arn]
+  tags          = local.tags
+}
