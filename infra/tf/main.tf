@@ -15,7 +15,7 @@ module "vpc" {
   private_subnets = [for i in range(10, 12) : cidrsubnet("10.0.0.0/16", 8, i)]
 
   # 10.0.20.0/24, 10.0.21.0/24
-  database_subnets              = [for i in range(20, 22) : cidrsubnet("10.0.0.0/16", 8, i)]  
+  database_subnets              = [for i in range(20, 22) : cidrsubnet("10.0.0.0/16", 8, i)]
   create_database_subnet_group  = true
 
   enable_nat_gateway = true
@@ -111,16 +111,16 @@ module "ecs_cluster" {
 module "api_service" {
   source = "./modules/ecs"
 
-  name             = "api"
-  aws_region       = var.aws_region
-  cluster_arn      = module.ecs_cluster.cluster_id
-  container_port   = 8080
-  desired_count    = 1
-  cpu              = 256
-  memory           = 512
-  image            = "${module.ecr.repository_urls["api"]}:latest"
-  subnet_ids       = module.vpc.private_subnets
-  alb_listener_arn = aws_lb_listener.http.arn
+  name                = "api"
+  aws_region          = var.aws_region
+  cluster_arn         = module.ecs_cluster.cluster_id
+  container_port      = 8080
+  desired_count       = var.api_desired_count
+  cpu                 = var.api_cpu
+  memory              = var.api_memory
+  image               = "${module.ecr.repository_urls["api"]}:latest"
+  subnet_ids          = module.vpc.private_subnets
+  alb_listener_arn    = aws_lb_listener.http.arn
   create_load_balancer = true
 
   env_vars = {
@@ -128,6 +128,7 @@ module "api_service" {
     POSTGRES_USER     = var.db_username
     POSTGRES_PASSWORD = var.db_password
     SQS_URL           = module.workflow_queue.queue_url
+    ENVIRONMENT       = var.env
   }
 
   tags = local.tags
@@ -140,9 +141,9 @@ module "worker_service" {
   aws_region     = var.aws_region
   cluster_arn    = module.ecs_cluster.cluster_id
   container_port = 8080
-  desired_count  = 0  # scale‑to‑0
-  cpu            = 512
-  memory         = 1024
+  desired_count  = var.worker_min_capacity  # scale‑to‑0 by default
+  cpu            = var.worker_cpu
+  memory         = var.worker_memory
   image          = "${module.ecr.repository_urls["worker"]}:latest"
   subnet_ids     = module.vpc.private_subnets
   queue_arn      = module.workflow_queue.queue_arn
@@ -152,6 +153,7 @@ module "worker_service" {
     POSTGRES_USER     = var.db_username
     POSTGRES_PASSWORD = var.db_password
     SQS_URL           = module.workflow_queue.queue_url
+    ENVIRONMENT       = var.env
   }
 
   tags = local.tags
@@ -159,8 +161,8 @@ module "worker_service" {
 
 # 6a. Worker auto‑scaling driven by SQS depth
 resource "aws_appautoscaling_target" "worker" {
-  max_capacity       = 5
-  min_capacity       = 0
+  max_capacity       = var.worker_max_capacity
+  min_capacity       = var.worker_min_capacity
   resource_id        = module.worker_service.service_autoscaling_resource_id
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -200,4 +202,50 @@ resource "aws_cloudwatch_metric_alarm" "queue_depth" {
   }
   alarm_actions = [aws_appautoscaling_policy.worker_queue.arn]
   tags          = local.tags
+}
+
+# 8. Lambda scheduler
+module "scheduler_lambda" {
+  source = "./modules/lambda"
+
+  function_name = "${local.name_prefix}-scheduler"
+  filename      = "../scheduler_lambda/scheduler_lambda.zip"
+  handler       = "handler.main"
+  runtime       = "python3.12"
+  memory_size   = var.lambda_memory_size
+  timeout       = var.lambda_timeout
+
+  # Grant permissions to the SQS queue
+  sqs_queue_arn = module.workflow_queue.queue_arn
+
+  # Enable CloudWatch Logs
+  enable_cloudwatch_logs = true
+
+  # Environment variables
+  env_vars = {
+    SQS_URL     = module.workflow_queue.queue_url
+    ENVIRONMENT = var.env
+  }
+
+  tags = local.tags
+}
+
+# EventBridge rule every 5 min
+resource "aws_cloudwatch_event_rule" "every5" {
+  name                = "${local.name_prefix}-every-5"
+  schedule_expression = "rate(5 minutes)"
+  tags                = local.tags
+}
+
+resource "aws_cloudwatch_event_target" "scheduler_target" {
+  rule = aws_cloudwatch_event_rule.every5.name
+  arn  = module.scheduler_lambda.lambda_arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = module.scheduler_lambda.lambda_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.every5.arn
 }

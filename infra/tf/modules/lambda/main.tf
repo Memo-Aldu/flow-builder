@@ -24,8 +24,34 @@ resource "aws_iam_role_policy" "lambda_sqs_policy" {
     Statement = [
       {
         Effect = "Allow",
-        Action = "sqs:SendMessage",
-        Resource = "*"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ],
+        Resource = var.sqs_queue_arn != null ? var.sqs_queue_arn : "*"
+      }
+    ]
+  })
+}
+
+# Add CloudWatch Logs permissions if enabled
+resource "aws_iam_role_policy" "lambda_logs_policy" {
+  count = var.enable_cloudwatch_logs ? 1 : 0
+  name  = "${var.function_name}-logs-policy"
+  role  = aws_iam_role.lambda_role.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "arn:aws:logs:*:*:*"
       }
     ]
   })
@@ -42,12 +68,22 @@ resource "aws_lambda_function" "this" {
   handler       = var.handler
   role          = aws_iam_role.lambda_role.arn
   runtime       = var.runtime
-  memory_size   = 256
-  timeout       = 60
+  memory_size   = var.memory_size
+  timeout       = var.timeout
   source_code_hash = filebase64sha256(var.filename)
+
+  dynamic "vpc_config" {
+    for_each = var.subnet_ids != null && var.security_group_ids != null ? [1] : []
+    content {
+      subnet_ids         = var.subnet_ids
+      security_group_ids = var.security_group_ids
+    }
+  }
+
   environment {
     variables = var.env_vars
   }
+
   tags = var.tags
 }
 
