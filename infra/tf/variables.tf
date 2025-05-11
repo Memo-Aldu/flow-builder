@@ -89,3 +89,41 @@ variable "lambda_timeout" {
   default     = 60
   description = "Timeout for Lambda functions in seconds"
 }
+
+# Networking configuration
+variable "enable_nat_gateway" {
+  type        = bool
+  default     = true
+  description = "Whether to enable NAT Gateway(s)"
+}
+
+variable "single_nat_gateway" {
+  type        = bool
+  default     = true
+  description = "Whether to create a single NAT Gateway for all private subnets"
+}
+
+variable "enable_flow_logs" {
+  type        = bool
+  default     = false
+  description = "Whether to enable VPC Flow Logs"
+}
+
+variable "enable_https" {
+  type        = bool
+  default     = false
+  description = "Whether to enable HTTPS on the ALB"
+}
+
+# Monitoring configuration
+variable "create_dashboard" {
+  type        = bool
+  default     = true
+  description = "Whether to create CloudWatch dashboard"
+}
+
+variable "create_alarms" {
+  type        = bool
+  default     = false
+  description = "Whether to create CloudWatch alarms"
+}

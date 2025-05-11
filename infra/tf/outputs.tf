@@ -1,5 +1,5 @@
 output "api_url" {
-  value = module.api_service.lb_dns_name
+  value = aws_lb.api.dns_name
 }
 
 output "queue_url" {
