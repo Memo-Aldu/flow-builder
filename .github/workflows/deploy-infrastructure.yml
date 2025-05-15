@@ -1,0 +1,116 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/tf/**'
+      - '.github/workflows/deploy-infrastructure.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: infra/tf
+        run: |
+          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend
+
+      - name: Terraform Validate
+        working-directory: infra/tf
+        run: |
+          terraform validate
+
+      - name: Terraform Plan
+        working-directory: infra/tf
+        id: plan
+        run: |
+          terraform plan \
+            -var-file=environments/${{ github.event.inputs.environment || 'dev' }}.tfvars \
+            -var="db_password=${{ secrets.DB_PASSWORD }}" \
+            -out=tfplan
+        
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/tf/tfplan
+          retention-days: 1
+
+  approval:
+    name: Approval
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Manual approval
+        run: echo "Deployment approved for ${{ github.event.inputs.environment || 'dev' }}"
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: approval
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/tf
+
+      - name: Terraform Init
+        working-directory: infra/tf
+        run: |
+          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend
+
+      - name: Terraform Apply
+        working-directory: infra/tf
+        run: |
+          terraform apply -auto-approve tfplan
