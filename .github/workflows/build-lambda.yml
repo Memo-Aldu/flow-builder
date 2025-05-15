@@ -18,6 +18,7 @@ jobs:
   build-and-push:
     name: Build and Push Lambda Image
     runs-on: ubuntu-latest
+    environment: dev
     
     steps:
       - name: Checkout code
