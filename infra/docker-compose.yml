@@ -83,6 +83,19 @@ services:
       localstack:
         condition: service_healthy
 
+  scheduler:
+    container_name: scheduler
+    build:
+      context: ..
+      dockerfile: ./scheduler_lambda/Dockerfile
+    env_file:
+      - ../.env
+    networks:
+      - main-network
+    depends_on:
+      localstack:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   localstack_data:
