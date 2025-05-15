@@ -17,6 +17,97 @@ resource "aws_cloudwatch_log_group" "service" {
   tags              = var.tags
 }
 
+# Create IAM role for task execution
+resource "aws_iam_role" "task_execution_role" {
+  name = "${var.name}-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+# Attach policies to the task execution role
+resource "aws_iam_role_policy_attachment" "task_execution_role_policy" {
+  role       = aws_iam_role.task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Add ECR permissions
+resource "aws_iam_role_policy" "ecr_policy" {
+  name = "${var.name}-ecr-policy"
+  role = aws_iam_role.task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetAuthorizationToken"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Add permissions for SQS
+resource "aws_iam_role_policy" "sqs_policy" {
+  name = "${var.name}-sqs-policy"
+  role = aws_iam_role.task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ],
+        Resource = var.queue_arn != null ? var.queue_arn : "*"
+      }
+    ]
+  })
+}
+
+# Add permissions for Secrets Manager
+resource "aws_iam_role_policy" "secrets_policy" {
+  name = "${var.name}-secrets-policy"
+  role = aws_iam_role.task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 module "service" {
   source  = "terraform-aws-modules/ecs/aws//modules/service"
   version = "5.7.0"
@@ -26,6 +117,9 @@ module "service" {
   cpu         = var.cpu
   memory      = var.memory
   desired_count = var.desired_count
+
+  # Use our custom task execution role
+  task_exec_iam_role_arn = aws_iam_role.task_execution_role.arn
 
   container_definitions = {
     "${var.name}" = {
@@ -57,8 +151,9 @@ module "service" {
     container_port   = var.container_port
   }] : []
 
-  subnet_ids = var.subnet_ids
-  tags       = var.tags
+  subnet_ids        = var.subnet_ids
+  security_group_ids = var.security_group_ids != null ? var.security_group_ids : null
+  tags              = var.tags
 }
 
 # Load balancer resources

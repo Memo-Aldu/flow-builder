@@ -10,13 +10,30 @@ variable "handler" {
 
 variable "filename" {
   type        = string
-  description = "Path to the Lambda deployment package"
+  default     = null
+  description = "Path to the Lambda deployment package (for ZIP package type)"
+}
+
+variable "image_uri" {
+  type        = string
+  default     = null
+  description = "ECR image URI for container image (for Image package type)"
+}
+
+variable "package_type" {
+  type        = string
+  default     = "Zip"
+  description = "Lambda package type (Zip or Image)"
+  validation {
+    condition     = contains(["Zip", "Image"], var.package_type)
+    error_message = "Package type must be either Zip or Image."
+  }
 }
 
 variable "runtime" {
   type        = string
   default     = "python3.12"
-  description = "Lambda runtime environment"
+  description = "Lambda runtime environment (not required for Image package type)"
 }
 
 variable "memory_size" {

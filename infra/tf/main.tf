@@ -140,6 +140,7 @@ module "api_service" {
   memory               = var.api_memory
   image                = "${module.ecr.repository_urls["api"]}:latest"
   subnet_ids           = module.networking.private_subnets
+  security_group_ids    = [module.networking.ecs_security_group_id]
   alb_listener_arn     = aws_lb_listener.http.arn
   create_load_balancer = true
 
@@ -152,6 +153,8 @@ module "api_service" {
 
   env_vars = {
     # SQS configuration
+    SQS_URL = module.workflow_queue.queue_url
+    # For backward compatibility
     WORKFLOW_QUEUE_URL = module.workflow_queue.queue_url
 
     # Database configuration
@@ -185,7 +188,8 @@ module "worker_service" {
   cpu            = var.worker_cpu
   memory         = var.worker_memory
   image          = "${module.ecr.repository_urls["worker"]}:latest"
-  subnet_ids     = module.networking.private_subnets
+  subnet_ids        = module.networking.private_subnets
+  security_group_ids = [module.networking.ecs_security_group_id]
   queue_arn      = module.workflow_queue.queue_arn
 
   # Enable autoscaling for Worker service
@@ -197,6 +201,8 @@ module "worker_service" {
 
   env_vars = {
     # SQS configuration
+    SQS_URL = module.workflow_queue.queue_url
+    # For backward compatibility
     WORKFLOW_QUEUE_URL = module.workflow_queue.queue_url
 
     # Database configuration
@@ -248,9 +254,9 @@ module "scheduler_lambda" {
   source = "./modules/lambda"
 
   function_name = "${local.name_prefix}-scheduler"
-  filename      = "../../scheduler_lambda/scheduler_lambda.zip"
-  handler       = "handler.main"
-  runtime       = "python3.12"
+  package_type  = "Image"
+  image_uri     = "${module.ecr.repository_urls["scheduler"]}:latest"
+  handler       = "handler.lambda_handler"
   memory_size   = var.lambda_memory_size
   timeout       = var.lambda_timeout
 
@@ -266,13 +272,15 @@ module "scheduler_lambda" {
 
   # Environment variables
   env_vars = {
-    WORKFLOW_QUEUE_URL = module.workflow_queue.queue_url
+    # SQS configuration
+    SQS_URL       = module.workflow_queue.queue_url
 
-    DB_HOST     = module.db.db_instance_address
-    DB_PORT     = "5432"
-    DB_USER     = var.db_username
-    DB_PASSWORD = var.db_password
-    DB_NAME     = module.db.db_instance_name
+    # Database configuration
+    DB_HOST       = module.db.db_instance_address
+    DB_PORT       = "5432"
+    DB_USER       = var.db_username
+    DB_PASSWORD   = var.db_password
+    DB_NAME       = module.db.db_instance_name
 
     # General configuration
     ENVIRONMENT   = var.env

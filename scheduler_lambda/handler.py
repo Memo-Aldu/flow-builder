@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 sqs_client = get_sqs_client()
 WORKFLOW_QUEUE_URL = os.getenv(
-    "WORKFLOW_QUEUE_URL",
+    "SQS_URL",
     "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/flow-builder-queue",
 )
 

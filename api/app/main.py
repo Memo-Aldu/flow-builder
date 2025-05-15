@@ -60,3 +60,9 @@ app.include_router(purchases.router, prefix="/api/v1/purchases", tags=["Purchase
 @app.get("/ping")
 async def pong() -> dict[str, str]:
     return {"ping": "pong!"}
+
+
+@app.get("/health")
+async def health_check() -> dict[str, str]:
+    """Health check endpoint for ECS container health checks."""
+    return {"status": "healthy"}
