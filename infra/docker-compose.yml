@@ -66,7 +66,7 @@ services:
       - postgres
       - localstack
     ports:
-      - "8000:8000"
+      - "8080:8080"
 
   worker:
     container_name: worker_service
