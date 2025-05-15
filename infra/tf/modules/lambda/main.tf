@@ -69,13 +69,27 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
 
 resource "aws_lambda_function" "this" {
   function_name = var.function_name
-  filename      = var.filename
-  handler       = var.handler
   role          = aws_iam_role.lambda_role.arn
-  runtime       = var.runtime
   memory_size   = var.memory_size
   timeout       = var.timeout
-  source_code_hash = filebase64sha256(var.filename)
+  package_type  = var.package_type
+
+  # Conditional attributes based on package type
+  filename         = var.package_type == "Zip" ? var.filename : null
+  source_code_hash = var.package_type == "Zip" && var.filename != null ? filebase64sha256(var.filename) : null
+  handler          = var.package_type == "Zip" ? var.handler : null
+  runtime          = var.package_type == "Zip" ? var.runtime : null
+
+  # Image configuration for container images
+  image_uri        = var.package_type == "Image" ? var.image_uri : null
+
+  dynamic "image_config" {
+    for_each = var.package_type == "Image" && var.handler != null ? [1] : []
+    content {
+      command     = [var.handler]
+      entry_point = ["python", "-m", "awslambdaric"]
+    }
+  }
 
   dynamic "vpc_config" {
     for_each = var.subnet_ids != null && var.security_group_ids != null ? [1] : []

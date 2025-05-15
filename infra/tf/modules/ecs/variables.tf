@@ -23,6 +23,12 @@ variable "subnet_ids" {
   description = "List of subnet IDs to launch the service in"
 }
 
+variable "security_group_ids" {
+  type        = list(string)
+  default     = null
+  description = "List of security group IDs to associate with the service"
+}
+
 variable "container_port" {
   type        = number
   default     = 80
