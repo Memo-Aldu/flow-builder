@@ -23,6 +23,7 @@ module "db" {
   engine            = "postgres"
   engine_version    = "17.4"
   family            = "postgres17"
+  db_name           =  var.db_name
   instance_class    = var.env == "dev" ? "db.t4g.micro" : "db.t4g.small"
   allocated_storage = var.env == "dev" ? 20 : 50
 

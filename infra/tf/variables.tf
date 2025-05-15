@@ -27,6 +27,12 @@ variable "db_username" {
   description = "Username for the database"
 }
 
+variable "db_name" {
+  type        = string
+  default     = "workflow_app"
+  description = "Name of the database"
+}
+
 variable "db_password" {
   type        = string
   sensitive   = true
