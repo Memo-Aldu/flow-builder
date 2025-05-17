@@ -27,3 +27,13 @@ output "autoscaling_target_arn" {
   value       = var.autoscaling_enabled ? aws_appautoscaling_target.ecs_target[0].arn : null
   description = "ARN of the autoscaling target"
 }
+
+output "task_role_name" {
+  value       = aws_iam_role.task_role.name
+  description = "Name of the task role"
+}
+
+output "task_execution_role_name" {
+  value       = aws_iam_role.task_execution_role.name
+  description = "Name of the task execution role"
+}

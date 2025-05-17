@@ -37,6 +37,26 @@ resource "aws_iam_role" "task_execution_role" {
   tags = var.tags
 }
 
+# Create IAM role for the task itself (for application code)
+resource "aws_iam_role" "task_role" {
+  name = "${var.name}-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
 # Attach policies to the task execution role
 resource "aws_iam_role_policy_attachment" "task_execution_role_policy" {
   role       = aws_iam_role.task_execution_role.name
@@ -65,12 +85,12 @@ resource "aws_iam_role_policy" "ecr_policy" {
   })
 }
 
-# Add permissions for SQS
+# Add permissions for SQS to task execution role
 resource "aws_iam_role_policy" "sqs_policy" {
   name = "${var.name}-sqs-policy"
   role = aws_iam_role.task_execution_role.id
 
-  policy = jsonencode({
+  policy = var.task_exec_iam_role_policy_json != null ? var.task_exec_iam_role_policy_json : jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
@@ -88,10 +108,54 @@ resource "aws_iam_role_policy" "sqs_policy" {
   })
 }
 
-# Add permissions for Secrets Manager
+# Add permissions for Secrets Manager to task execution role
 resource "aws_iam_role_policy" "secrets_policy" {
   name = "${var.name}-secrets-policy"
   role = aws_iam_role.task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Add permissions for SQS to task role (for application code)
+resource "aws_iam_role_policy" "task_sqs_policy" {
+  name = "${var.name}-task-sqs-policy"
+  role = aws_iam_role.task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ],
+        # Ensure we have permissions for the specific queue and all queues if needed
+        Resource = var.queue_arn != null ? [var.queue_arn, "${var.queue_arn}*"] : ["*"]
+      }
+    ]
+  })
+}
+
+# Add permissions for Secrets Manager to task role (for application code)
+resource "aws_iam_role_policy" "task_secrets_policy" {
+  name = "${var.name}-task-secrets-policy"
+  role = aws_iam_role.task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -120,6 +184,9 @@ module "service" {
 
   # Use our custom task execution role
   task_exec_iam_role_arn = aws_iam_role.task_execution_role.arn
+
+  # Use our custom task role
+  tasks_iam_role_arn = aws_iam_role.task_role.arn
 
   container_definitions = {
     "${var.name}" = {
