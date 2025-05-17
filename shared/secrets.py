@@ -23,7 +23,7 @@ def get_secrets_client():
     """
     config = {
         "service_name": "secretsmanager",
-        "region_name": os.getenv("AWS_REGION", "us-east-1"),
+        "region_name": os.getenv("CUSTOM_AWS_REGION", os.getenv("AWS_REGION", "us-east-1")),
     }
 
     endpoint_url = os.getenv("SECRETS_ENDPOINT_URL")
