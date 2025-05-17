@@ -22,7 +22,7 @@ def get_sqs_client():
     # Base configuration with region
     config = {
         "service_name": "sqs",
-        "region_name": os.getenv("AWS_REGION", "us-east-1"),
+        "region_name": os.getenv("CUSTOM_AWS_REGION", os.getenv("AWS_REGION", "us-east-1")),
     }
 
     endpoint_url = os.getenv("SQS_ENDPOINT_URL")
