@@ -1,8 +1,5 @@
 """
 AWS SQS utility functions.
-
-This module provides functions for interacting with AWS SQS,
-including sending, receiving, and deleting messages.
 """
 import os
 
@@ -28,16 +25,13 @@ def get_sqs_client():
         "region_name": os.getenv("AWS_REGION", "us-east-1"),
     }
 
-    # Add endpoint URL if specified (for local development)
     endpoint_url = os.getenv("SQS_ENDPOINT_URL")
     if endpoint_url:
         config["endpoint_url"] = endpoint_url
 
-        # For local development, also add credentials
         config["aws_access_key_id"] = os.getenv("AWS_ACCESS_KEY_ID", "test")
         config["aws_secret_access_key"] = os.getenv("AWS_SECRET_ACCESS_KEY", "test")
 
-    # In deployed environments, boto3 will use the instance role credentials automatically
     return boto3.client(**config)
 
 
