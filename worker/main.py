@@ -10,7 +10,7 @@ from pytz import timezone
 from worker import logger
 from worker.runner.workflow_runner import WorkflowRunner
 
-from shared.sqs import get_sqs_client
+from shared.sqs import get_sqs_client, receive_messages, delete_message
 from shared.cron import get_next_run_date
 from shared.models import ExecutionStatus, WorkflowUpdate
 from shared.db import Session
@@ -92,31 +92,40 @@ async def poll_sqs() -> NoReturn:
     logger.info("Starting SQS polling loop...")
 
     while True:
-        response = sqs_client.receive_message(
-            QueueUrl=WORKFLOW_QUEUE_URL, MaxNumberOfMessages=5, WaitTimeSeconds=20
-        )
+        try:
+            # Use our new receive_messages function
+            messages = receive_messages(
+                queue_url=WORKFLOW_QUEUE_URL,
+                max_number=5,
+                wait_time=20
+            )
 
-        messages = response.get("Messages", [])
-        if not messages:
-            continue
-
-        for msg in messages:
-            body_str = msg.get("Body", "{}")
-            receipt_handle = msg.get("ReceiptHandle")
-
-            try:
-                body = json.loads(body_str)
-            except json.JSONDecodeError:
-                logger.error("Failed to parse message body: %s", body_str)
+            if not messages:
                 continue
 
-            await process_message(body)
+            for msg in messages:
+                body_str = msg.get("Body", "{}")
+                receipt_handle = msg.get("ReceiptHandle")
 
-            if receipt_handle:
-                sqs_client.delete_message(
-                    QueueUrl=WORKFLOW_QUEUE_URL, ReceiptHandle=receipt_handle
-                )
-                logger.info("Deleted message with receipt handle %s", receipt_handle)
+                try:
+                    body = json.loads(body_str)
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse message body: %s", body_str)
+                    continue
+
+                await process_message(body)
+
+                if receipt_handle:
+                    # Use our new delete_message function
+                    delete_message(
+                        queue_url=WORKFLOW_QUEUE_URL,
+                        receipt_handle=receipt_handle
+                    )
+                    logger.info("Deleted message with receipt handle %s", receipt_handle)
+        except Exception as e:
+            logger.error(f"Error in SQS polling loop: {e}")
+            # Wait a bit before retrying to avoid tight loops in case of persistent errors
+            await asyncio.sleep(5)
 
 
 async def run_worker() -> None:

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from shared.db import create_lambda_engine_and_session
 from shared.cron import get_next_run_date
-from shared.sqs import get_sqs_client
+from shared.sqs import get_sqs_client, send_message
 from botocore.exceptions import ClientError
 from shared.models import WorkflowUpdate, WorkflowExecutionCreate, ExecutionTrigger
 from shared.logging import get_logger, setup_logging
@@ -62,11 +62,12 @@ async def main() -> dict[str, str]:
                 "queued_at": datetime.now(timezone.utc).isoformat(),
             }
             try:
-                sqs_client.send_message(
-                    QueueUrl=WORKFLOW_QUEUE_URL,
-                    MessageBody=json.dumps(message_body),
+                # Use our new send_message function
+                send_message(
+                    queue_url=WORKFLOW_QUEUE_URL,
+                    message_body=json.dumps(message_body),
                 )
-            except ClientError as e:
+            except Exception as e:
                 logger.warning("Failed to send message to SQS: %s", e)
 
             next_run: Optional[datetime] = None

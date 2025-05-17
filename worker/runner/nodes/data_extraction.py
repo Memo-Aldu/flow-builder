@@ -9,7 +9,7 @@ from openai.types.chat.chat_completion import ChatCompletion
 
 from shared.logging import get_logger
 from shared.models import LogLevel
-from shared.secrets_manager import get_secret_value
+from shared.secrets import get_secret_value
 from shared.crud.credentials_crud import get_credential_by_id
 
 from worker.runner.environment import Environment, Node, Phase

@@ -56,14 +56,14 @@ export default function LandingPage() {
             ))}
             <ModeToggle />
             <SignedOut>
-              <SignInButton mode="modal" forceRedirectUrl={"/dashboard"}>
+              <Link href="/sign-in">
                 <Button size="sm">Sign in</Button>
-              </SignInButton>
-              <SignUpButton mode="modal" forceRedirectUrl={"/dashboard"}>
+              </Link>
+              <Link href="/sign-up">
                 <Button size="sm" variant="secondary">
                   Create account
                 </Button>
-              </SignUpButton>
+              </Link>
             </SignedOut>
             <SignedIn>
               <Link href="/dashboard">

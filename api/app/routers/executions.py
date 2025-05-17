@@ -20,7 +20,7 @@ from api.app.crud.execution_crud import (
 )
 from shared.crud.workflow_crud import get_workflow_by_id_and_user
 from shared.db import get_session
-from shared.sqs import get_sqs_client
+from shared.sqs import get_sqs_client, send_message
 from shared.crud.execution_crud import (
     get_execution_by_id_and_user,
     create_execution,
@@ -213,9 +213,10 @@ async def create_execution_endpoint(
     }
 
     try:
-        sqs_client.send_message(
-            QueueUrl=WORKFLOW_QUEUE_URL,
-            MessageBody=json.dumps(message_body),
+        # Use our new send_message function
+        send_message(
+            queue_url=WORKFLOW_QUEUE_URL,
+            message_body=json.dumps(message_body),
         )
     except Exception as e:
         logger.warning("Failed to send message to SQS: %s", e)
