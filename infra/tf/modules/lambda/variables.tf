@@ -5,7 +5,8 @@ variable "function_name" {
 
 variable "handler" {
   type        = string
-  description = "Handler function (e.g., index.handler)"
+  default     = null
+  description = "Handler function (e.g., index.handler). Required for Zip package type, optional for Image package type."
 }
 
 variable "filename" {
@@ -76,6 +77,12 @@ variable "env_vars" {
   type        = map(string)
   default     = {}
   description = "Environment variables for the Lambda function"
+}
+
+variable "create_function" {
+  type        = bool
+  default     = true
+  description = "Whether to create the Lambda function"
 }
 
 variable "tags" {
