@@ -90,6 +90,13 @@ variable "lambda_memory_size" {
   description = "Memory size for Lambda functions in MB"
 }
 
+
+variable "create_lambda" {
+  type        = bool
+  default     = true
+  description = "Whether to create the Lambda function"
+}
+
 variable "lambda_timeout" {
   type        = number
   default     = 60
@@ -99,7 +106,7 @@ variable "lambda_timeout" {
 # Networking configuration
 variable "enable_nat_gateway" {
   type        = bool
-  default     = true
+  default     = false
   description = "Whether to enable NAT Gateway(s)"
 }
 
@@ -107,6 +114,18 @@ variable "single_nat_gateway" {
   type        = bool
   default     = true
   description = "Whether to create a single NAT Gateway for all private subnets"
+}
+
+variable "enable_nat_instance" {
+  type        = bool
+  default     = true
+  description = "Whether to create a NAT Instance (EC2) - cheaper"
+}
+
+variable "nat_instance_type" {
+  type        = string
+  default     = "t3.nano"
+  description = "Instance type for the NAT instance"
 }
 
 variable "enable_flow_logs" {
@@ -132,4 +151,30 @@ variable "create_alarms" {
   type        = bool
   default     = false
   description = "Whether to create CloudWatch alarms"
+}
+
+# Authentication configuration
+variable "clerk_secret_key" {
+  type        = string
+  sensitive   = true
+  description = "Clerk secret key for API authentication"
+}
+
+variable "clerk_frontend_url" {
+  type        = string
+  default     = "http://localhost:3000"
+  description = "Clerk frontend URL for CORS and authentication"
+}
+
+# SSM Bastion configuration
+variable "enable_ssm_bastion" {
+  type        = bool
+  default     = false
+  description = "Whether to create an SSM bastion host for RDS access"
+}
+
+variable "bastion_instance_type" {
+  type        = string
+  default     = "t3.micro"
+  description = "Instance type for the SSM bastion host"
 }
