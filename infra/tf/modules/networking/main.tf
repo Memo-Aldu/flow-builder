@@ -26,9 +26,12 @@ module "vpc" {
 
   create_database_subnet_group = true
 
-  # NAT Gateway configuration
+  # NAT Gateway configuration - disabled in favor of NAT instance
   enable_nat_gateway = var.enable_nat_gateway
   single_nat_gateway = var.single_nat_gateway
+
+  # We need to manage our own route tables when using NAT instance
+  manage_default_route_table = true
 
   # VPC Flow Logs
   enable_flow_log                      = var.enable_flow_logs
@@ -90,7 +93,9 @@ resource "aws_security_group_rule" "db_ingress" {
   protocol          = "tcp"
   security_group_id = aws_security_group.db.id
   cidr_blocks       = concat(module.vpc.private_subnets_cidr_blocks, module.vpc.database_subnets_cidr_blocks)
+  description       = "Allow PostgreSQL access from private and database subnets"
 }
+
 
 resource "aws_security_group_rule" "db_egress" {
   type              = "egress"
@@ -203,4 +208,202 @@ resource "aws_vpc_endpoint" "sqs" {
   security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
   tags                = var.tags
+}
+
+# VPC Endpoints for SSM
+resource "aws_vpc_endpoint" "ssm" {
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.region}.ssm"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = module.vpc.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+  tags                = var.tags
+}
+
+resource "aws_vpc_endpoint" "ssmmessages" {
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.region}.ssmmessages"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = module.vpc.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+  tags                = var.tags
+}
+
+resource "aws_vpc_endpoint" "ec2messages" {
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.region}.ec2messages"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = module.vpc.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+  tags                = var.tags
+}
+
+# NAT Instance Configuration
+locals {
+  create_nat_instance = var.enable_nat_instance && !var.enable_nat_gateway
+}
+
+# Get the latest Amazon Linux 2 AMI optimized for NAT
+data "aws_ami" "nat_ami" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# Security group for NAT instance
+resource "aws_security_group" "nat_instance" {
+  count       = local.create_nat_instance ? 1 : 0
+  name        = "${var.name_prefix}-nat-instance-sg"
+  description = "Security group for NAT instance"
+  vpc_id      = module.vpc.vpc_id
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all inbound traffic from private subnets
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = module.vpc.private_subnets_cidr_blocks
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-nat-instance-sg"
+  })
+}
+
+# IAM role for NAT instance
+resource "aws_iam_role" "nat_instance" {
+  count = local.create_nat_instance ? 1 : 0
+  name  = "${var.name_prefix}-nat-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+# Attach the AmazonSSMManagedInstanceCore policy to the role
+resource "aws_iam_role_policy_attachment" "nat_instance_ssm" {
+  count      = local.create_nat_instance ? 1 : 0
+  role       = aws_iam_role.nat_instance[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Create an instance profile for the NAT instance
+resource "aws_iam_instance_profile" "nat_instance" {
+  count = local.create_nat_instance ? 1 : 0
+  name  = "${var.name_prefix}-nat-instance-profile"
+  role  = aws_iam_role.nat_instance[0].name
+}
+
+# NAT Instance
+resource "aws_instance" "nat_instance" {
+  count                       = local.create_nat_instance ? 1 : 0
+  ami                         = data.aws_ami.nat_ami.id
+  instance_type               = var.nat_instance_type
+  subnet_id                   = module.vpc.public_subnets[0]
+  vpc_security_group_ids      = [aws_security_group.nat_instance[0].id]
+  associate_public_ip_address = true
+  source_dest_check           = false  # Required for NAT functionality
+  iam_instance_profile        = aws_iam_instance_profile.nat_instance[0].name
+
+  user_data = <<-EOF
+    #!/bin/bash
+    # Update and install required packages
+    yum update -y
+    yum install -y iptables-services
+
+    # Enable IP forwarding
+    echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+    sysctl -p
+
+    # Configure NAT
+    iptables -t nat -A POSTROUTING -o eth0 -s 0.0.0.0/0 -j MASQUERADE
+
+    # Save iptables rules
+    service iptables save
+
+    # Enable iptables service
+    systemctl enable iptables
+    systemctl start iptables
+  EOF
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-nat-instance"
+  })
+
+  root_block_device {
+    volume_type           = "gp3"
+    volume_size           = 8
+    delete_on_termination = true
+    encrypted             = true
+  }
+
+  # Ensure the instance has proper metadata options
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
+}
+
+# Route table for private subnets through NAT instance
+resource "aws_route" "private_nat_instance" {
+  count                  = local.create_nat_instance ? length(module.vpc.private_route_table_ids) : 0
+  route_table_id         = module.vpc.private_route_table_ids[count.index]
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id   = aws_instance.nat_instance[0].primary_network_interface_id
+  depends_on             = [module.vpc]
+}
+
+# CloudWatch alarm for NAT instance status
+resource "aws_cloudwatch_metric_alarm" "nat_instance_status" {
+  count               = local.create_nat_instance ? 1 : 0
+  alarm_name          = "${var.name_prefix}-nat-instance-status"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "StatusCheckFailed_System"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Maximum"
+  threshold           = 1
+  alarm_description   = "This metric monitors the status of the NAT instance"
+
+  dimensions = {
+    InstanceId = aws_instance.nat_instance[0].id
+  }
+
+  alarm_actions = [
+    "arn:aws:automate:${var.region}:ec2:recover"
+  ]
+
+  tags = var.tags
 }

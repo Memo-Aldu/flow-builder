@@ -53,6 +53,16 @@ output "vpc_endpoints_security_group_id" {
   description = "ID of the VPC endpoints security group"
 }
 
+output "nat_instance_id" {
+  value       = try(aws_instance.nat_instance[0].id, null)
+  description = "ID of the NAT instance (if created)"
+}
+
+output "nat_instance_public_ip" {
+  value       = try(aws_instance.nat_instance[0].public_ip, null)
+  description = "Public IP of the NAT instance (if created)"
+}
+
 output "ecr_dkr_endpoint_id" {
   value       = aws_vpc_endpoint.ecr_dkr.id
   description = "ID of the ECR Docker endpoint"
@@ -76,4 +86,19 @@ output "logs_endpoint_id" {
 output "sqs_endpoint_id" {
   value       = aws_vpc_endpoint.sqs.id
   description = "ID of the SQS endpoint"
+}
+
+output "ssm_endpoint_id" {
+  value       = aws_vpc_endpoint.ssm.id
+  description = "ID of the SSM endpoint"
+}
+
+output "ssmmessages_endpoint_id" {
+  value       = aws_vpc_endpoint.ssmmessages.id
+  description = "ID of the SSM Messages endpoint"
+}
+
+output "ec2messages_endpoint_id" {
+  value       = aws_vpc_endpoint.ec2messages.id
+  description = "ID of the EC2 Messages endpoint"
 }

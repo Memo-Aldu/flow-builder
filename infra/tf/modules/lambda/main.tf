@@ -68,6 +68,7 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
 }
 
 resource "aws_lambda_function" "this" {
+  count         = var.create_function ? 1 : 0
   function_name = var.function_name
   role          = aws_iam_role.lambda_role.arn
   memory_size   = var.memory_size
@@ -77,7 +78,7 @@ resource "aws_lambda_function" "this" {
   # Conditional attributes based on package type
   filename         = var.package_type == "Zip" ? var.filename : null
   source_code_hash = var.package_type == "Zip" && var.filename != null ? filebase64sha256(var.filename) : null
-  handler          = var.package_type == "Zip" ? var.handler : null
+  handler          = var.package_type == "Zip" || var.handler != null ? var.handler : null
   runtime          = var.package_type == "Zip" ? var.runtime : null
 
   # Image configuration for container images
@@ -86,8 +87,7 @@ resource "aws_lambda_function" "this" {
   dynamic "image_config" {
     for_each = var.package_type == "Image" && var.handler != null ? [1] : []
     content {
-      command     = [var.handler]
-      entry_point = ["python", "-m", "awslambdaric"]
+      command = [var.handler]
     }
   }
 
@@ -106,5 +106,5 @@ resource "aws_lambda_function" "this" {
   tags = var.tags
 }
 
-output "lambda_arn"  { value = aws_lambda_function.this.arn }
-output "lambda_name" { value = aws_lambda_function.this.function_name }
+output "lambda_arn"  { value = var.create_function ? aws_lambda_function.this[0].arn : null }
+output "lambda_name" { value = var.create_function ? aws_lambda_function.this[0].function_name : var.function_name }
