@@ -16,7 +16,7 @@ from shared.crud.credentials_crud import (
 )
 from shared.db import get_session
 from shared.models import Credential, CredentialCreate, CredentialRead
-from shared.secrets_manager import create_secret, delete_secret
+from shared.secrets import create_secret, delete_secret
 
 router = APIRouter(tags=["Credentials"])
 
