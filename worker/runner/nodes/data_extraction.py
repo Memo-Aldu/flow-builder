@@ -9,7 +9,7 @@ from openai.types.chat.chat_completion import ChatCompletion
 
 from shared.logging import get_logger
 from shared.models import LogLevel
-from shared.secrets import get_secret_value
+from shared.secrets import retrieve_secret
 from shared.crud.credentials_crud import get_credential_by_id
 
 from worker.runner.environment import Environment, Node, Phase
@@ -127,11 +127,11 @@ class OpenAICallNode(NodeExecutor):
             raise ValueError(f"Credential {cred_id} missing secret_arn.")
 
         try:
-            openai_api_key = get_secret_value(credential.secret_arn)
+            logger.info(f"Getting credential from secret storage {credential.id}")
+            openai_api_key = await retrieve_secret(credential.secret_arn, self.session)
         except Exception as e:
-            logger.warning(f"Error fetching secret from AWS: {str(e)}")
+            logger.warning(f"Error fetching secret: {str(e)}")
             raise ValueError(f"Error fetching secret: {str(e)}")
-
         openai.api_key = openai_api_key
 
         try:

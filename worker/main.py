@@ -93,11 +93,8 @@ async def poll_sqs() -> NoReturn:
 
     while True:
         try:
-            # Use our new receive_messages function
             messages = receive_messages(
-                queue_url=WORKFLOW_QUEUE_URL,
-                max_number=5,
-                wait_time=20
+                queue_url=WORKFLOW_QUEUE_URL, max_number=5, wait_time=20
             )
 
             if not messages:
@@ -118,10 +115,11 @@ async def poll_sqs() -> NoReturn:
                 if receipt_handle:
                     # Use our new delete_message function
                     delete_message(
-                        queue_url=WORKFLOW_QUEUE_URL,
-                        receipt_handle=receipt_handle
+                        queue_url=WORKFLOW_QUEUE_URL, receipt_handle=receipt_handle
                     )
-                    logger.info("Deleted message with receipt handle %s", receipt_handle)
+                    logger.info(
+                        "Deleted message with receipt handle %s", receipt_handle
+                    )
         except Exception as e:
             logger.error(f"Error in SQS polling loop: {e}")
             # Wait a bit before retrying to avoid tight loops in case of persistent errors
