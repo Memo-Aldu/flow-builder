@@ -22,7 +22,7 @@ variable "az_count" {
 
 variable "enable_nat_gateway" {
   type        = bool
-  default     = true
+  default     = false
   description = "Whether to create NAT Gateway(s)"
 }
 
@@ -30,6 +30,18 @@ variable "single_nat_gateway" {
   type        = bool
   default     = true
   description = "Whether to create a single NAT Gateway for all private subnets"
+}
+
+variable "enable_nat_instance" {
+  type        = bool
+  default     = true
+  description = "Whether to create a NAT Instance (EC2)"
+}
+
+variable "nat_instance_type" {
+  type        = string
+  default     = "t3.nano"
+  description = "Instance type for the NAT instance"
 }
 
 variable "enable_flow_logs" {
