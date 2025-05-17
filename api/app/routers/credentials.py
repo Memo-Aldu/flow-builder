@@ -51,11 +51,29 @@ async def create_credential_endpoint(
     if not local_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    secret_arn = create_secret(credential_in.name, credential_in.value)
-    new_cred = await create_credential(
-        session, local_user.id, secret_arn, credential_in
+    # Create the secret using the appropriate storage method
+    secret_id_or_arn = await create_secret(
+        session=session,
+        secret_name=credential_in.name,
+        secret_value=credential_in.value,
+        user_id=local_user.id,
     )
-    logger.info(f"Created credential: {new_cred.id}")
+
+    # Determine if this is a DB secret based on the returned ID/ARN
+    is_db_secret = secret_id_or_arn.startswith("db:")
+
+    # Create the credential record
+    new_cred = await create_credential(
+        session=session,
+        user_id=local_user.id,
+        secret_id_or_arn=secret_id_or_arn,
+        credential_data=credential_in,
+        is_db_secret=is_db_secret,
+    )
+
+    logger.info(
+        f"Created credential: {new_cred.id} using {'DB' if is_db_secret else 'AWS'} storage"
+    )
     return new_cred
 
 
@@ -90,7 +108,12 @@ async def delete_credential_endpoint(
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
 
-    success = delete_secret(cred.secret_arn)
+    # Delete the secret using the appropriate storage method
+    success = await delete_secret(
+        session=session,
+        secret_id_or_arn=cred.secret_arn,
+        user_id=local_user.id if cred.is_db_secret else None,
+    )
 
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete secret")

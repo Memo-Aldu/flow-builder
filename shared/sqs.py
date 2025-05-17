@@ -1,6 +1,7 @@
 """
 AWS SQS utility functions.
 """
+
 import os
 
 import boto3
@@ -22,7 +23,9 @@ def get_sqs_client():
     # Base configuration with region
     config = {
         "service_name": "sqs",
-        "region_name": os.getenv("CUSTOM_AWS_REGION", os.getenv("AWS_REGION", "us-east-1")),
+        "region_name": os.getenv(
+            "CUSTOM_AWS_REGION", os.getenv("AWS_REGION", "us-east-1")
+        ),
     }
 
     endpoint_url = os.getenv("SQS_ENDPOINT_URL")
@@ -45,14 +48,13 @@ def send_message(queue_url, message_body, message_attributes=None):
             response = sqs_client.send_message(
                 QueueUrl=queue_url,
                 MessageBody=message_body,
-                MessageAttributes=message_attributes
+                MessageAttributes=message_attributes,
             )
         else:
             response = sqs_client.send_message(
-                QueueUrl=queue_url,
-                MessageBody=message_body
+                QueueUrl=queue_url, MessageBody=message_body
             )
-        return response['MessageId']
+        return response["MessageId"]
     except ClientError as e:
         print(f"Error sending message to SQS: {e}")
         raise RuntimeError(f"Failed to send message to SQS: {e}") from e
@@ -68,9 +70,9 @@ def receive_messages(queue_url, max_number=10, wait_time=20, visibility_timeout=
             QueueUrl=queue_url,
             MaxNumberOfMessages=max_number,
             WaitTimeSeconds=wait_time,
-            VisibilityTimeout=visibility_timeout
+            VisibilityTimeout=visibility_timeout,
         )
-        return response.get('Messages', [])
+        return response.get("Messages", [])
     except ClientError as e:
         print(f"Error receiving messages from SQS: {e}")
         raise RuntimeError(f"Failed to receive messages from SQS: {e}") from e
@@ -82,10 +84,7 @@ def delete_message(queue_url, receipt_handle):
     """
     sqs_client = get_sqs_client()
     try:
-        sqs_client.delete_message(
-            QueueUrl=queue_url,
-            ReceiptHandle=receipt_handle
-        )
+        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
         return True
     except ClientError as e:
         print(f"Error deleting message from SQS: {e}")

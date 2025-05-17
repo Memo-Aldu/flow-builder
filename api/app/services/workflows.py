@@ -92,10 +92,14 @@ async def create_initial_version(
         is_active=True,
     )
     db.add(version)
-    workflow.active_version_id = version.id
     await db.commit()
     await db.refresh(version)
+
+    workflow.active_version_id = version.id
+    db.add(workflow)
+    await db.commit()
     await db.refresh(workflow)
+
     return version
 
 

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, ClassVar
 from pytz import timezone
 from sqlmodel import DateTime, SQLModel, Field, Relationship, Column, JSON, ForeignKey
+from sqlalchemy import LargeBinary
 
 
 class User(SQLModel, table=True):
@@ -20,6 +21,9 @@ class User(SQLModel, table=True):
         back_populates="user", cascade_delete=True
     )
     credentials: List["Credential"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
+    db_secrets: List["DbSecret"] = Relationship(
         back_populates="user", cascade_delete=True
     )
     purchases: List["UserPurchase"] = Relationship(
@@ -405,6 +409,35 @@ class UserBalanceRead(UserBalanceBase):
 
 
 #
+# DB SECRETS (for storing encrypted secrets in the database)
+#
+
+
+class DbSecretBase(SQLModel):
+    """Base model for database-stored encrypted secrets."""
+
+    pass
+
+
+class DbSecret(DbSecretBase, table=True):
+    """Model for storing encrypted secrets in the database."""
+
+    __tablename__: ClassVar[str] = "db_secret"
+    id: UUID = Field(primary_key=True, default_factory=uuid4)
+    # Store the encrypted value and nonce as binary data
+    encrypted_value: bytes = Field(
+        sa_column=Column("encrypted_value", type_=LargeBinary)
+    )
+    nonce: bytes = Field(sa_column=Column("nonce", type_=LargeBinary))
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+
+    user: Optional["User"] = Relationship(back_populates="db_secrets")
+
+
 # CREDENTIALS (e.g., for storing tokens securely)
 #
 
@@ -416,7 +449,10 @@ class CredentialBase(SQLModel):
 class Credential(CredentialBase, table=True):
     __tablename__: ClassVar[str] = "credential"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
+    # Can be either an AWS ARN or a DB secret ID
     secret_arn: str = Field(index=True)
+    # Flag to indicate if this is a DB secret or AWS secret
+    is_db_secret: bool = Field(default=False)
     user_id: UUID = Field(foreign_key="user.id", index=True)
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True)),
