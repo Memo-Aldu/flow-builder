@@ -4,11 +4,11 @@ provider "aws" {
 
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project}-tf-state-${var.env}"
-  
+
   lifecycle {
     prevent_destroy = true
   }
-  
+
   tags = var.tags
 }
 
@@ -47,6 +47,6 @@ resource "aws_dynamodb_table" "terraform_locks" {
     name = "LockID"
     type = "S"
   }
-  
+
   tags = var.tags
 }
