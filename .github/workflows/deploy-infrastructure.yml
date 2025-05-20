@@ -51,6 +51,8 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          role-session-name: GitHubActionsInfraDeployment
+          role-duration-seconds: 3600
 
       - name: Set Infrastructure Path
         id: infra-path
@@ -207,6 +209,8 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          role-session-name: GitHubActionsInfraApply
+          role-duration-seconds: 3600
 
       - name: Set Infrastructure Path
         id: infra-path
