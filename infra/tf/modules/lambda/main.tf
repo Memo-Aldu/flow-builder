@@ -82,7 +82,7 @@ resource "aws_lambda_function" "this" {
   runtime          = var.package_type == "Zip" ? var.runtime : null
 
   # Image configuration for container images
-  image_uri        = var.package_type == "Image" ? var.image_uri : null
+  image_uri = var.package_type == "Image" ? var.image_uri : null
 
   dynamic "image_config" {
     for_each = var.package_type == "Image" && var.handler != null ? [1] : []
@@ -106,5 +106,5 @@ resource "aws_lambda_function" "this" {
   tags = var.tags
 }
 
-output "lambda_arn"  { value = var.create_function ? aws_lambda_function.this[0].arn : null }
+output "lambda_arn" { value = var.create_function ? aws_lambda_function.this[0].arn : null }
 output "lambda_name" { value = var.create_function ? aws_lambda_function.this[0].function_name : var.function_name }

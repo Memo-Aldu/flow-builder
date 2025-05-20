@@ -176,10 +176,10 @@ module "service" {
   source  = "terraform-aws-modules/ecs/aws//modules/service"
   version = "5.7.0"
 
-  name        = var.name
-  cluster_arn = var.cluster_arn
-  cpu         = var.cpu
-  memory      = var.memory
+  name          = var.name
+  cluster_arn   = var.cluster_arn
+  cpu           = var.cpu
+  memory        = var.memory
   desired_count = var.desired_count
 
   # Use our custom task execution role
@@ -218,9 +218,9 @@ module "service" {
     container_port   = var.container_port
   }] : []
 
-  subnet_ids        = var.subnet_ids
+  subnet_ids         = var.subnet_ids
   security_group_ids = var.security_group_ids != null ? var.security_group_ids : null
-  tags              = var.tags
+  tags               = var.tags
 }
 
 # Load balancer resources
@@ -243,9 +243,9 @@ resource "aws_lb_target_group" "tg" {
 }
 
 resource "aws_lb_listener_rule" "rule" {
-  count             = var.create_load_balancer ? 1 : 0
-  listener_arn      = var.alb_listener_arn
-  priority          = 100 + count.index
+  count        = var.create_load_balancer ? 1 : 0
+  listener_arn = var.alb_listener_arn
+  priority     = 100 + count.index
 
   action {
     type             = "forward"

@@ -333,7 +333,7 @@ resource "aws_instance" "nat_instance" {
   subnet_id                   = module.vpc.public_subnets[0]
   vpc_security_group_ids      = [aws_security_group.nat_instance[0].id]
   associate_public_ip_address = true
-  source_dest_check           = false  # Required for NAT functionality
+  source_dest_check           = false # Required for NAT functionality
   iam_instance_profile        = aws_iam_instance_profile.nat_instance[0].name
 
   user_data = <<-EOF

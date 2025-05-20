@@ -1,12 +1,12 @@
 resource "aws_secretsmanager_secret" "database_credentials" {
-  name        = "${var.name_prefix}/database-credentials"
-  description = "Database credentials for the application"
+  name                    = "${var.name_prefix}/database-credentials"
+  description             = "Database credentials for the application"
   recovery_window_in_days = var.recovery_window_in_days
-  tags        = var.tags
+  tags                    = var.tags
 }
 
 resource "aws_secretsmanager_secret_version" "database_credentials" {
-  secret_id     = aws_secretsmanager_secret.database_credentials.id
+  secret_id = aws_secretsmanager_secret.database_credentials.id
   secret_string = jsonencode({
     username = var.db_username
     password = var.db_password

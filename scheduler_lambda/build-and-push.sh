@@ -4,7 +4,7 @@ set -e
 # Get AWS account ID
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 AWS_REGION=${AWS_REGION:-us-east-1}
-ECR_REPOSITORY=scheduler
+ECR_REPOSITORY=flow-builder-dev-scheduler
 IMAGE_TAG=latest
 
 # Navigate to the project root
@@ -32,9 +32,9 @@ echo "Image pushed successfully: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazona
 
 
 # Update the Lambda function
-#echo "Updating Lambda function..."
-#aws lambda update-function-code \
-#  --function-name workflow-build-dev-scheduler \
-#  --image-uri ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}
+echo "Updating Lambda function..."
+aws lambda update-function-code \
+  --function-name flow-builder-dev-scheduler \
+  --image-uri ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-#echo "Lambda function updated successfully!"
+echo "Lambda function updated successfully!"

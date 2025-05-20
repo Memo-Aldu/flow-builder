@@ -20,8 +20,8 @@ variable "aws_region" {
 }
 
 variable "tags" {
-  type        = map(string)
-  default     = {
+  type = map(string)
+  default = {
     ManagedBy = "terraform"
   }
   description = "Tags to apply to all resources"

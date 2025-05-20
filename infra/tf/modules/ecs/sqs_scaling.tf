@@ -14,7 +14,7 @@ variable "has_queue_configured" {
 
 # Extract queue name from ARN for CloudWatch metric dimension
 locals {
-  queue_name = var.queue_arn != null ? element(split(":", var.queue_arn), length(split(":", var.queue_arn)) - 1) : ""
+  queue_name         = var.queue_arn != null ? element(split(":", var.queue_arn), length(split(":", var.queue_arn)) - 1) : ""
   create_sqs_scaling = var.enable_sqs_scaling && var.autoscaling_enabled && var.has_queue_configured
 }
 

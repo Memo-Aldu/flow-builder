@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_dashboard" "main" {
   count          = var.create_dashboard ? 1 : 0
   dashboard_name = "${var.name_prefix}-dashboard"
-  
+
   dashboard_body = jsonencode({
     widgets = concat(
       # API Service Widgets
@@ -161,7 +161,7 @@ resource "aws_cloudwatch_metric_alarm" "api_cpu_high" {
   threshold           = 80
   alarm_description   = "This metric monitors API service CPU utilization"
   alarm_actions       = var.alarm_actions
-  
+
   dimensions = {
     ClusterName = var.cluster_name
     ServiceName = var.api_service_name
@@ -181,7 +181,7 @@ resource "aws_cloudwatch_metric_alarm" "worker_cpu_high" {
   threshold           = 80
   alarm_description   = "This metric monitors Worker service CPU utilization"
   alarm_actions       = var.alarm_actions
-  
+
   dimensions = {
     ClusterName = var.cluster_name
     ServiceName = var.worker_service_name
@@ -201,7 +201,7 @@ resource "aws_cloudwatch_metric_alarm" "db_cpu_high" {
   threshold           = 80
   alarm_description   = "This metric monitors database CPU utilization"
   alarm_actions       = var.alarm_actions
-  
+
   dimensions = {
     DBInstanceIdentifier = var.db_instance_id
   }
@@ -220,7 +220,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
   threshold           = 0
   alarm_description   = "This metric monitors messages in the dead-letter queue"
   alarm_actions       = var.alarm_actions
-  
+
   dimensions = {
     QueueName = "${var.queue_name}-dlq"
   }
