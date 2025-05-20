@@ -28,7 +28,7 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
     environment: dev
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,10 +44,27 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Check DynamoDB permissions
+        id: check-dynamodb
+        run: |
+          # Get the DynamoDB table name from the backend config
+          DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+          echo "DynamoDB table for state locking: $DYNAMODB_TABLE"
+
+          # Check if we have permissions to access the DynamoDB table
+          if ! aws dynamodb describe-table --table-name $DYNAMODB_TABLE 2>/dev/null; then
+            echo "Warning: No permissions to access DynamoDB table $DYNAMODB_TABLE"
+            echo "Will disable state locking for this run"
+            echo "LOCK_FLAG=-lock=false" >> $GITHUB_OUTPUT
+          else
+            echo "DynamoDB permissions verified"
+            echo "LOCK_FLAG=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Terraform Init
         working-directory: infra/tf
         run: |
-          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend
+          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
 
       - name: Terraform Validate
         working-directory: infra/tf
@@ -58,11 +75,11 @@ jobs:
         working-directory: infra/tf
         id: plan
         run: |
-          terraform plan \
+          terraform plan ${{ steps.check-dynamodb.outputs.LOCK_FLAG }} \
             -var-file=environments/${{ github.event.inputs.environment || 'dev' }}.tfvars \
             -var="db_password=${{ secrets.DB_PASSWORD }}" \
             -out=tfplan
-        
+
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
         with:
@@ -75,7 +92,7 @@ jobs:
     needs: terraform-plan
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
-    
+
     steps:
       - name: Manual approval
         run: echo "Deployment approved for ${{ github.event.inputs.environment || 'dev' }}"
@@ -84,7 +101,7 @@ jobs:
     name: Terraform Apply
     needs: approval
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -100,6 +117,23 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Check DynamoDB permissions
+        id: check-dynamodb-apply
+        run: |
+          # Get the DynamoDB table name from the backend config
+          DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+          echo "DynamoDB table for state locking: $DYNAMODB_TABLE"
+
+          # Check if we have permissions to access the DynamoDB table
+          if ! aws dynamodb describe-table --table-name $DYNAMODB_TABLE 2>/dev/null; then
+            echo "Warning: No permissions to access DynamoDB table $DYNAMODB_TABLE"
+            echo "Will disable state locking for this run"
+            echo "LOCK_FLAG=-lock=false" >> $GITHUB_OUTPUT
+          else
+            echo "DynamoDB permissions verified"
+            echo "LOCK_FLAG=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
@@ -109,9 +143,9 @@ jobs:
       - name: Terraform Init
         working-directory: infra/tf
         run: |
-          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend
+          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }}
 
       - name: Terraform Apply
         working-directory: infra/tf
         run: |
-          terraform apply -auto-approve tfplan
+          terraform apply ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }} -auto-approve tfplan

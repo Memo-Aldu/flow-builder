@@ -19,7 +19,7 @@ jobs:
     name: Build and Push Lambda Image
     runs-on: ubuntu-latest
     environment: dev
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,23 +41,50 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: scheduler
+          ECR_REPOSITORY: flow-builder-${{ secrets.ENVIRONMENT }}-scheduler
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Build a docker container and push it to ECR
-          docker buildx build \
-            --platform linux/amd64 \
-            --cache-from type=gha \
-            --cache-to type=gha,mode=max \
-            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            --push \
-            -f scheduler_lambda/Dockerfile .
-          
+          # Check if repository exists, create if it doesn't
+          aws ecr describe-repositories --repository-names ${ECR_REPOSITORY} || \
+            aws ecr create-repository --repository-name ${ECR_REPOSITORY}
+
+          # Build a docker container and push it to ECR with retry logic
+          for i in 1 2 3; do
+            echo "Attempt $i: Building and pushing Docker image..."
+            if docker buildx build \
+              --platform linux/amd64 \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+              --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+              --push \
+              -f scheduler_lambda/Dockerfile .; then
+              echo "Docker build and push successful!"
+              break
+            else
+              echo "Docker build or push failed. Retrying in 10 seconds..."
+              sleep 10
+              if [ $i -eq 3 ]; then
+                echo "All retry attempts failed."
+                exit 1
+              fi
+            fi
+          done
+
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update Lambda Function
         run: |
-          aws lambda update-function-code \
-            --function-name workflow-build-${{ secrets.ENVIRONMENT }}-scheduler \
-            --image-uri ${{ steps.build-image.outputs.image }}
+          # Get the correct function name
+          FUNCTION_NAME="flow-builder-${{ secrets.ENVIRONMENT }}-scheduler"
+
+          # Check if the Lambda function exists
+          if aws lambda get-function --function-name $FUNCTION_NAME >/dev/null 2>&1; then
+            echo "Updating Lambda function $FUNCTION_NAME"
+            aws lambda update-function-code \
+              --function-name $FUNCTION_NAME \
+              --image-uri ${{ steps.build-image.outputs.image }}
+          else
+            echo "Lambda function $FUNCTION_NAME not found. Skipping update."
+            echo "You may need to deploy the infrastructure first."
+          fi
