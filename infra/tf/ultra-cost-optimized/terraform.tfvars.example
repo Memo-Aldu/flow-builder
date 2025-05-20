@@ -1,0 +1,42 @@
+# Example configuration for ultra-cost-optimized worker
+aws_region   = "us-east-1"
+env          = "dev"
+project_name = "flow-builder"
+
+# VPC Configuration - using tag-based lookup
+vpc_tag_name = "main-vpc"
+public_subnet_tag_pattern = ["main-subnet-public*"]
+assign_public_ip = true
+
+# Database Configuration
+# If using AWS Secrets Manager
+db_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:my-db-secret"
+
+# If not using AWS Secrets Manager, provide database credentials directly
+db_host     = "my-database.cluster-abcaefahijkl.us-east-1.rds.amazonaws.com"
+db_port     = "5432"
+db_name     = "workflow_app"
+db_username = "workflow_app"
+db_password = "my-secure-password"
+
+# Database secrets configuration
+use_db_secrets = false  # Set to true to use database-stored secrets instead of AWS Secrets Manager
+
+# Encryption configuration for database-stored secrets (only needed if use_db_secrets = true)
+# secret_encryption_key = "base64-encoded-key-here"  # Optional: Base64-encoded encryption key
+secret_encryption_salt = "secret salt"  # Salt for key derivation
+secret_encryption_password = "secret password"  # Password for key derivation
+
+# Task Configuration
+task_cpu                           = 1024  # 1 vCPU
+task_memory                        = 2048  # 2 GB
+batch_size                         = 10
+maximum_batching_window_in_seconds = 30
+max_execution_time_seconds         = 240
+headless_mode                      = true
+
+# Lambda Configuration
+lambda_memory_size  = 256
+lambda_timeout      = 60
+create_lambda       = true
+schedule_expression = "rate(5 minutes)"
