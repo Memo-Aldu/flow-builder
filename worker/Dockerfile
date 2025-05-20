@@ -2,25 +2,32 @@ FROM mcr.microsoft.com/playwright/python:v1.51.0-noble
 
 WORKDIR /app
 
-# Copy requirements first for better layer caching
-COPY ./worker/requirements.txt /app
-
-# Install dependencies and browsers
-RUN pip install --no-cache-dir -r requirements.txt && \
-    python -m playwright install chromium && \
-    python -m playwright install-deps chromium
-
 # Copy the Worker code
 COPY ./worker /app/worker
 
 # Copy the shared code
 COPY ./shared /app/shared
 
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Copy worker requirements
+COPY ./worker/requirements.txt /app
 
-# Run in headless mode
-ENV PLAYWRIGHT_HEADLESS=1
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "worker/main.py"]
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    PLAYWRIGHT_HEADLESS=1 \
+    POLLING_MODE=false \
+    EVENTBRIDGE_PIPES_MODE=true \
+    BATCH_SIZE=1 \
+    MAX_POLL_MESSAGES=1 \
+    POLL_WAIT_TIME=20 \
+    MAX_EXECUTION_TIME_SECONDS=240 \
+    EXIT_AFTER_COMPLETION=true
+
+# Make start.sh executable
+RUN chmod +x /app/worker/start.sh
+
+# Use the start script
+CMD ["/bin/bash", "/app/worker/start.sh"]

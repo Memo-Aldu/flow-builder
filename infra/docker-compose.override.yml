@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  worker:
+    environment:
+      - POLLING_MODE=true
+      - EVENTBRIDGE_PIPES_MODE=false
+      - EXIT_AFTER_COMPLETION=false
+      # Configure SQS endpoint for LocalStack
+      - SQS_ENDPOINT_URL=http://localstack:4566
+      - WORKFLOW_QUEUE_URL=http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/flow-builder-dev-workflow-requests
+      # Set debug mode for better logging
+      - DEBUG_MODE=true
+      - LOG_LEVEL=INFO
+      # Configure database connection
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      # Increase poll wait time to reduce CPU usage
+      - POLL_WAIT_TIME=20
+      - MAX_POLL_MESSAGES=5
+    # Keep the container running
+    restart: unless-stopped

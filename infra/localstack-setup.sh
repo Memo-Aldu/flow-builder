@@ -9,11 +9,22 @@ LAMBDA_HANDLER=${LAMBDA_HANDLER:-handler.lambda_handler}
 LAMBDA_RUNTIME=${LAMBDA_RUNTIME:-python3.9}
 ZIP_PATH=${ZIP_PATH:-/tmp/scheduler_lambda.zip.zip}
 
-# 1) Create an SQS queue
+# 1) Create SQS queues
 echo "Creating SQS queue: flow-builder-queue"
 awslocal sqs create-queue \
   --queue-name flow-builder-queue \
   --attributes VisibilityTimeout=30
+
+echo "Creating SQS queue: flow-builder-queue-dlq (Dead Letter Queue)"
+awslocal sqs create-queue \
+  --queue-name flow-builder-queue-dlq \
+  --attributes VisibilityTimeout=30
+
+# Create the main workflow queue with the exact name expected by the worker
+echo "Creating SQS queue: flow-builder-dev-workflow-requests"
+awslocal sqs create-queue \
+  --queue-name flow-builder-dev-workflow-requests \
+  --attributes VisibilityTimeout=300
 
 # 2) Create a dummy IAM role for the Lambda
 echo "Creating IAM role: lambda-execution-role"
