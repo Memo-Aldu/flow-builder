@@ -18,6 +18,14 @@ on:
           - dev
           - staging
           - prod
+      infrastructure_type:
+        description: 'Type of infrastructure to deploy'
+        required: true
+        default: 'ultra-cost-optimized'
+        type: choice
+        options:
+          - standard
+          - ultra-cost-optimized
 
 permissions:
   id-token: write
@@ -44,11 +52,33 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Set Infrastructure Path
+        id: infra-path
+        run: |
+          # Set the infrastructure path based on the input
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            echo "INFRA_PATH=infra/tf" >> $GITHUB_OUTPUT
+            echo "Using standard infrastructure path: infra/tf"
+          else
+            echo "INFRA_PATH=infra/tf/ultra-cost-optimized" >> $GITHUB_OUTPUT
+            echo "Using ultra-cost-optimized infrastructure path: infra/tf/ultra-cost-optimized"
+          fi
+
       - name: Check DynamoDB permissions
         id: check-dynamodb
         run: |
-          # Get the DynamoDB table name from the backend config
-          DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+          # Get the infrastructure path
+          INFRA_PATH="${{ steps.infra-path.outputs.INFRA_PATH }}"
+
+          # For standard infrastructure
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            # Get the DynamoDB table name from the backend config
+            DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+          else
+            # For ultra-cost-optimized, use a default table name
+            DYNAMODB_TABLE="workflow-build-tf-lock-${{ github.event.inputs.environment || 'dev' }}"
+          fi
+
           echo "DynamoDB table for state locking: $DYNAMODB_TABLE"
 
           # Check if we have permissions to access the DynamoDB table
@@ -62,12 +92,18 @@ jobs:
           fi
 
       - name: Terraform Init
-        working-directory: infra/tf
+        working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         run: |
-          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
+          # For standard infrastructure
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
+          else
+            # For ultra-cost-optimized, initialize without backend config
+            terraform init ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
+          fi
 
       - name: Terraform Validate
-        working-directory: infra/tf
+        working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         run: |
           terraform validate
 
@@ -108,23 +144,39 @@ jobs:
           fi
 
       - name: Terraform Plan
-        working-directory: infra/tf
+        working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         id: plan
         run: |
           # Use the variables from the check-vars step
-          terraform plan ${{ steps.check-dynamodb.outputs.LOCK_FLAG }} \
-            -var-file=environments/${{ github.event.inputs.environment || 'dev' }}.tfvars \
-            -var="db_password=${{ steps.check-vars.outputs.DB_PASSWORD }}" \
-            -var="secret_encryption_password=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
-            -var="secret_encryption_salt=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_SALT }}" \
-            -out=tfplan
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            # For standard infrastructure
+            terraform plan ${{ steps.check-dynamodb.outputs.LOCK_FLAG }} \
+              -var-file=environments/${{ github.event.inputs.environment || 'dev' }}.tfvars \
+              -var="db_password=${{ steps.check-vars.outputs.DB_PASSWORD }}" \
+              -var="secret_encryption_password=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
+              -var="secret_encryption_salt=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_SALT }}" \
+              -out=tfplan
+          else
+            # For ultra-cost-optimized infrastructure
+            terraform plan ${{ steps.check-dynamodb.outputs.LOCK_FLAG }} \
+              -var="db_password=${{ steps.check-vars.outputs.DB_PASSWORD }}" \
+              -var="secret_encryption_password=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
+              -var="secret_encryption_salt=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_SALT }}" \
+              -out=tfplan
+          fi
 
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
-          path: infra/tf/tfplan
+          path: ${{ steps.infra-path.outputs.INFRA_PATH }}/tfplan
           retention-days: 1
+
+      - name: Save Infrastructure Type
+        id: save-infra-type
+        run: |
+          echo "INFRA_TYPE=${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" >> $GITHUB_OUTPUT
+          echo "INFRA_PATH=${{ steps.infra-path.outputs.INFRA_PATH }}" >> $GITHUB_OUTPUT
 
   approval:
     name: Approval
@@ -138,7 +190,7 @@ jobs:
 
   terraform-apply:
     name: Terraform Apply
-    needs: approval
+    needs: [approval, terraform-plan]
     runs-on: ubuntu-latest
 
     steps:
@@ -155,6 +207,18 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set Infrastructure Path
+        id: infra-path
+        run: |
+          # Set the infrastructure path based on the input
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            echo "INFRA_PATH=infra/tf" >> $GITHUB_OUTPUT
+            echo "Using standard infrastructure path: infra/tf"
+          else
+            echo "INFRA_PATH=infra/tf/ultra-cost-optimized" >> $GITHUB_OUTPUT
+            echo "Using ultra-cost-optimized infrastructure path: infra/tf/ultra-cost-optimized"
+          fi
 
       - name: Check Required Variables
         id: check-vars-apply
@@ -195,8 +259,18 @@ jobs:
       - name: Check DynamoDB permissions
         id: check-dynamodb-apply
         run: |
-          # Get the DynamoDB table name from the backend config
-          DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+          # Get the infrastructure path
+          INFRA_PATH="${{ steps.infra-path.outputs.INFRA_PATH }}"
+
+          # For standard infrastructure
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            # Get the DynamoDB table name from the backend config
+            DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+          else
+            # For ultra-cost-optimized, use a default table name
+            DYNAMODB_TABLE="workflow-build-tf-lock-${{ github.event.inputs.environment || 'dev' }}"
+          fi
+
           echo "DynamoDB table for state locking: $DYNAMODB_TABLE"
 
           # Check if we have permissions to access the DynamoDB table
@@ -213,15 +287,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan
-          path: infra/tf
+          path: ${{ steps.infra-path.outputs.INFRA_PATH }}
 
       - name: Terraform Init
-        working-directory: infra/tf
+        working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         run: |
-          terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }}
+          # For standard infrastructure
+          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+            terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }}
+          else
+            # For ultra-cost-optimized, initialize without backend config
+            terraform init ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }}
+          fi
 
       - name: Terraform Apply
-        working-directory: infra/tf
+        working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         run: |
           # Note: We're using the plan file, but for some variables like passwords,
           # Terraform might still ask for input during apply, so we provide them again
