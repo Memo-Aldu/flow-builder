@@ -280,7 +280,6 @@ async def retrieve_secret(secret_id_or_arn: str, session: Optional[Any] = None) 
         secret_id = uuid.UUID(secret_id_or_arn[3:])
         return await get_db_secret_value(session, secret_id)
     else:
-        # For AWS secrets, just use the sync method
         return get_aws_secret_value(secret_id_or_arn)
 
 
@@ -295,7 +294,6 @@ async def get_secret_value(session, secret_id_or_arn: str) -> str:
     Returns:
         The secret value
     """
-    # Use the unified interface
     return await retrieve_secret(secret_id_or_arn, session)
 
 
@@ -317,7 +315,6 @@ def get_secret_value_sync(secret_id_or_arn: str) -> str:
         return get_aws_secret_value(secret_id_or_arn)
 
     # For DB secrets, we need to run the async function in a new event loop
-    # This is not ideal for production use, but works for backward compatibility
     loop = asyncio.new_event_loop()
     try:
         # We need to create a session for DB access

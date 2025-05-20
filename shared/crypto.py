@@ -18,7 +18,7 @@ def get_encryption_key() -> bytes:
     For development, we use a fixed key for simplicity.
     """
     key_env = os.getenv("SECRET_ENCRYPTION_KEY")
-    if key_env:
+    if key_env and len(key_env) != 0:
         return base64.b64decode(key_env)
 
     salt = os.getenv("SECRET_ENCRYPTION_SALT", "flow-builder-salt").encode()

@@ -186,7 +186,7 @@ class CondenseHTMLNode(NodeExecutor):
       - Strips <script>, <style>, and comments
       - Optionally keeps only a specific portion (via 'Selector')
       - Optionally enforces a max character length
-    Outputs 'Reduced Html'\
+    Outputs 'Reduced Html'
     """
 
     __name__ = "Condense HTML Node"

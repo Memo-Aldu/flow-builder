@@ -10,16 +10,31 @@ from typing import AsyncGenerator
 
 
 def get_database_url() -> str:
-    user = os.getenv("DB_USER", "root")
+    # Support both DB_USER and DB_USERNAME for backward compatibility
+    user = os.getenv("DB_USER", os.getenv("DB_USERNAME", "root"))
     password = os.getenv("DB_PASSWORD", "rootpassword")
     host = os.getenv("DB_HOST", "localhost")
     port = os.getenv("DB_PORT", "5433")
     db_name = os.getenv("DB_NAME", "flow-builder")
-    return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db_name}"
+    # Add SSL parameters for Render database
+    ssl_mode = os.getenv("DB_SSL_MODE", "require")
+    # Add SSL parameters to the connection string
+    return (
+        f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db_name}?ssl={ssl_mode}"
+    )
 
 
 DATABASE_URL = get_database_url()
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+# Create engine with SSL configuration
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    future=True,
+    connect_args={
+        "ssl": True,
+        "server_settings": {"application_name": "flow-builder-lambda"},
+    },
+)
 Session = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -38,7 +53,16 @@ def create_lambda_engine_and_session() -> (
     For AWS Lambda: create a new engine + sessionmaker each time.
     This avoids 'attached to a different loop' errors.
     """
-    local_engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+    # Create engine with SSL configuration for Lambda
+    local_engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        future=True,
+        connect_args={
+            "ssl": True,
+            "server_settings": {"application_name": "flow-builder-lambda"},
+        },
+    )
     local_session = async_sessionmaker(local_engine, expire_on_commit=False)
     return local_engine, local_session
 

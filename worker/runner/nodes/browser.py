@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict
 from patchright.async_api import (
     async_playwright,
@@ -42,9 +43,44 @@ class LaunchBrowserNode(NodeExecutor):
                 phase.add_log("Started Playwright engine.", LogLevel.DEBUG)
 
             if env.browser is None:
-                browser = await env.playwright.chromium.launch(headless=True)
-                env.browser = await browser.new_context()
-                phase.add_log("Launched Chromium browser.", LogLevel.DEBUG)
+                headless_mode = os.environ.get("PLAYWRIGHT_HEADLESS", "1") == "1"
+                phase.add_log(
+                    f"Launching browser in {'headless' if headless_mode else 'headed'} mode",
+                    LogLevel.DEBUG,
+                )
+
+                # Anti-detection browser launch options
+                browser = await env.playwright.chromium.launch(
+                    headless=headless_mode,
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--disable-features=IsolateOrigins,site-per-process",
+                        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                    ],
+                )
+
+                # Create context with additional evasion techniques
+                env.browser = await browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                    locale="en-US",
+                    timezone_id="America/New_York",
+                    permissions=["geolocation"],
+                )
+
+                # Add evasion scripts
+                await env.browser.add_init_script(
+                    """
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => false,
+                    });
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5],
+                    });
+                """
+                )
+
+            phase.add_log("Launched browser.", LogLevel.DEBUG)
 
             page = await env.browser.new_page()
             response = await page.goto(url)

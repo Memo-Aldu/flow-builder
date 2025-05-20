@@ -64,22 +64,30 @@ async def update_workflow(
     existing_workflow.updated_at = datetime.now()
     session.add(existing_workflow)
 
-    if changed:
+    if changed and existing_workflow.active_version is not None:
         session.add(existing_workflow.active_version)
     await session.commit()
     await session.refresh(existing_workflow)
-    await session.refresh(existing_workflow.active_version)
+
+    # Only refresh active_version if it exists
+    if existing_workflow.active_version is not None:
+        await session.refresh(existing_workflow.active_version)
+
     return existing_workflow
 
 
 async def get_due_workflows(session: AsyncSession) -> list[Workflow]:
     """Retrieve all workflows that are scheduled and next_run_at <= now()."""
-    stmt = select(Workflow).where(
-        Workflow.cron is not None,
-        Workflow.status == WorkflowStatus.PUBLISHED,
-        Workflow.next_run_at is not None
-        and Workflow.next_run_at <= datetime.now(tz=timezone("UTC")),
+    stmt = (
+        select(Workflow).where(
+            Workflow.cron is not None,
+            Workflow.status == WorkflowStatus.PUBLISHED,
+            Workflow.next_run_at is not None
+            and Workflow.next_run_at <= datetime.now(tz=timezone("UTC")),
+        )
+        # Eagerly load active_version
+        .options(selectinload(Workflow.active_version))  # type: ignore
     )
     result = await session.execute(stmt)
-    workflows = [workflow for workflow in result.scalars().all()]
+    workflows = list(result.scalars().all())
     return workflows

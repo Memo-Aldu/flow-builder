@@ -8,6 +8,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 
+SQS_CLIENT = None
+
+
 def get_sqs_client():
     """
     Returns a configured SQS client.
@@ -35,7 +38,10 @@ def get_sqs_client():
         config["aws_access_key_id"] = os.getenv("AWS_ACCESS_KEY_ID", "test")
         config["aws_secret_access_key"] = os.getenv("AWS_SECRET_ACCESS_KEY", "test")
 
-    return boto3.client(**config)
+    global SQS_CLIENT
+    if not SQS_CLIENT:
+        SQS_CLIENT = boto3.client(**config)
+    return SQS_CLIENT
 
 
 def send_message(queue_url, message_body, message_attributes=None):
