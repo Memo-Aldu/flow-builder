@@ -71,13 +71,52 @@ jobs:
         run: |
           terraform validate
 
+      - name: Check Required Variables
+        id: check-vars
+        run: |
+          # Check if DB_PASSWORD is set
+          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+            echo "ERROR: DB_PASSWORD secret is not set."
+            echo "You must set the DB_PASSWORD secret in your GitHub repository settings."
+            echo "This is a required variable and the workflow cannot proceed without it."
+            exit 1
+          else
+            echo "DB_PASSWORD is set."
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if SECRET_ENCRYPTION_PASSWORD is set
+          if [ -z "${{ secrets.SECRET_ENCRYPTION_PASSWORD }}" ]; then
+            echo "ERROR: SECRET_ENCRYPTION_PASSWORD secret is not set."
+            echo "You must set the SECRET_ENCRYPTION_PASSWORD secret in your GitHub repository settings."
+            echo "This is a required variable and the workflow cannot proceed without it."
+            exit 1
+          else
+            echo "SECRET_ENCRYPTION_PASSWORD is set."
+            echo "SECRET_ENCRYPTION_PASSWORD=${{ secrets.SECRET_ENCRYPTION_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if SECRET_ENCRYPTION_SALT is set
+          if [ -z "${{ secrets.SECRET_ENCRYPTION_SALT }}" ]; then
+            echo "ERROR: SECRET_ENCRYPTION_SALT secret is not set."
+            echo "You must set the SECRET_ENCRYPTION_SALT secret in your GitHub repository settings."
+            echo "This is a required variable and the workflow cannot proceed without it."
+            exit 1
+          else
+            echo "SECRET_ENCRYPTION_SALT is set."
+            echo "SECRET_ENCRYPTION_SALT=${{ secrets.SECRET_ENCRYPTION_SALT }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Terraform Plan
         working-directory: infra/tf
         id: plan
         run: |
+          # Use the variables from the check-vars step
           terraform plan ${{ steps.check-dynamodb.outputs.LOCK_FLAG }} \
             -var-file=environments/${{ github.event.inputs.environment || 'dev' }}.tfvars \
-            -var="db_password=${{ secrets.DB_PASSWORD }}" \
+            -var="db_password=${{ steps.check-vars.outputs.DB_PASSWORD }}" \
+            -var="secret_encryption_password=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
+            -var="secret_encryption_salt=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_SALT }}" \
             -out=tfplan
 
       - name: Upload Terraform Plan
@@ -117,6 +156,42 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Check Required Variables
+        id: check-vars-apply
+        run: |
+          # Check if DB_PASSWORD is set
+          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+            echo "ERROR: DB_PASSWORD secret is not set."
+            echo "You must set the DB_PASSWORD secret in your GitHub repository settings."
+            echo "This is a required variable and the workflow cannot proceed without it."
+            exit 1
+          else
+            echo "DB_PASSWORD is set."
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if SECRET_ENCRYPTION_PASSWORD is set
+          if [ -z "${{ secrets.SECRET_ENCRYPTION_PASSWORD }}" ]; then
+            echo "ERROR: SECRET_ENCRYPTION_PASSWORD secret is not set."
+            echo "You must set the SECRET_ENCRYPTION_PASSWORD secret in your GitHub repository settings."
+            echo "This is a required variable and the workflow cannot proceed without it."
+            exit 1
+          else
+            echo "SECRET_ENCRYPTION_PASSWORD is set."
+            echo "SECRET_ENCRYPTION_PASSWORD=${{ secrets.SECRET_ENCRYPTION_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if SECRET_ENCRYPTION_SALT is set
+          if [ -z "${{ secrets.SECRET_ENCRYPTION_SALT }}" ]; then
+            echo "ERROR: SECRET_ENCRYPTION_SALT secret is not set."
+            echo "You must set the SECRET_ENCRYPTION_SALT secret in your GitHub repository settings."
+            echo "This is a required variable and the workflow cannot proceed without it."
+            exit 1
+          else
+            echo "SECRET_ENCRYPTION_SALT is set."
+            echo "SECRET_ENCRYPTION_SALT=${{ secrets.SECRET_ENCRYPTION_SALT }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Check DynamoDB permissions
         id: check-dynamodb-apply
         run: |
@@ -148,4 +223,10 @@ jobs:
       - name: Terraform Apply
         working-directory: infra/tf
         run: |
-          terraform apply ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }} -auto-approve tfplan
+          # Note: We're using the plan file, but for some variables like passwords,
+          # Terraform might still ask for input during apply, so we provide them again
+          terraform apply ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }} \
+            -var="db_password=${{ steps.check-vars-apply.outputs.DB_PASSWORD }}" \
+            -var="secret_encryption_password=${{ steps.check-vars-apply.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
+            -var="secret_encryption_salt=${{ steps.check-vars-apply.outputs.SECRET_ENCRYPTION_SALT }}" \
+            -auto-approve tfplan

@@ -92,11 +92,23 @@ jobs:
 
           # Check if the cluster exists
           if aws ecs describe-clusters --clusters $CLUSTER_NAME --query 'clusters[0].clusterName' --output text; then
-            echo "Updating ECS service in cluster $CLUSTER_NAME"
-            aws ecs update-service \
-              --cluster $CLUSTER_NAME \
-              --service api \
-              --force-new-deployment
+            echo "Cluster $CLUSTER_NAME found. Checking for api service..."
+
+            # Get the full service name - it might include the environment prefix
+            FULL_SERVICE_NAME="flow-builder-${{ secrets.ENVIRONMENT }}-api-service"
+
+            # Try to update with the simple name first, then with the full name if that fails
+            if aws ecs describe-services --cluster $CLUSTER_NAME --services $FULL_SERVICE_NAME --query 'services[0].serviceName' --output text 2>/dev/null; then
+              echo "Updating ECS service '$FULL_SERVICE_NAME' in cluster $CLUSTER_NAME"
+              aws ecs update-service \
+                --cluster $CLUSTER_NAME \
+                --service $FULL_SERVICE_NAME \
+                --force-new-deployment
+            else
+              echo "Service '$FULL_SERVICE_NAME' not found in cluster $CLUSTER_NAME."
+              echo "Available services in cluster:"
+              aws ecs list-services --cluster $CLUSTER_NAME
+            fi
           else
             echo "Cluster $CLUSTER_NAME not found. Skipping service update."
           fi

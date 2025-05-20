@@ -9,6 +9,8 @@ The following secrets need to be configured in your GitHub repository:
 - **AWS_ROLE_TO_ASSUME**: ARN of the IAM role to assume for AWS operations
 - **AWS_REGION**: AWS region where resources are deployed (e.g., `us-east-1`)
 - **DB_PASSWORD**: Database password for Terraform
+- **SECRET_ENCRYPTION_PASSWORD**: Password used for encrypting secrets
+- **SECRET_ENCRYPTION_SALT**: Salt used for encrypting secrets
 - **ENVIRONMENT**: Default environment (e.g., `dev`, `staging`, or `prod`)
 
 ## IAM Role Configuration
@@ -110,11 +112,24 @@ The workflows will automatically create ECR repositories if they don't exist. Th
 - `flow-builder-{environment}-scheduler`
 - `flow-builder-{environment}-api` (if deployed on AWS)
 
+### ECS Service Updates
+
+The workflows will attempt to update the ECS services after pushing new images. They will check for services with both simple names (e.g., `worker`) and fully qualified names (e.g., `flow-builder-dev-worker`) to handle different naming conventions.
+
 ### Terraform State Locking
 
 The workflows will check for DynamoDB permissions and disable state locking if the permissions are not available. This allows the workflows to run even if the DynamoDB permissions are not properly configured, but it's recommended to add the proper permissions to avoid potential state conflicts.
 
+### Required Variables Checking
+
+The Terraform workflow will check for required variables and fail immediately if any are missing:
+
+- `DB_PASSWORD`: Required for database access
+- `SECRET_ENCRYPTION_PASSWORD`: Required for secret encryption
+- `SECRET_ENCRYPTION_SALT`: Required for secret encryption
+
+The workflow will exit with an error if any of these variables are not set as GitHub secrets. This prevents deployment failures later in the process due to missing credentials.
+
 ### Docker Build Retries
 
 The workflows include retry logic for Docker builds to handle transient network issues. Each build will be attempted up to 3 times before failing.
-
