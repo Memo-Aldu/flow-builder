@@ -10,6 +10,7 @@ export enum TaskType {
     DELAY = "delay",
     CONDENSE_HTML = "condense_html",
     DELIVER_TO_WEBHOOK = "deliver_to_webhook",
+    SEND_SMS = "send_sms",
 }
 
 export enum TaskParamType {

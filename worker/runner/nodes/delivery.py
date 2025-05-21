@@ -1,11 +1,16 @@
-import requests
 import base64
+import requests
 from typing import Any, Dict
 
-from shared.models import LogLevel
-from worker.runner.environment import Environment, Node
-from worker.runner.nodes.base import NodeExecutor
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
+from shared.models import LogLevel
+from shared.logging import get_logger
+from worker.runner.nodes.base import NodeExecutor
+from worker.runner.environment import Environment, Node
+
+logger = get_logger(__name__)
 
 class DeliverToWebhookNode(NodeExecutor):
     """
@@ -60,3 +65,50 @@ class DeliverToWebhookNode(NodeExecutor):
             "Delivery Status": status_msg,
             "Response Body": body[:5000],
         }
+        
+
+class SendSMSNode(NodeExecutor):
+    """
+    Sends an SMS message using Twilio.
+    Requires Twilio credentials and message details.
+    """
+
+    __name__ = "Send SMS Node"
+
+    required_input_keys = ["Twilio Account SID", "Twilio Auth Token", "From Number", "To Number", "Message Content"]
+    output_keys = ["SMS Status", "Message SID"]
+
+    async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
+        self.validate(node, env)
+        phase = env.get_phase_of_node(node.id)
+
+        account_sid = node.inputs["Twilio Account SID"]
+        auth_token = node.inputs["Twilio Auth Token"]
+        from_number = node.inputs["From Number"]
+        to_number = node.inputs["To Number"]
+        message_content = node.inputs["Message Content"]
+
+        phase.add_log(f"Sending SMS to {to_number}...", LogLevel.INFO)
+        logger.info(f"Sending SMS to {to_number}")
+
+        try:
+            client = Client(account_sid, auth_token)
+            message = client.messages.create(
+                body=message_content,
+                from_=from_number,
+                to=to_number
+            )
+            
+            phase.add_log(f"SMS sent successfully. SID: {message.sid}", LogLevel.INFO)
+            return {
+                "SMS Status": message.status,
+                "Message SID": message.sid
+            }
+        except TwilioRestException as e:
+            error_msg = f"Twilio error: {str(e)}"
+            phase.add_log(error_msg, LogLevel.ERROR)
+            raise ValueError(error_msg) from e
+        except Exception as e:
+            error_msg = f"Failed to send SMS: {str(e)}"
+            phase.add_log(error_msg, LogLevel.ERROR)
+            raise ValueError(error_msg) from e

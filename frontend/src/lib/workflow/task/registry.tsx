@@ -11,7 +11,7 @@ import { WaitForElementTask } from "@/lib/workflow/task/WaitForElement";
 import { DelayTask } from "@/lib/workflow/task/Delay";
 import { CondenseHtmlTask } from "@/lib/workflow/task/CondenseHtml";
 import { DeliverToWebhookTask } from "./DeliverToWebhook";
-
+import { SendSMSTask } from "@/lib/workflow/task/SendSMS";
 
 type Registry = {
     [K in TaskType]: WorkflowTask & { type: K }
@@ -29,4 +29,5 @@ export const TaskRegistry: Registry = {
     delay: DelayTask,
     condense_html: CondenseHtmlTask,
     deliver_to_webhook: DeliverToWebhookTask,
+    send_sms: SendSMSTask,
 }
