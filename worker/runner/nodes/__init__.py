@@ -13,7 +13,10 @@ from worker.runner.nodes.browser import (
     ClickElementNode,
 )
 from worker.runner.nodes.data_storage import ReadPropertyFromJsonNode
-from worker.runner.nodes.delivery import DeliverToWebhookNode
+from worker.runner.nodes.delivery import (
+    DeliverToWebhookNode,
+    SendSMSNode,
+)
 from worker.runner.nodes.timing import DelayNode, WaitElementNode
 
 NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
@@ -28,6 +31,7 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "delay": DelayNode,
     "condense_html": CondenseHTMLNode,
     "deliver_to_webhook": DeliverToWebhookNode,
+    "send_sms": SendSMSNode,
 }
 
 
@@ -43,4 +47,5 @@ NODE_CREDIT_COSTS = {
     "delay": 1,
     "condense_html": 2,
     "deliver_to_webhook": 2,
+    "send_sms": 2,
 }
