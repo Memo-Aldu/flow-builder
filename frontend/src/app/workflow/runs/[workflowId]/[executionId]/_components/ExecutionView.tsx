@@ -3,28 +3,44 @@
 import { getExecution } from '@/lib/api/executions'
 import { ExecutionStatus, WorkflowExecution } from '@/types/executions'
 import { ExecutionPhase, ExecutionPhaseStatus } from '@/types/phases'
-import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/nextjs'
+import { useQuery } from '@tanstack/react-query'
 
-import React, { useEffect, useState } from 'react'
-import { CalendarIcon, CircleDashedIcon, ClockIcon, CoinsIcon, Loader2Icon, LucideIcon, WorkflowIcon } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { PhaseLogs } from '@/app/workflow/runs/[workflowId]/[executionId]/_components/PhaseLogs'
+import PhaseStatus from '@/app/workflow/runs/[workflowId]/[executionId]/_components/PhaseStatus'
+import CountUpWrapper from '@/components/CountUpWrapper'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { listPhases } from '@/lib/api/phases'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { DatesToDurationString } from '@/lib/helper/dates'
 import { GetWorkflowCost } from '@/lib/helper/phases'
 import { TaskRegistry } from '@/lib/workflow/task/registry'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import PhaseStatus from '@/app/workflow/runs/[workflowId]/[executionId]/_components/PhaseStatus'
-import CountUpWrapper from '@/components/CountUpWrapper'
-import { PhaseLogs } from '@/app/workflow/runs/[workflowId]/[executionId]/_components/PhaseLogs'
+import { formatDistanceToNow } from 'date-fns'
+import { CalendarIcon, CircleDashedIcon, ClockIcon, CoinsIcon, Loader2Icon, LucideIcon, WorkflowIcon } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+
+const getSetupStageMessage = (progress: number): string => {
+    if (progress < 25) {
+        return 'Initializing environment...';
+    } else if (progress < 70) {
+        return 'Starting execution container...';
+    } else {
+        return 'Finalizing setup...';
+    }
+};
 
 const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: WorkflowExecution, initialPhases: ExecutionPhase[] }) => {
     const { getToken } = useAuth();
     const [selectedPhase, setSelectedPhase] = useState<ExecutionPhase | null>(null);
+    const [progress, setProgress] = useState<number>(0);
+    const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const progressStartTimeRef = useRef<number | null>(null);
+
+    const TOTAL_DURATION = 90000;
 
     const executionQuery = useQuery({
         queryKey: ['execution', initialExecution.id],
@@ -33,9 +49,9 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
             if (!token) throw new Error("No token available");
             return getExecution(token, initialExecution.id);
         },
-        refetchInterval: (q) => q.state.data?.status === ExecutionStatus.RUNNING 
+        refetchInterval: (q) => q.state.data?.status === ExecutionStatus.RUNNING
         || q.state.data?.status === ExecutionStatus.PENDING ? 1000 : false,
-        enabled: !!getToken, 
+        enabled: !!getToken,
         initialData: initialExecution,
         refetchIntervalInBackground: true,
     });
@@ -48,7 +64,7 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
         },
         refetchInterval: () => executionQuery.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
         enabled: !!getToken,
-        initialData: initialPhases, 
+        initialData: initialPhases,
         refetchIntervalInBackground: true,
     });
 
@@ -57,6 +73,64 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
     useEffect(() => {
         setSelectedPhase(phasesQuery.data[phasesQuery.data.length - 1]);
     }, [phasesQuery.data, isRunning, setSelectedPhase]);
+
+    useEffect(() => {
+        // Clear any existing interval first
+        if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+        }
+
+        if (executionQuery.data?.status === ExecutionStatus.RUNNING) {
+            setProgress(100);
+            return;
+        } else if (executionQuery.data?.status !== ExecutionStatus.PENDING &&
+                  executionQuery.data?.status !== undefined) {
+            return;
+        }
+
+        // Start animation for PENDING status
+        if (executionQuery.data?.status === ExecutionStatus.PENDING) {
+            setProgress(0);
+
+            progressStartTimeRef.current = Date.now();
+
+            progressIntervalRef.current = setInterval(() => {
+                const elapsedTime = Date.now() - (progressStartTimeRef.current || Date.now());
+
+                if (elapsedTime >= TOTAL_DURATION) {
+                    setProgress(95);
+                    return;
+                }
+
+                // Calculate progress with a custom easing function
+                const normalizedTime = elapsedTime / TOTAL_DURATION;
+
+                if (normalizedTime < 0.3) {
+                    const factor = normalizedTime / 0.3;
+                    const easedProgress = Math.pow(factor, 2) * 25;
+                    setProgress(easedProgress);
+                }
+                else if (normalizedTime < 0.7) {
+                    const factor = (normalizedTime - 0.3) / 0.4;
+                    const easedProgress = 25 + (factor * 45);
+                    setProgress(easedProgress);
+                }
+                else {
+                    const factor = (normalizedTime - 0.7) / 0.3;
+                    const easedProgress = 70 + (Math.pow(factor, 0.7) * 25);
+                    setProgress(Math.min(easedProgress, 95));
+                }
+            }, 50);
+        }
+
+        return () => {
+            if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+                progressIntervalRef.current = null;
+            }
+        };
+    }, [executionQuery.data?.status]);
 
     const duration = DatesToDurationString(
         executionQuery.data?.started_at ? new Date(executionQuery.data.started_at) : undefined,
@@ -69,7 +143,7 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
             <aside className='w-[440px] min-w-[440px] max-w-[440px] border-r-2 border-separate
             flex flex-grow flex-col overflow-hidden'>
                 <div className="py-4 px-2">
-                    <ExecutionLabel icon={CircleDashedIcon} label='Status' 
+                    <ExecutionLabel icon={CircleDashedIcon} label='Status'
                         value={
                             <div className="flex items-center gap-2">
                                 <PhaseStatus status={executionQuery.data?.status ? executionQuery.data?.status as unknown as ExecutionPhaseStatus : ExecutionPhaseStatus.PENDING} />
@@ -113,14 +187,73 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
                 </div>
             </aside>
             <div className="flex w-full h-full">
-                    {isRunning && (
-                        <div className="flex items-center flex-col gap-2 justify-center h-full w-full">
-                            <p className="font-bold">
-                                Run is in progress please wait...
-                            </p>
+                    {executionQuery.data?.status === ExecutionStatus.PENDING && (
+                        <div className="flex items-center flex-col gap-4 justify-center h-full w-full px-8 max-w-xl mx-auto">
+                            <Loader2Icon size={40} className="animate-spin stroke-primary" />
+                            <div className="flex flex-col gap-1 text-center">
+                                <p className="font-bold">
+                                    Setting up environment for execution
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Please wait while we prepare everything...
+                                </p>
+                            </div>
+                            <div className="w-full mt-6 space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <p className="text-xs text-muted-foreground">
+                                        {getSetupStageMessage(progress)}
+                                    </p>
+                                    <p className="text-xs font-medium">
+                                        {progress.toFixed(0)}%
+                                    </p>
+                                </div>
+                                <Progress
+                                    value={progress}
+                                    className="h-3 w-full transition-all duration-300 ease-in-out relative overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-primary/20 animate-pulse" />
+                                </Progress>
+                                <div className="flex justify-between text-[10px] text-muted-foreground">
+                                    <span>0s</span>
+                                    <span>45s</span>
+                                    <span>90s</span>
+                                </div>
+                            </div>
                         </div>
                     )}
-                    {!isRunning && !selectedPhase && (
+                    {isRunning && (
+                        <div className="flex items-center flex-col gap-4 justify-center h-full w-full px-8 max-w-xl mx-auto">
+                            <Loader2Icon size={40} className="animate-spin stroke-yellow-500" />
+                            <div className="flex flex-col gap-1 text-center">
+                                <p className="font-bold">
+                                    Workflow execution in progress
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Processing your workflow tasks...
+                                </p>
+                            </div>
+                            <div className="w-full mt-6 space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <p className="text-xs text-muted-foreground">
+                                        Environment ready, execution in progress
+                                    </p>
+                                    <p className="text-xs font-medium">
+                                        100%
+                                    </p>
+                                </div>
+                                <Progress
+                                    value={100}
+                                    className="h-3 w-full bg-secondary/50 relative overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-yellow-300/20 animate-pulse" />
+                                </Progress>
+                                <div className="flex justify-end text-[10px] text-muted-foreground">
+                                    <span>Environment setup complete</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {!isRunning && !selectedPhase && executionQuery.data?.status !== ExecutionStatus.PENDING && (
                         <div className="flex items-center flex-col gap-2 justify-center h-full w-full">
                             <div className="flex flex-col gap-1 text-center">
                                 <p className="font-bold">
@@ -153,14 +286,14 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
                                     ) ?? "N/A"}</span>
                                 </Badge>
                             </div>
-                            <ParameterSection 
-                                title="Input" 
-                                subtitle="Inputs used for this phase" 
-                                params={selectedPhase.inputs} 
+                            <ParameterSection
+                                title="Input"
+                                subtitle="Inputs used for this phase"
+                                params={selectedPhase.inputs}
                             />
-                            <ParameterSection 
-                                title="Output" 
-                                subtitle="Outputs generated by this phase" 
+                            <ParameterSection
+                                title="Output"
+                                subtitle="Outputs generated by this phase"
                                 params={selectedPhase.outputs}
                             />
                             <PhaseLogs
