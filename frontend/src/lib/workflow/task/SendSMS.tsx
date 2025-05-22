@@ -8,6 +8,7 @@ export const SendSMSTask = {
   icon: (props: LucideProps) => <MessageSquareText className="stroke-purple-500" {...props} />,
   description: "Send SMS message using Twilio",
   isEntryPoint: false,
+  credits: 2,
   inputs: [
     {
       name: "Twilio Account SID",
@@ -15,14 +16,16 @@ export const SendSMSTask = {
       required: true,
       helperText: "Your Twilio Account SID",
       placeholder: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      hideHandle: true
     },
     {
       name: "Twilio Auth Token",
-      type: TaskParamType.STRING,
+      type: TaskParamType.CREDENTIAL,
       required: true,
       helperText: "Your Twilio Auth Token",
       placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       isSecret: true,
+      hideHandle: true
     },
     {
       name: "From Number",
@@ -59,4 +62,4 @@ export const SendSMSTask = {
       helperText: "Twilio Message SID for tracking",
     },
   ],
-};
+} satisfies WorkflowTask;
