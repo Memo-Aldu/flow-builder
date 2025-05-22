@@ -63,6 +63,7 @@ const TaskMenu = () => {
                 </AccordionTrigger>
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.DELIVER_TO_WEBHOOK} />
+                    <TaskMenuBtn taskType={TaskType.SEND_SMS} />
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
