@@ -8,7 +8,9 @@ from worker.runner.nodes.data_extraction import (
     OpenAICallNode,
 )
 from worker.runner.nodes.browser import (
-    LaunchBrowserNode,
+    StandardBrowserNode,
+    StealthBrowserNode,
+    BrightDataBrowserNode,
     FillInputNode,
     ClickElementNode,
 )
@@ -20,7 +22,9 @@ from worker.runner.nodes.delivery import (
 from worker.runner.nodes.timing import DelayNode, WaitElementNode
 
 NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
-    "launch_browser": LaunchBrowserNode,
+    "launch_standard_browser": StandardBrowserNode,
+    "launch_stealth_browser": StealthBrowserNode,
+    "launch_bright_data_browser": BrightDataBrowserNode,
     "fill_input": FillInputNode,
     "click_element": ClickElementNode,
     "get_html": GetHTMLNode,
@@ -36,7 +40,9 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
 
 
 NODE_CREDIT_COSTS = {
-    "launch_browser": 5,
+    "launch_standard_browser": 5,
+    "launch_stealth_browser": 6,
+    "launch_bright_data_browser": 10,
     "fill_input": 1,
     "click_element": 1,
     "get_html": 2,

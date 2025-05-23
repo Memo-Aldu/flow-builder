@@ -1,10 +1,5 @@
 import os
 from typing import Any, Dict
-from patchright.async_api import (
-    async_playwright,
-    Error as PlaywrightError,
-    TimeoutError as PlaywrightTimeoutError,
-)
 from shared.models import LogLevel
 from worker.runner.environment import Environment, Node
 from worker.runner.nodes.base import NodeExecutor
@@ -15,16 +10,15 @@ from shared.logging import get_logger
 logger = get_logger(__name__)
 
 
-class LaunchBrowserNode(NodeExecutor):
+class StandardBrowserNode(NodeExecutor):
     """
-    Launches a browser and navigates to the specified URL.
-    Creates a new browser instance if one does not already exist.
-    Creates a new page instance and navigates to the specified URL.
+    Launches a standard browser and navigates to the specified URL.
+    Creates a new browser instance with default settings.
     Can be used as a start node.
     Returns True if the browser was launched successfully.
     """
 
-    __name__ = "Launch Browser Node"
+    __name__ = "Standard Browser Node"
 
     required_input_keys = ["Website URL"]
     output_keys = ["Web Page"]
@@ -35,88 +29,154 @@ class LaunchBrowserNode(NodeExecutor):
 
         phase = env.get_phase_of_node(node.id)
         url = node.inputs["Website URL"]
-        phase.add_log(f"Launching browser to {url}...", LogLevel.INFO)
+        phase.add_log(f"Launching standard browser to {url}...", LogLevel.INFO)
 
         try:
-            if env.playwright is None:
-                env.playwright = await async_playwright().start()
-                phase.add_log("Started Playwright engine.", LogLevel.DEBUG)
+            # Create normal browser if not exists
+            if not hasattr(env, 'browser') or env.browser is None:
+                # Set the browser type to normal
+                env.set_browser("normal")
+                if env.browser is None:
+                    raise ValueError("Failed to create browser.")
 
-            if env.browser is None:
-                headless_mode = os.environ.get("PLAYWRIGHT_HEADLESS", "1") == "1"
-                phase.add_log(
-                    f"Launching browser in {'headless' if headless_mode else 'headed'} mode",
-                    LogLevel.DEBUG,
-                )
-
-                # Anti-detection browser launch options
-                browser = await env.playwright.chromium.launch(
+                # Configure headless mode
+                headless_mode = os.environ.get("PLAYWRIGHT_HEADLESS", "True") == "True"
+                # Start the browser with logging callback
+                await env.browser.start(
                     headless=headless_mode,
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--disable-features=IsolateOrigins,site-per-process",
-                        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                    ],
+                    log_callback=lambda msg, level: phase.add_log(msg, level)
                 )
 
-                # Create context with additional evasion techniques
-                env.browser = await browser.new_context(
-                    viewport={"width": 1920, "height": 1080},
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                    locale="en-US",
-                    timezone_id="America/New_York",
-                    permissions=["geolocation"],
+                page = await env.browser.new_page()
+                env.page = page
+
+                phase.add_log("Standard browser launched successfully", LogLevel.INFO)
+
+            phase.add_log(f"Navigating to {url}...", LogLevel.INFO)
+            await env.browser.navigate(url)
+
+            phase.add_log(f"Successfully loaded {url}", LogLevel.INFO)
+
+            return {
+                "Web Page": True
+            }
+
+        except Exception as e:
+            phase.add_log(f"Error launching standard browser: {str(e)}", LogLevel.ERROR)
+            raise e
+        
+        
+
+class StealthBrowserNode(NodeExecutor):
+    """
+    Launches a stealth browser with anti-detection measures and navigates to the specified URL.
+    Creates a new browser instance with enhanced fingerprinting and human-like behavior.
+    Can be used as a start node.
+    Returns True if the browser was launched successfully.
+    """
+
+    __name__ = "Stealth Browser Node"
+
+    required_input_keys = ["Website URL"]
+    output_keys = ["Web Page"]
+    can_be_start_node = True
+
+    async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
+        self.validate(node, env)
+
+        phase = env.get_phase_of_node(node.id)
+        url = node.inputs["Website URL"]
+        phase.add_log(f"Launching stealth browser to {url}...", LogLevel.INFO)
+
+        try:
+            if not hasattr(env, 'browser') or env.browser is None:
+                env.set_browser("stealth")
+                if env.browser is None:
+                    raise ValueError("Failed to create browser.")
+
+                headless_mode = os.environ.get("PLAYWRIGHT_HEADLESS", "True") == "True"
+                await env.browser.start(
+                    headless=headless_mode,
+                    log_callback=lambda msg, level: phase.add_log(msg, level)
                 )
 
-                # Add evasion scripts
-                await env.browser.add_init_script(
-                    """
-                    Object.defineProperty(navigator, 'webdriver', {
-                        get: () => false,
-                    });
-                    Object.defineProperty(navigator, 'plugins', {
-                        get: () => [1, 2, 3, 4, 5],
-                    });
-                """
+                # Create a new page
+                page = await env.browser.new_page()
+                env.page = page
+                phase.add_log("Stealth browser launched successfully", LogLevel.INFO)
+
+            # Navigate to the URL
+            phase.add_log(f"Navigating to {url}...", LogLevel.INFO)
+            await env.browser.navigate(url)
+            phase.add_log(f"Successfully loaded {url}", LogLevel.INFO)
+
+            return {
+                "Web Page": True
+            }
+
+        except Exception as e:
+            phase.add_log(f"Error launching stealth browser: {str(e)}", LogLevel.ERROR)
+            raise e
+        
+
+
+
+class BrightDataBrowserNode(NodeExecutor):
+    """
+    Launches a Bright Data browser and navigates to the specified URL.
+    Uses Bright Data's automatic captcha solving and proxy rotation.
+    Can be used as a start node.
+    Returns True if the browser was launched successfully.
+    """
+
+    __name__ = "Bright Data Browser Node"
+
+    required_input_keys = ["Website URL"]
+    output_keys = ["Web Page"]
+    can_be_start_node = True
+
+    async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
+        self.validate(node, env)
+
+        phase = env.get_phase_of_node(node.id)
+        url = node.inputs["Website URL"]
+        phase.add_log(f"Launching Bright Data browser to {url}...", LogLevel.INFO)
+
+        try:
+            if not hasattr(env, 'browser') or env.browser is None:
+                env.set_browser("brightdata")
+                if env.browser is None:
+                    raise ValueError("Failed to create Bright Data browser.")
+
+                headless_mode = True
+
+                # Start the browser with logging callback
+                await env.browser.start(
+                    headless=headless_mode,
+                    log_callback=lambda msg, level: phase.add_log(msg, level)
                 )
 
-            phase.add_log("Launched browser.", LogLevel.DEBUG)
+                page = await env.browser.new_page()
+                env.page = page
+                phase.add_log("Bright Data browser launched successfully", LogLevel.INFO)
 
-            page = await env.browser.new_page()
-            response = await page.goto(url)
-            if not response:
-                raise ValueError(f"Failed to navigate to {url}.")
-            if response.status < 200 or response.status >= 400:
-                logger.warning(
-                    f"Failed to navigate to {url}. Status code: {response.status}. Response: {response.json()}"
-                )
-                raise ValueError(
-                    f"Failed to navigate to {url}. Status code: {response.status}"
-                )
-            phase.add_log(f"Browser navigated to {url}", LogLevel.INFO)
+            phase.add_log(f"Navigating to {url}...", LogLevel.INFO)
+            await env.browser.navigate(url)
+            phase.add_log(f"Successfully loaded {url} with Bright Data", LogLevel.INFO)
 
-            env.page = page
-            return {"Web Page": True}
+            return {
+                "Web Page": True
+            }
 
-        except PlaywrightTimeoutError:
-            logger.warning(f"Timeout error while launching browser to {url}.")
-            raise ValueError(
-                f"Timeout error while launching browser to {url}."
-            ) from None
-
-        except PlaywrightError as e:
-            friendly = (
-                f"An unexpected browser error occurred while launching browser to {url}. "
-                f"Original error: {type(e).__name__} - {str(e)}"
-            )
-            logger.warning(friendly)
-            raise ValueError(friendly) from e
+        except Exception as e:
+            phase.add_log(f"Error launching Bright Data browser: {str(e)}", LogLevel.ERROR)
+            raise e
 
 
 class FillInputNode(NodeExecutor):
     """
     Fills an input field with the specified text.
-    Requires a browser page to be present in the environment.
+    Uses the browser abstraction layer for improved compatibility.
     Return True if the input was filled successfully.
     """
 
@@ -131,36 +191,30 @@ class FillInputNode(NodeExecutor):
 
         selector = node.inputs["Selector"]
         value = node.inputs["Value"]
+        delay = node.inputs.get("Human-like Typing", True)  # Default to human-like typing
+
         phase.add_log(f"Filling input '{selector}' with text '{value}'.", LogLevel.INFO)
         logger.info(f"Filling input '{selector}' with text '{value}'.")
 
-        if env.page is None:
-            raise ValueError("No browser page found in environment.")
+        if not env.browser:
+            raise ValueError("No browser found in environment. Launch a browser first.")
 
         try:
-            await env.page.wait_for_selector(selector, timeout=5000)
-            await env.page.fill(selector, value)
+            await env.browser.fill_input(selector, value, delay=delay)
             phase.add_log(f"Filled '{selector}' successfully.", LogLevel.INFO)
             return {"filled_input": True}
 
-        except PlaywrightTimeoutError:
-            friendly = f"Could not locate or interact with the input '{selector}' before the timeout expired."
+        except Exception as e:
+            friendly = f"Could not fill input '{selector}': {str(e)}"
             logger.warning(friendly)
-            raise ValueError(friendly) from None
-
-        except PlaywrightError as e:
-            friendly = (
-                f"An unexpected browser error occurred while filling input '{selector}'. "
-                f"Original error: {type(e).__name__} - {str(e)}"
-            )
-            logger.warning(friendly)
+            phase.add_log(friendly, LogLevel.ERROR)
             raise ValueError(friendly) from e
 
 
 class ClickElementNode(NodeExecutor):
     """
     Clicks an element with the specified selector.
-    Requires a browser page to be present in the environment.
+    Uses the browser abstraction layer for improved compatibility.
     Return True if the element was clicked successfully.
     """
 
@@ -174,27 +228,21 @@ class ClickElementNode(NodeExecutor):
         phase = env.get_phase_of_node(node.id)
 
         selector = node.inputs["Selector"]
+        force = node.inputs.get("Force Click", False)
+
         phase.add_log(f"Clicking element {selector}", LogLevel.INFO)
         logger.info(f"Clicking element {selector}.")
 
-        if not env.page:
-            raise ValueError("No page found in environment")
+        if not env.browser:
+            raise ValueError("No browser found in environment. Launch a browser first.")
 
         try:
-            await env.page.wait_for_selector(selector, timeout=10000)
-            await env.page.click(selector)
+            await env.browser.click(selector, force=force)
             phase.add_log(f"Clicked '{selector}' successfully.", LogLevel.INFO)
             return {"clicked_element": True}
 
-        except PlaywrightTimeoutError:
-            friendly = f"Could not locate or interact with the element '{selector}' before the timeout expired."
+        except Exception as e:
+            friendly = f"Could not click element '{selector}': {str(e)}"
             logger.warning(friendly)
-            raise ValueError(friendly) from None
-
-        except PlaywrightError as e:
-            friendly = (
-                f"An unexpected browser error occurred while clicking element '{selector}'. "
-                f"Original error: {type(e).__name__} - {str(e)}"
-            )
-            logger.warning(friendly)
+            phase.add_log(friendly, LogLevel.ERROR)
             raise ValueError(friendly) from e
