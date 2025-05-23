@@ -2,9 +2,11 @@ from uuid import UUID
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from patchright.async_api import BrowserContext, Playwright, Page
+from patchright.async_api import Playwright, Page
 from shared.models import LogLevel
 from worker.runner import logger
+from worker.runner.browser.base_browser import BaseBrowser
+from worker.runner.browser.factory import BrowserFactory
 
 
 @dataclass
@@ -53,11 +55,21 @@ class Environment:
 
     def __init__(self) -> None:
         self.phases: Dict[UUID, Phase] = {}
-        self.browser: Optional[BrowserContext] = None
+        self.browser: Optional[BaseBrowser] = None
         self.page: Optional[Page] = None
         self.playwright: Optional[Playwright] = None
         self.resources: Dict[str, Dict[str, Any]] = {}
         logger.info("Environment initialized.")
+
+    def set_browser(self, browser_type: str = "normal") -> None:
+        """
+        Set the browser instance based on the specified type.
+
+        Args:
+            browser_type: The type of browser to use ('normal' or 'stealth')
+        """
+        self.browser = BrowserFactory.create_browser(browser_type)
+        logger.info(f"Set browser type to: {browser_type}")
 
     def create_phase(self, phase_id: UUID, name: str) -> Phase:
         phase = Phase(
@@ -86,17 +98,7 @@ class Environment:
         logger.info("Cleaning up environment resources.")
         self.resources.clear()
 
-        if self.page:
-            await self.page.close()
-            logger.info("Closed browser page.")
-            self.page = None
-
         if self.browser:
             await self.browser.close()
             logger.info("Closed browser.")
             self.browser = None
-
-        if self.playwright:
-            await self.playwright.stop()
-            logger.info("Stopped Playwright.")
-            self.playwright = None
