@@ -1,12 +1,12 @@
 import { TaskParamType, TaskType } from "@/types/task";
 import { WorkflowTask } from "@/types/workflows";
-import { GlobeIcon, LucideProps } from "lucide-react";
+import { Globe2Icon, LucideProps } from "lucide-react";
 
-export const LaunchBrowserTask = {
-    type: TaskType.LAUNCH_BROWSER,
-    label: "Launch Browser",
-    icon: (props: LucideProps) => <GlobeIcon className="stroke-orange-400" {...props} />,
-    description: "Launch a browser and navigate to a specific URL",
+export const LaunchStealthBrowserTask = {
+    type: TaskType.LAUNCH_STEALTH_BROWSER,
+    label: "Stealth Browser",
+    icon: (props: LucideProps) => <Globe2Icon className="stroke-orange-400" {...props} />,
+    description: "Launch a stealth browser with anti-detection measures and navigate to a specific URL",
     isEntryPoint: true,
     inputs: [
         {
@@ -23,5 +23,5 @@ export const LaunchBrowserTask = {
             type: TaskParamType.BROWSER_INSTANCE,
         }
     ],
-    credits: 5,
+    credits: 6,
 } satisfies WorkflowTask

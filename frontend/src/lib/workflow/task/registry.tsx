@@ -1,4 +1,6 @@
-import { LaunchBrowserTask } from "@/lib/workflow/task/LaunchBrowser";
+import { LaunchStandardBrowserTask } from "@/lib/workflow/task/LaunchStandardBrowser";
+import { LaunchStealthBrowserTask } from "@/lib/workflow/task/LaunchStealthBrowser";
+import { LaunchBrightDataBrowserTask } from "@/lib/workflow/task/LaunchBrightDataBrowser";
 import { GetHtmlTask } from "@/lib/workflow/task/GetHtml";
 import { GetTextFromHtmlTask } from "@/lib/workflow/task/GetTextFromHtml";
 import { WorkflowTask } from "@/types/workflows";
@@ -13,12 +15,15 @@ import { CondenseHtmlTask } from "@/lib/workflow/task/CondenseHtml";
 import { DeliverToWebhookTask } from "./DeliverToWebhook";
 import { SendSMSTask } from "@/lib/workflow/task/SendSMS";
 
+
 type Registry = {
     [K in TaskType]: WorkflowTask & { type: K }
 }
 
 export const TaskRegistry: Registry = {
-    launch_browser: LaunchBrowserTask,
+    launch_standard_browser: LaunchStandardBrowserTask,
+    launch_stealth_browser: LaunchStealthBrowserTask,
+    launch_bright_data_browser: LaunchBrightDataBrowserTask,
     get_html: GetHtmlTask,
     get_text_from_html: GetTextFromHtmlTask,
     click_element: ClickElementTask,

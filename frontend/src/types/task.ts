@@ -1,5 +1,7 @@
 export enum TaskType {
-    LAUNCH_BROWSER = "launch_browser",
+    LAUNCH_STANDARD_BROWSER = "launch_standard_browser",
+    LAUNCH_STEALTH_BROWSER = "launch_stealth_browser",
+    LAUNCH_BRIGHT_DATA_BROWSER = "launch_bright_data_browser",
     GET_HTML = "get_html",
     GET_TEXT_FROM_HTML = "get_text_from_html",
     CLICK_ELEMENT = "click_element",

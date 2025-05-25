@@ -24,7 +24,9 @@ const TaskMenu = () => {
                     Browser Automation
                 </AccordionTrigger>
                 <AccordionContent className='flex flex-col gap-1'>
-                    <TaskMenuBtn taskType={TaskType.LAUNCH_BROWSER} />
+                    <TaskMenuBtn taskType={TaskType.LAUNCH_STANDARD_BROWSER} />
+                    <TaskMenuBtn taskType={TaskType.LAUNCH_STEALTH_BROWSER} />
+                    <TaskMenuBtn taskType={TaskType.LAUNCH_BRIGHT_DATA_BROWSER} />
                     <TaskMenuBtn taskType={TaskType.CLICK_ELEMENT} />
                     <TaskMenuBtn taskType={TaskType.FILL_INPUT} />
                 </AccordionContent>
