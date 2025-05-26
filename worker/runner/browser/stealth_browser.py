@@ -30,7 +30,9 @@ class StealthBrowser(BaseBrowser):
     def __init__(self) -> None:
         super().__init__()
 
-    async def start(self, headless: bool = True, log_callback: Optional[Callable] = None) -> None:
+    async def start(
+        self, headless: bool = True, log_callback: Optional[Callable] = None
+    ) -> None:
         """Start the local stealth browser with anti-detection features"""
         try:
             self.playwright = await async_playwright().start()
@@ -39,19 +41,19 @@ class StealthBrowser(BaseBrowser):
             self.browser = await self.playwright.chromium.launch(
                 headless=headless,
                 args=[
-                    '--no-sandbox',
-                    '--disable-blink-features=AutomationControlled',
-                    '--disable-dev-shm-usage',
-                    '--disable-extensions',
-                    '--disable-default-apps',
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding',
-                    '--disable-features=TranslateUI',
-                    '--disable-ipc-flooding-protection',
-                    '--disable-web-security',
-                    '--disable-features=VizDisplayCompositor',
-                ]
+                    "--no-sandbox",
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-dev-shm-usage",
+                    "--disable-extensions",
+                    "--disable-default-apps",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-renderer-backgrounding",
+                    "--disable-features=TranslateUI",
+                    "--disable-ipc-flooding-protection",
+                    "--disable-web-security",
+                    "--disable-features=VizDisplayCompositor",
+                ],
             )
             logger.info("Local stealth browser started successfully")
             await self._create_stealth_context()
@@ -64,12 +66,14 @@ class StealthBrowser(BaseBrowser):
         """Create a browser context with stealth settings"""
         try:
             # Random viewport size
-            viewport = random.choice([
-                {"width": 1920, "height": 1080},
-                {"width": 1366, "height": 768},
-                {"width": 1536, "height": 864},
-                {"width": 1440, "height": 900},
-            ])
+            viewport = random.choice(
+                [
+                    {"width": 1920, "height": 1080},
+                    {"width": 1366, "height": 768},
+                    {"width": 1536, "height": 864},
+                    {"width": 1440, "height": 900},
+                ]
+            )
 
             # Random user agent
             user_agents = [
@@ -92,7 +96,7 @@ class StealthBrowser(BaseBrowser):
                     "DNT": "1",
                     "Connection": "keep-alive",
                     "Upgrade-Insecure-Requests": "1",
-                }
+                },
             }
 
             if not self.browser:
@@ -100,7 +104,9 @@ class StealthBrowser(BaseBrowser):
             self.context = await self.browser.new_context(**context_options)
             await self.setup_popup_handling()
 
-            logger.info(f"Created stealth context with viewport {viewport['width']}x{viewport['height']}")
+            logger.info(
+                f"Created stealth context with viewport {viewport['width']}x{viewport['height']}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to create stealth context: {str(e)}")
@@ -228,7 +234,7 @@ class StealthBrowser(BaseBrowser):
             response = await self.page.goto(
                 url,
                 timeout=60000,
-                wait_until="domcontentloaded" if wait_for_load else "commit"
+                wait_until="domcontentloaded" if wait_for_load else "commit",
             )
 
             if wait_for_load:
@@ -272,26 +278,33 @@ class StealthBrowser(BaseBrowser):
 
         loading_selectors = [
             # Common loading spinners and indicators
-            '.loading', '.spinner', '.loader',
-            '[data-loading="true"]', '[aria-busy="true"]',
-            '.loading-overlay', '.loading-spinner',
-            '#loading', '#spinner', '#loader',
-
+            ".loading",
+            ".spinner",
+            ".loader",
+            '[data-loading="true"]',
+            '[aria-busy="true"]',
+            ".loading-overlay",
+            ".loading-spinner",
+            "#loading",
+            "#spinner",
+            "#loader",
             # Framework-specific loaders
-            '.ant-spin', '.el-loading-mask', '.v-progress-circular',
-            '.mat-progress-spinner', '.ngx-loading',
-
+            ".ant-spin",
+            ".el-loading-mask",
+            ".v-progress-circular",
+            ".mat-progress-spinner",
+            ".ngx-loading",
             # Custom loading text
-            ':has-text("Loading...")', ':has-text("Please wait...")',
-            ':has-text("Loading")', ':has-text("Cargando")',
+            ':has-text("Loading...")',
+            ':has-text("Please wait...")',
+            ':has-text("Loading")',
+            ':has-text("Cargando")',
         ]
 
         for selector in loading_selectors:
             try:
                 await self.page.wait_for_selector(
-                    selector,
-                    state="hidden",
-                    timeout=10000
+                    selector, state="hidden", timeout=10000
                 )
                 logger.debug(f"Loading indicator disappeared: {selector}")
             except Exception:

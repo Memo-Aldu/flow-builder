@@ -1,4 +1,3 @@
-import asyncio
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
@@ -132,6 +131,12 @@ class WorkflowRunner:
 
         # Build final node inputs from node_data["inputs"] + edges
         node_inputs = self.assemble_node_inputs(node_id, node_data, edges, env)
+
+        # Check if node should be conditionally executed
+        if not self.should_execute_node(node_inputs):
+            logger.info(f"Skipping node {node_id} due to conditional execution")
+            # Return 0 credits since node was skipped
+            return 0
 
         # Create a DB record for this node as a separate "phase"
         exec_phase_db = await self.create_phase(
@@ -313,3 +318,17 @@ class WorkflowRunner:
                 final_inputs[target_handle] = source_outputs[source_handle]
 
         return final_inputs
+
+    def should_execute_node(self, node_inputs: Dict[str, Any]) -> bool:
+        """
+        Check if a node should be executed based on conditional inputs.
+        Returns True if the node should execute, False if it should be skipped.
+        """
+        for key, value in node_inputs.items():
+            if key.endswith("Execute Condition") or key.endswith("Condition"):
+                if value is None:
+                    return False
+                if value == "execute":
+                    return True
+                return False
+        return True

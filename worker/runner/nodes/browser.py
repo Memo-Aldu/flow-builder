@@ -33,7 +33,7 @@ class StandardBrowserNode(NodeExecutor):
 
         try:
             # Create normal browser if not exists
-            if not hasattr(env, 'browser') or env.browser is None:
+            if not hasattr(env, "browser") or env.browser is None:
                 # Set the browser type to normal
                 env.set_browser("normal")
                 if env.browser is None:
@@ -44,7 +44,7 @@ class StandardBrowserNode(NodeExecutor):
                 # Start the browser with logging callback
                 await env.browser.start(
                     headless=headless_mode,
-                    log_callback=lambda msg, level: phase.add_log(msg, level)
+                    log_callback=lambda msg, level: phase.add_log(msg, level),
                 )
 
                 page = await env.browser.new_page()
@@ -57,15 +57,12 @@ class StandardBrowserNode(NodeExecutor):
 
             phase.add_log(f"Successfully loaded {url}", LogLevel.INFO)
 
-            return {
-                "Web Page": True
-            }
+            return {"Web Page": True}
 
         except Exception as e:
             phase.add_log(f"Error launching standard browser: {str(e)}", LogLevel.ERROR)
             raise e
-        
-        
+
 
 class StealthBrowserNode(NodeExecutor):
     """
@@ -89,7 +86,7 @@ class StealthBrowserNode(NodeExecutor):
         phase.add_log(f"Launching stealth browser to {url}...", LogLevel.INFO)
 
         try:
-            if not hasattr(env, 'browser') or env.browser is None:
+            if not hasattr(env, "browser") or env.browser is None:
                 env.set_browser("stealth")
                 if env.browser is None:
                     raise ValueError("Failed to create browser.")
@@ -97,7 +94,7 @@ class StealthBrowserNode(NodeExecutor):
                 headless_mode = os.environ.get("PLAYWRIGHT_HEADLESS", "True") == "True"
                 await env.browser.start(
                     headless=headless_mode,
-                    log_callback=lambda msg, level: phase.add_log(msg, level)
+                    log_callback=lambda msg, level: phase.add_log(msg, level),
                 )
 
                 # Create a new page
@@ -110,15 +107,11 @@ class StealthBrowserNode(NodeExecutor):
             await env.browser.navigate(url)
             phase.add_log(f"Successfully loaded {url}", LogLevel.INFO)
 
-            return {
-                "Web Page": True
-            }
+            return {"Web Page": True}
 
         except Exception as e:
             phase.add_log(f"Error launching stealth browser: {str(e)}", LogLevel.ERROR)
             raise e
-        
-
 
 
 class BrightDataBrowserNode(NodeExecutor):
@@ -143,7 +136,7 @@ class BrightDataBrowserNode(NodeExecutor):
         phase.add_log(f"Launching Bright Data browser to {url}...", LogLevel.INFO)
 
         try:
-            if not hasattr(env, 'browser') or env.browser is None:
+            if not hasattr(env, "browser") or env.browser is None:
                 env.set_browser("brightdata")
                 if env.browser is None:
                     raise ValueError("Failed to create Bright Data browser.")
@@ -153,23 +146,25 @@ class BrightDataBrowserNode(NodeExecutor):
                 # Start the browser with logging callback
                 await env.browser.start(
                     headless=headless_mode,
-                    log_callback=lambda msg, level: phase.add_log(msg, level)
+                    log_callback=lambda msg, level: phase.add_log(msg, level),
                 )
 
                 page = await env.browser.new_page()
                 env.page = page
-                phase.add_log("Bright Data browser launched successfully", LogLevel.INFO)
+                phase.add_log(
+                    "Bright Data browser launched successfully", LogLevel.INFO
+                )
 
             phase.add_log(f"Navigating to {url}...", LogLevel.INFO)
             await env.browser.navigate(url)
             phase.add_log(f"Successfully loaded {url} with Bright Data", LogLevel.INFO)
 
-            return {
-                "Web Page": True
-            }
+            return {"Web Page": True}
 
         except Exception as e:
-            phase.add_log(f"Error launching Bright Data browser: {str(e)}", LogLevel.ERROR)
+            phase.add_log(
+                f"Error launching Bright Data browser: {str(e)}", LogLevel.ERROR
+            )
             raise e
 
 
@@ -191,7 +186,9 @@ class FillInputNode(NodeExecutor):
 
         selector = node.inputs["Selector"]
         value = node.inputs["Value"]
-        delay = node.inputs.get("Human-like Typing", True)  # Default to human-like typing
+        delay = node.inputs.get(
+            "Human-like Typing", True
+        )  # Default to human-like typing
 
         phase.add_log(f"Filling input '{selector}' with text '{value}'.", LogLevel.INFO)
         logger.info(f"Filling input '{selector}' with text '{value}'.")

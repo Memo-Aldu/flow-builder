@@ -1,28 +1,30 @@
 "use client";
 
-import React, { useCallback, useEffect } from 'react'
-import { Workflow } from '@/types/workflows'
-import { 
+import { Workflow } from '@/types/workflows';
+import {
   addEdge,
-    Background, 
-    BackgroundVariant, 
-    Connection, 
-    Controls, 
-    Edge, 
-    getOutgoers, 
-    ReactFlow, 
-    useEdgesState, 
-    useNodesState, 
-    useReactFlow} from '@xyflow/react';
+  Background,
+  BackgroundVariant,
+  Connection,
+  Controls,
+  Edge,
+  getOutgoers,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
+  useReactFlow
+} from '@xyflow/react';
+import React, { useCallback, useEffect } from 'react';
 
-import "@xyflow/react/dist/style.css";
-import createFlowNode from '@/lib/workflow/createFlowNode';
-import { TaskType } from '@/types/task';
-import NodeComponent from '@/app/workflow/_components/nodes/NodeComponent';
-import { AppNode } from '@/types/nodes';
 import DeletableEdge from '@/app/workflow/_components/edges/DeletableEdge';
-import { TaskRegistry } from '@/lib/workflow/task/registry';
+import NodeComponent from '@/app/workflow/_components/nodes/NodeComponent';
 import ReadOnlyFlowViewer from '@/components/ReadOnlyFlowViewer';
+import createFlowNode from '@/lib/workflow/createFlowNode';
+import { sanitizeHandleId } from '@/lib/workflow/handleUtils';
+import { TaskRegistry } from '@/lib/workflow/task/registry';
+import { AppNode } from '@/types/nodes';
+import { TaskParamType, TaskType } from '@/types/task';
+import "@xyflow/react/dist/style.css";
 
 const nodeTypes = {
     FlowBuilderNode: NodeComponent
@@ -66,21 +68,45 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
     const targetNode = nodes.find((node) => node.id === connection.target);
     if (!targetNode) return;
 
+    // Find the target input to check its type
+    const targetTask = TaskRegistry[targetNode.data.type];
+    const targetInput = targetTask.inputs.find((input) => sanitizeHandleId(input.name) === connection.targetHandle);
+
+    // Don't set value for CONDITIONAL inputs - they get their values from the connected outputs
+    if (targetInput?.type === TaskParamType.CONDITIONAL) {
+      console.log("Conditional input detected, skipping value update");
+      return;
+    }
+
     const nodeInputs = targetNode.data.inputs
 
     updateNodeData(targetNode.id, {
       inputs: {
         ...nodeInputs,
-        [connection.targetHandle]: ""
+        [targetInput?.name ?? connection.targetHandle]: ""
       }
     });
   }, [setEdges, updateNodeData, nodes]);
+
+  // Migration function to convert handle names to sanitized IDs
+  const migrateHandleNames = useCallback((edges: Edge[]) => {
+    return edges.map(edge => ({
+      ...edge,
+      sourceHandle: edge.sourceHandle ? sanitizeHandleId(edge.sourceHandle) : edge.sourceHandle,
+      targetHandle: edge.targetHandle ? sanitizeHandleId(edge.targetHandle) : edge.targetHandle
+    }));
+  }, []);
 
   useEffect(() => {
     try {
       if (!workflow.active_version) return;
       setNodes(workflow.active_version.definition?.nodes ?? []);
-      setEdges(workflow.active_version.definition?.edges ?? []);
+
+      // Migrate old handle names in edges
+      const originalEdges = workflow.active_version.definition?.edges ?? [];
+      const migratedEdges = migrateHandleNames(originalEdges);
+      setEdges(migratedEdges);
+
       if (!workflow.active_version.definition?.viewport) return;
       const { x=0, y=0, zoom=1 } = workflow.active_version.definition.viewport;
       setViewport({ x, y, zoom });
@@ -88,7 +114,7 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
     } catch (error) {
 
     }
-  }, [workflow.active_version?.definition, setEdges, setNodes, setViewport])
+  }, [workflow.active_version?.definition, setEdges, setNodes, setViewport, migrateHandleNames])
 
   const isValidConnection = useCallback((connection: Edge | Connection) => {
     // Prevent connecting to self
@@ -103,23 +129,35 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
     const sourceTask = TaskRegistry[sourceNode.data.type];
     const targetTask = TaskRegistry[targetNode.data.type];
 
-    const output = sourceTask.outputs.find((output) => output.name === connection.sourceHandle);
-    const input = targetTask.inputs.find((input) => input.name === connection.targetHandle);
+    const output = sourceTask.outputs.find((output) => sanitizeHandleId(output.name) === connection.sourceHandle);
+    const input = targetTask.inputs.find((input) => sanitizeHandleId(input.name) === connection.targetHandle);
 
     if (!output || !input) return false;
 
     if (output.type !== input.type) return false;
 
-    const hasCycle = (node: AppNode, visited = new Set<string>()) => {
-      if (visited.has(node.id)) return true;
-      visited.add(node.id);
+    // Prevent multiple connections to the same input handle
+    const existingConnectionToTarget = edges.some(edge =>
+      edge.target === connection.target && edge.targetHandle === connection.targetHandle
+    );
+    if (existingConnectionToTarget) return false;
 
-      for (const outgoer of getOutgoers(node, nodes, edges)) {
-        if (outgoer.id === connection.source) return true;
-        if (hasCycle(outgoer, visited)) return true;
+    // Check for cycles by simulating the new connection
+    // A cycle exists if we can reach the source node by following outgoing edges from the target node
+    const wouldCreateCycle = (currentNode: AppNode, visited = new Set<string>()): boolean => {
+      if (currentNode.id === connection.source) return true;
+      if (visited.has(currentNode.id)) return false;
+
+      visited.add(currentNode.id);
+
+      for (const outgoer of getOutgoers(currentNode, nodes, edges)) {
+        if (wouldCreateCycle(outgoer, visited)) return true;
       }
+
+      return false;
     }
-    const detectedCycle = hasCycle(targetNode)
+
+    const detectedCycle = wouldCreateCycle(targetNode)
     return !detectedCycle;
   }, [nodes, edges]);
 

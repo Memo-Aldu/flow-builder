@@ -6,4 +6,5 @@ export const ColorForHandle: Record<TaskParamType, string> = {
     CREDENTIAL: "!bg-rose-400",
     NUMBER: "!bg-emerald-400",
     SELECT: "!bg-violet-400",
+    CONDITIONAL: "!bg-purple-400",
 }
