@@ -27,10 +27,18 @@ class BaseBrowser(ABC):
         self.page: Optional[Page] = None
         self.auto_close_popups: bool = True
         self.popup_whitelist: list = []  # URLs or keywords to whitelist (not close)
-        self.popup_blacklist: list = ["ad", "promo", "offer", "pop", "banner"]  # Keywords for popups to close
+        self.popup_blacklist: list = [
+            "ad",
+            "promo",
+            "offer",
+            "pop",
+            "banner",
+        ]  # Keywords for popups to close
 
     @abstractmethod
-    async def start(self, headless: bool = True, log_callback: Optional[Callable] = None) -> None:
+    async def start(
+        self, headless: bool = True, log_callback: Optional[Callable] = None
+    ) -> None:
         """
         Start the browser with the specified configuration.
 
@@ -93,7 +101,9 @@ class BaseBrowser(ABC):
         This should be called after creating a new context.
         """
         if not self.context:
-            logger.warning("Cannot setup popup handling: browser context not initialized")
+            logger.warning(
+                "Cannot setup popup handling: browser context not initialized"
+            )
             return
 
         # Set up popup handler using the unified handler
@@ -125,7 +135,9 @@ class BaseBrowser(ABC):
         except Exception as e:
             logger.error(f"Error handling popup: {str(e)}")
 
-    async def _close_popup_safely(self, popup: Page, url: str, main_page: Optional[Page] = None) -> None:
+    async def _close_popup_safely(
+        self, popup: Page, url: str, main_page: Optional[Page] = None
+    ) -> None:
         """
         Unified method to close a popup safely without disrupting the main page navigation.
 
@@ -159,8 +171,12 @@ class BaseBrowser(ABC):
                 logger.info(f"Closing popup: {title}")
 
                 # Final safety check before closing
-                if (self.page and popup == self.page) or (main_page and popup == main_page):
-                    logger.warning("Attempted to close main page as popup (final check) - ignoring")
+                if (self.page and popup == self.page) or (
+                    main_page and popup == main_page
+                ):
+                    logger.warning(
+                        "Attempted to close main page as popup (final check) - ignoring"
+                    )
                     return
 
                 # Close the popup if it's still open
@@ -193,32 +209,27 @@ class BaseBrowser(ABC):
                 "button.close, .btn-close, .close-btn",
                 "button:has(svg), button:has(i.fa-times), button:has(i.fa-close)",
                 "button:has-text('×'), button:has-text('✕'), button:has-text('✖')",
-
                 # Cookie consent dialogs
                 "[id*='cookie'] button, [class*='cookie'] button",
                 "[id*='consent'] button, [class*='consent'] button",
                 '[data-testid="cookie-banner"] button',
-                '.cookie-consent button',
+                ".cookie-consent button",
                 'button:has-text("Accept")',
                 'button:has-text("Accept All")',
                 'button:has-text("Agree")',
                 'button:has-text("No thanks")',
                 'button:has-text("Reject")',
                 'button:has-text("Close")',
-
                 # Generic popup and modal dialogs
                 "[id*='popup'] button, [class*='popup'] button",
                 "[id*='modal'] button, [class*='modal'] button",
                 "[id*='dialog'] button, [class*='dialog'] button",
-
                 # Newsletter and subscription dialogs
                 "[id*='newsletter'] button, [class*='newsletter'] button",
                 "[id*='subscribe'] button, [class*='subscribe'] button",
-
                 # Common close button classes
                 ".close-button, .modal-close, .popup-close",
                 ".dismiss, .dismiss-btn",
-
                 # GDPR and privacy related
                 'button:has-text("I understand")',
                 'button:has-text("Got it")',
@@ -234,7 +245,9 @@ class BaseBrowser(ABC):
                     for element in elements:
                         if await element.is_visible():
                             await element.click(timeout=2000)
-                            logger.info(f"Closed modal dialog using selector: {selector}")
+                            logger.info(
+                                f"Closed modal dialog using selector: {selector}"
+                            )
                             closed_something = True
                             await asyncio.sleep(0.5)  # Small delay between clicks
 

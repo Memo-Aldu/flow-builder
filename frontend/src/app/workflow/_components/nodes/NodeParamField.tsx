@@ -1,17 +1,18 @@
-import { TaskParam, TaskParamType } from '@/types/task'
-import React, { useCallback } from 'react'
-import StringParam from '@/app/workflow/_components/nodes/param/StringParam'
-import { useReactFlow } from '@xyflow/react'
-import { AppNode } from '@/types/nodes'
 import BrowserInstanceParam from '@/app/workflow/_components/nodes/param/BrowserInstanceParam'
+import ConditionalParam from '@/app/workflow/_components/nodes/param/ConditionalParam'
 import CredentialParam from '@/app/workflow/_components/nodes/param/CredentialParam'
 import NumberParam from '@/app/workflow/_components/nodes/param/NumberParam'
 import SelectParam from '@/app/workflow/_components/nodes/param/SelectParam'
+import StringParam from '@/app/workflow/_components/nodes/param/StringParam'
+import { AppNode } from '@/types/nodes'
+import { TaskParam, TaskParamType } from '@/types/task'
+import { useReactFlow } from '@xyflow/react'
+import React, { useCallback } from 'react'
 
 const NodeParamField = ({ param, nodeId, disabled }: { param : TaskParam, nodeId: string, disabled: boolean }) => {
     const { updateNodeData, getNode } = useReactFlow()
     const node = getNode(nodeId) as AppNode
-    const value = node?.data.inputs?.[param.name]
+    const value = node?.data.inputs?.[param.name] ?? param.defaultValue ?? ""
 
     const updateNodeParamValue = useCallback((newValue: string) => {
         updateNodeData(nodeId, {
@@ -42,6 +43,10 @@ const NodeParamField = ({ param, nodeId, disabled }: { param : TaskParam, nodeId
         case TaskParamType.CREDENTIAL:
             return (
                 <CredentialParam param={param} value={value} updateNodeParamValue={updateNodeParamValue}/>
+            )
+        case TaskParamType.CONDITIONAL:
+            return (
+                <ConditionalParam disabled={disabled} param={param} value={value} updateNodeParamValue={updateNodeParamValue}/>
             )
         default:
             return (

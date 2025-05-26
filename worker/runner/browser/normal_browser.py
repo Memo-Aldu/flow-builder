@@ -19,7 +19,9 @@ class NormalBrowser(BaseBrowser):
     Uses default Playwright settings for a clean browser experience.
     """
 
-    async def start(self, headless: bool = True, log_callback: Optional[Callable] = None) -> None:
+    async def start(
+        self, headless: bool = True, log_callback: Optional[Callable] = None
+    ) -> None:
         """
         Start a standard browser with default settings.
 
@@ -81,7 +83,9 @@ class NormalBrowser(BaseBrowser):
         try:
             # Use domcontentloaded for initial navigation (more reliable than networkidle)
             logger.info(f"Navigating to {url}...")
-            response = await self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            response = await self.page.goto(
+                url, wait_until="domcontentloaded", timeout=60000
+            )
 
             if wait_for_load:
                 await self._smart_wait_for_load()
@@ -135,27 +139,34 @@ class NormalBrowser(BaseBrowser):
 
         loading_selectors = [
             # Common loading spinners and indicators
-            '.loading', '.spinner', '.loader',
-            '[data-loading="true"]', '[aria-busy="true"]',
-            '.loading-overlay', '.loading-spinner',
-            '#loading', '#spinner', '#loader',
-
+            ".loading",
+            ".spinner",
+            ".loader",
+            '[data-loading="true"]',
+            '[aria-busy="true"]',
+            ".loading-overlay",
+            ".loading-spinner",
+            "#loading",
+            "#spinner",
+            "#loader",
             # Framework-specific loaders
-            '.ant-spin', '.el-loading-mask', '.v-progress-circular',
-            '.mat-progress-spinner', '.ngx-loading',
-
+            ".ant-spin",
+            ".el-loading-mask",
+            ".v-progress-circular",
+            ".mat-progress-spinner",
+            ".ngx-loading",
             # Custom loading text
-            ':has-text("Loading...")', ':has-text("Please wait...")',
-            ':has-text("Loading")', ':has-text("Cargando")',
+            ':has-text("Loading...")',
+            ':has-text("Please wait...")',
+            ':has-text("Loading")',
+            ':has-text("Cargando")',
         ]
 
         for selector in loading_selectors:
             try:
                 # Wait for loading indicator to disappear (max 10 seconds)
                 await self.page.wait_for_selector(
-                    selector,
-                    state="hidden",
-                    timeout=10000
+                    selector, state="hidden", timeout=10000
                 )
                 logger.debug(f"Loading indicator disappeared: {selector}")
             except Exception:
@@ -191,7 +202,6 @@ class NormalBrowser(BaseBrowser):
         # Wait for the element and click it
         await self.page.wait_for_selector(selector, timeout=10000, state="visible")
         await self.page.click(selector, force=force)
-
 
     # Popup and modal handling is now inherited from BaseBrowser
     # No need to override these methods unless custom behavior is needed

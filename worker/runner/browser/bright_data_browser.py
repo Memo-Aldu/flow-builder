@@ -47,7 +47,9 @@ class BrightDataBrowser(BaseBrowser):
         self.endpoint_url = f"wss://{auth}@brd.superproxy.io:9222"
         logger.info("Bright Data credentials configured successfully")
 
-    async def start(self, headless: bool = True, log_callback: Optional[Callable] = None) -> None:
+    async def start(
+        self, headless: bool = True, log_callback: Optional[Callable] = None
+    ) -> None:
         """Start the Bright Data browser"""
         if not self.endpoint_url:
             raise ValueError(
@@ -59,7 +61,9 @@ class BrightDataBrowser(BaseBrowser):
             self.playwright = await async_playwright().start()
 
             logger.info("Connecting to Bright Data Scraping Browser...")
-            self.browser = await self.playwright.chromium.connect_over_cdp(self.endpoint_url)
+            self.browser = await self.playwright.chromium.connect_over_cdp(
+                self.endpoint_url
+            )
             logger.info("Successfully connected to Bright Data Scraping Browser")
 
             if not self.browser:
@@ -100,9 +104,8 @@ class BrightDataBrowser(BaseBrowser):
             response = await self.page.goto(
                 url,
                 timeout=120000,
-                wait_until="domcontentloaded" if wait_for_load else "commit"
+                wait_until="domcontentloaded" if wait_for_load else "commit",
             )
-
 
             if wait_for_load:
                 await self._smart_wait_for_load()
@@ -146,26 +149,33 @@ class BrightDataBrowser(BaseBrowser):
 
         loading_selectors = [
             # Common loading spinners and indicators
-            '.loading', '.spinner', '.loader',
-            '[data-loading="true"]', '[aria-busy="true"]',
-            '.loading-overlay', '.loading-spinner',
-            '#loading', '#spinner', '#loader',
-
+            ".loading",
+            ".spinner",
+            ".loader",
+            '[data-loading="true"]',
+            '[aria-busy="true"]',
+            ".loading-overlay",
+            ".loading-spinner",
+            "#loading",
+            "#spinner",
+            "#loader",
             # Framework-specific loaders
-            '.ant-spin', '.el-loading-mask', '.v-progress-circular',
-            '.mat-progress-spinner', '.ngx-loading',
-
+            ".ant-spin",
+            ".el-loading-mask",
+            ".v-progress-circular",
+            ".mat-progress-spinner",
+            ".ngx-loading",
             # Custom loading text
-            ':has-text("Loading...")', ':has-text("Please wait...")',
-            ':has-text("Loading")', ':has-text("Cargando")',
+            ':has-text("Loading...")',
+            ':has-text("Please wait...")',
+            ':has-text("Loading")',
+            ':has-text("Cargando")',
         ]
 
         for selector in loading_selectors:
             try:
                 await self.page.wait_for_selector(
-                    selector,
-                    state="hidden",
-                    timeout=10000
+                    selector, state="hidden", timeout=10000
                 )
                 logger.debug(f"Loading indicator disappeared: {selector}")
             except Exception:
