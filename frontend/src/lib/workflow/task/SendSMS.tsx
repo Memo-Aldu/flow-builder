@@ -1,11 +1,11 @@
 import { TaskParamType, TaskType } from "@/types/task";
 import { WorkflowTask } from "@/types/workflows";
-import { MessageSquareText, LucideProps } from "lucide-react";
+import { LucideProps, MessageSquareText } from "lucide-react";
 
 export const SendSMSTask = {
   type: TaskType.SEND_SMS,
   label: "Send SMS",
-  icon: (props: LucideProps) => <MessageSquareText className="stroke-purple-500" {...props} />,
+  icon: (props: LucideProps) => <MessageSquareText className="stroke-sky-500" {...props} />,
   description: "Send SMS message using Twilio",
   isEntryPoint: false,
   credits: 2,
@@ -48,6 +48,12 @@ export const SendSMSTask = {
       variant: "textarea",
       helperText: "The SMS message content",
       placeholder: "Your message here...",
+    },
+    {
+      name: "Execute Condition",
+      type: TaskParamType.CONDITIONAL,
+      required: false,
+      helperText: "Connect to a branch node to conditionally execute this SMS",
     },
   ],
   outputs: [
