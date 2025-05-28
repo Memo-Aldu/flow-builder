@@ -1,10 +1,11 @@
-import { cn } from '@/lib/utils'
-import { TaskParam } from '@/types/task'
-import { Handle, Position, useEdges, useReactFlow } from '@xyflow/react'
-import React from 'react'
 import NodeParamField from '@/app/workflow/_components/nodes/NodeParamField'
 import { ColorForHandle } from '@/app/workflow/_components/nodes/common'
 import useWorkflowValidation from '@/components/hooks/useWorkflowValidation'
+import { cn } from '@/lib/utils'
+import { sanitizeHandleId } from '@/lib/workflow/handleUtils'
+import { TaskParam } from '@/types/task'
+import { Handle, Position, useEdges, useReactFlow } from '@xyflow/react'
+import React from 'react'
 
 export const NodeInputs = ({ children }: {children: React.ReactNode}) => {
   return (
@@ -18,7 +19,8 @@ export const NodeInput = ({ input, nodeId } : { input: TaskParam, nodeId: string
   const edges = useEdges()
   const { getNode } = useReactFlow();
   const { invalidInputs } = useWorkflowValidation()
-  const isConnected = edges.some(edge => edge.target === nodeId && edge.targetHandle === input.name)
+  const handleId = sanitizeHandleId(input.name)
+  const isConnected = edges.some(edge => edge.target === nodeId && edge.targetHandle === handleId)
 
   const hasInvalidInputs = invalidInputs
     .find(node => node.nodeId === nodeId)
@@ -27,8 +29,6 @@ export const NodeInput = ({ input, nodeId } : { input: TaskParam, nodeId: string
     const node = getNode(nodeId);
     const changedInputs = node?.data?.changedInputs as string[] || [];
     const isChanged = changedInputs.includes(input.name);
-
-    console.log("isChanged", isChanged)
 
     return (
       <div
@@ -42,11 +42,10 @@ export const NodeInput = ({ input, nodeId } : { input: TaskParam, nodeId: string
         )}
       >
         <NodeParamField param={input} nodeId={nodeId} disabled={isConnected} />
-  
         {!input.hideHandle && (
           <Handle
-            id={input.name}
-            isConnectable={!isConnected}
+            id={handleId}
+            isConnectable={true}
             type="target"
             position={Position.Left}
             className={cn(

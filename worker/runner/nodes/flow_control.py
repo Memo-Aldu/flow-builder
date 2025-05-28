@@ -32,7 +32,10 @@ class BranchNode(NodeExecutor):
         operator = node.inputs["Operator"]
         right_value = node.inputs["Right Value"]
 
-        phase.add_log(f"Evaluating condition: '{left_value}' {operator} '{right_value}'", LogLevel.INFO)
+        phase.add_log(
+            f"Evaluating condition: '{left_value}' {operator} '{right_value}'",
+            LogLevel.INFO,
+        )
 
         try:
             left_val = self._convert_value(left_value)
@@ -45,7 +48,7 @@ class BranchNode(NodeExecutor):
                 "True Path": "execute" if result else None,
                 "False Path": "execute" if not result else None,
                 "Result": result,
-                "Data": left_value
+                "Data": left_value,
             }
 
         except Exception as e:
@@ -56,7 +59,7 @@ class BranchNode(NodeExecutor):
         """Convert string values to appropriate types for comparison."""
         if isinstance(value, str):
             try:
-                if '.' in value:
+                if "." in value:
                     return float(value)
                 else:
                     return int(value)

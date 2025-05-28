@@ -4,7 +4,9 @@ import useExecutionPlan from '@/components/hooks/useExecutionPlan';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
 import { publishWorkflow } from '@/lib/api/workflows';
+import { sanitizeHandleId } from '@/lib/workflow/handleUtils';
 import CalculateWorkflowCost from '@/lib/workflow/helper';
+import { TaskRegistry } from '@/lib/workflow/task/registry';
 import { AppNode } from '@/types/nodes';
 import { WorkflowPublishRequest } from '@/types/workflows';
 import { useAuth } from '@clerk/nextjs';
@@ -12,7 +14,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useReactFlow } from '@xyflow/react';
 import { UploadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React from 'react'
+import React from 'react';
 import { toast } from 'sonner';
 
 
@@ -26,6 +28,34 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
   const { getToken } = useAuth();
   const { toObject } = useReactFlow();
   const router = useRouter();
+
+  const convertEdgesForBackend = (edges: any[], nodes: AppNode[]) => {
+    return edges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+
+      if (!sourceNode || !targetNode) {
+        return edge;
+      }
+
+      const sourceTask = TaskRegistry[sourceNode.data.type];
+      const targetTask = TaskRegistry[targetNode.data.type];
+
+      const originalSourceHandle = sourceTask.outputs.find(output =>
+        sanitizeHandleId(output.name) === edge.sourceHandle
+      )?.name ?? edge.sourceHandle;
+
+      const originalTargetHandle = targetTask.inputs.find(input =>
+        sanitizeHandleId(input.name) === edge.targetHandle
+      )?.name ?? edge.targetHandle;
+
+      return {
+        ...edge,
+        sourceHandle: originalSourceHandle,
+        targetHandle: originalTargetHandle
+      };
+    });
+  };
 
   const mutation = useMutation({
     mutationFn: async ({ id, values }: { id: string, values: WorkflowPublishRequest }) => {
@@ -45,17 +75,24 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
   }})
   return (
     <TooltipWrapper content='Publish the workflow'>
-      <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => { 
+      <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => {
           toast.loading("Publishing Workflow", { id: workflowId });
           const plan = generate()
           if (!plan) {
-              return 
+              return
           }
 
           const flowDefinition = toObject()
+
+          const convertedEdges = convertEdgesForBackend(flowDefinition.edges, flowDefinition.nodes as AppNode[]);
+          const backendCompatibleDef = {
+            ...flowDefinition,
+            edges: convertedEdges
+          };
+
           const workflowPublishRequest: WorkflowPublishRequest = {
               execution_plan: plan,
-              definition: flowDefinition,
+              definition: backendCompatibleDef,
               credits_cost: CalculateWorkflowCost(flowDefinition.nodes as AppNode[])
           }
           mutation.mutate({ id: workflowId, values: workflowPublishRequest })
