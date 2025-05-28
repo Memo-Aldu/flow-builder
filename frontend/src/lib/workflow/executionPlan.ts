@@ -1,7 +1,8 @@
+import { sanitizeHandleId } from "@/lib/workflow/handleUtils";
+import { TaskRegistry } from "@/lib/workflow/task/registry";
 import { AppNode, AppNodesMissingInputs } from "@/types/nodes";
 import { WorkflowExecutionPlan, WorkflowExecutionPlanPhase } from '@/types/workflows';
 import { Edge, getIncomers } from "@xyflow/react";
-import { TaskRegistry } from "@/lib/workflow/task/registry";
 
 export enum WorkflowToExecutionPlanValidationError {
     NO_ENTRY_POINT = "NO_ENTRY_POINT",
@@ -117,13 +118,13 @@ const getInvalidInputs = (node: AppNode, edges: Edge[], planned: Set<string>) =>
 
         const incomingEdges = edges.filter(edge => edge.target === node.id)
         const inputLinkedToOutput = incomingEdges.find((edge) => {
-            return edge.targetHandle === input.name
+            return edge.targetHandle === sanitizeHandleId(input.name)
         })
 
         const requiredInputProvidedByVisitedOutput = input.required &&
                                                      inputLinkedToOutput &&
                                                      planned.has(inputLinkedToOutput.source)
-        
+
         if (requiredInputProvidedByVisitedOutput) {
             // the input and we have value for it
             continue
