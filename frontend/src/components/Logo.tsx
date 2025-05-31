@@ -1,6 +1,6 @@
 
 import { cn } from '@/lib/utils'
-import { SquareDashedMousePointer } from 'lucide-react'
+import { Waypoints } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 
@@ -10,11 +10,11 @@ type LogoProps = {
 }
 
 export const Logo = ({ fontSize = 'text-2xl', iconSize = 20}: LogoProps) => {
-  return <Link href='/' className={cn("text-2xl font-extrabold flex items-center gap-2",
+  return <Link href="/dashboard" className={cn("text-2xl font-extrabold flex items-center gap-2",
     fontSize
   )}>
     <div className='rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 p-2'>
-        <SquareDashedMousePointer size={iconSize} className='stroke-white' />
+        <Waypoints size={iconSize} className='stroke-white' />
     </div>
     <div>
         <span className='bg-gradient-to-r from-blue-500 to-blue-600

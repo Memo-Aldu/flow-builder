@@ -1,6 +1,7 @@
 import Greeting from "@/components/Greeting";
 import { Logo } from "@/components/Logo";
 import { createUser } from "@/lib/api/users";
+import { waitFor } from "@/lib/helper/waitFor";
 import { auth } from "@clerk/nextjs/server";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 
@@ -42,12 +43,11 @@ export default async function SignUpSuccessPage() {
   }
 
   const greetingName = user.username ?? `${user.firstName} ${user.lastName}`;
-
   return (
-    <>
+    <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
       <Logo iconSize={50} fontSize="text-3xl" />
       <Separator className="max-w-xs" />
       <Greeting welcomeMessage={`Welcome, ${greetingName}!`} delayMs={2000} />
-    </>
+    </div>
   );
 }

@@ -15,8 +15,8 @@ const StatsCard = ( { title, value, icon }: StatsCardProps) => {
     <Card className='relative overflow-hidden h-full'>
         <CardHeader className='flex pb-2'>
             <CardTitle>{title}</CardTitle>
-            <Icon size={120} className='text-muted-foreground absolute 
-            -bottom-4 -right-8 opacity-10'></Icon>
+            <Icon size={120} className='dark:text-muted-foreground absolute text-primary
+            -bottom-4 -right-8 opacity-20'></Icon>
         </CardHeader>
         <CardContent>
             <div className="text-2xl font-bold text-primary">
