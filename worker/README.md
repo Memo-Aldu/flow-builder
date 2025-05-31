@@ -53,7 +53,7 @@ EXIT_AFTER_COMPLETION=true
 | `EXIT_AFTER_COMPLETION` | Exit after processing messages in EventBridge Pipes mode | `true` |
 | `DEBUG_MODE` | Enable debug logging | `true` |
 | `LOG_LEVEL` | Python logging level | `DEBUG` |
-| `PLAYWRIGHT_HEADLESS` | Run browser in headless mode (1=headless, 0=headful) | `1` |
+| `PLAYWRIGHT_HEADLESS` | Run browser in headless mode (True=headless, False=headful) | `True` |
 | `DB_HOST` | Database host | - |
 | `DB_PORT` | Database port | - |
 | `DB_NAME` | Database name | - |
@@ -79,7 +79,7 @@ docker build -t flow-builder-worker -f worker/Dockerfile .
 docker run -e POLLING_MODE=true -e DB_HOST=host.docker.internal flow-builder-worker
 
 # Run in headful mode (for debugging)
-docker run -e POLLING_MODE=true -e PLAYWRIGHT_HEADLESS=0 -e DB_HOST=host.docker.internal flow-builder-worker
+docker run -e POLLING_MODE=true -e PLAYWRIGHT_HEADLESS=False -e DB_HOST=host.docker.internal flow-builder-worker
 ```
 
 ### Without Docker

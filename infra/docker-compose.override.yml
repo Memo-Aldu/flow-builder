@@ -1,6 +1,10 @@
 version: '3.8'
 
 services:
+  api:
+    environment:
+      - DB_USE_SSL=false
+
   worker:
     environment:
       - POLLING_MODE=true
@@ -13,8 +17,7 @@ services:
       - DEBUG_MODE=true
       - LOG_LEVEL=INFO
       # Configure database connection
-      - DB_HOST=postgres
-      - DB_PORT=5432
+      - DB_USE_SSL=false
       # Increase poll wait time to reduce CPU usage
       - POLL_WAIT_TIME=20
       - MAX_POLL_MESSAGES=5

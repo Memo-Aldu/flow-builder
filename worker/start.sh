@@ -2,7 +2,7 @@
 set -e
 
 # Check if we need to run in non-headless mode
-if [ "$PLAYWRIGHT_HEADLESS" = "0" ]; then
+if [ "$PLAYWRIGHT_HEADLESS" = "False" ]; then
     echo "Starting Xvfb for non-headless browser..."
     # Start Xvfb
     Xvfb :99 -screen 0 1280x1024x24 &

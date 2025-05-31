@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    PLAYWRIGHT_HEADLESS=1 \
+    PLAYWRIGHT_HEADLESS=True \
     POLLING_MODE=false \
     EVENTBRIDGE_PIPES_MODE=true \
     BATCH_SIZE=1 \
