@@ -39,7 +39,7 @@ async def create_user(
         logger.info(f"User already exists: {user.id}")
         return user
     user = User(clerk_id=clerk_id, email=email, username=username)
-    balance = UserBalance(user_id=user.id, credits=100)
+    balance = UserBalance(user_id=user.id, credits=200)
     user.balance = balance
     session.add(user)
     session.add(balance)
