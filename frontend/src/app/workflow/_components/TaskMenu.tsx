@@ -18,7 +18,7 @@ const TaskMenu = () => {
         <Accordion 
             type='multiple' 
             className='w-full' 
-            defaultValue={['Extraction', 'Entrypoint', 'Timing', 'Storage', 'Deliver Results']}>
+            defaultValue={['Extraction', 'Entrypoint', 'Timing', 'Flow Control', 'Storage', 'Deliver Results']}>
             <AccordionItem value='Entrypoint'>
                 <AccordionTrigger className='font-bold'>
                     Browser Automation
@@ -51,12 +51,23 @@ const TaskMenu = () => {
                     <TaskMenuBtn taskType={TaskType.WAIT_FOR_ELEMENT} />
                 </AccordionContent>
             </AccordionItem>
+            <AccordionItem value='Flow Control'>
+                <AccordionTrigger className='font-bold'>
+                    Flow Control
+                </AccordionTrigger>
+                <AccordionContent className='flex flex-col gap-1'>
+                    <TaskMenuBtn taskType={TaskType.BRANCH} />
+                </AccordionContent>
+            </AccordionItem>
             <AccordionItem value='Storage'>
                 <AccordionTrigger className='font-bold'>
                     Data Storage
                 </AccordionTrigger>
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.READ_PROPERTY_FROM_JSON} />
+                    <TaskMenuBtn taskType={TaskType.WRITE_PROPERTY_TO_JSON} />
+                    <TaskMenuBtn taskType={TaskType.JSON_TRANSFORM} />
+                    <TaskMenuBtn taskType={TaskType.MERGE_DATA} />
                 </AccordionContent>
             </AccordionItem>
             <AccordionItem value='Deliver Results'>
@@ -66,6 +77,7 @@ const TaskMenu = () => {
                 <AccordionContent className='flex flex-col gap-1'>
                     <TaskMenuBtn taskType={TaskType.DELIVER_TO_WEBHOOK} />
                     <TaskMenuBtn taskType={TaskType.SEND_SMS} />
+                    <TaskMenuBtn taskType={TaskType.EMAIL_DELIVERY} />
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
