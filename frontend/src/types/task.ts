@@ -13,6 +13,11 @@ export enum TaskType {
     CONDENSE_HTML = "condense_html",
     DELIVER_TO_WEBHOOK = "deliver_to_webhook",
     SEND_SMS = "send_sms",
+    BRANCH = "branch",
+    JSON_TRANSFORM = "json_transform",
+    MERGE_DATA = "merge_data",
+    WRITE_PROPERTY_TO_JSON = "write_property_to_json",
+    EMAIL_DELIVERY = "email_delivery",
 }
 
 export enum TaskParamType {
@@ -21,6 +26,7 @@ export enum TaskParamType {
     CREDENTIAL = "CREDENTIAL",
     SELECT = "SELECT",
     NUMBER = "NUMBER",
+    CONDITIONAL = "CONDITIONAL",
 }
 
 export interface TaskParam {
@@ -29,5 +35,6 @@ export interface TaskParam {
     helperText?: string;
     required?: boolean;
     hideHandle?: boolean;
+    defaultValue?: string;
     [key: string]: any;
 }

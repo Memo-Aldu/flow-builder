@@ -17,9 +17,16 @@ from worker.runner.nodes.browser import (
 from worker.runner.nodes.data_storage import ReadPropertyFromJsonNode
 from worker.runner.nodes.delivery import (
     DeliverToWebhookNode,
+    EmailDeliveryNode,
     SendSMSNode,
 )
 from worker.runner.nodes.timing import DelayNode, WaitElementNode
+from worker.runner.nodes.flow_control import BranchNode
+from worker.runner.nodes.data_processing import (
+    JsonTransformNode,
+    MergeDataNode,
+    WritePropertyToJsonNode,
+)
 
 NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "launch_standard_browser": StandardBrowserNode,
@@ -36,6 +43,11 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
     "condense_html": CondenseHTMLNode,
     "deliver_to_webhook": DeliverToWebhookNode,
     "send_sms": SendSMSNode,
+    "branch": BranchNode,
+    "json_transform": JsonTransformNode,
+    "merge_data": MergeDataNode,
+    "write_property_to_json": WritePropertyToJsonNode,
+    "email_delivery": EmailDeliveryNode,
 }
 
 
@@ -54,4 +66,9 @@ NODE_CREDIT_COSTS = {
     "condense_html": 2,
     "deliver_to_webhook": 2,
     "send_sms": 2,
+    "branch": 1,
+    "json_transform": 2,
+    "merge_data": 1,
+    "write_property_to_json": 1,
+    "email_delivery": 3,
 }

@@ -1,19 +1,24 @@
-import { LaunchStandardBrowserTask } from "@/lib/workflow/task/LaunchStandardBrowser";
-import { LaunchStealthBrowserTask } from "@/lib/workflow/task/LaunchStealthBrowser";
-import { LaunchBrightDataBrowserTask } from "@/lib/workflow/task/LaunchBrightDataBrowser";
+import { BranchNodeTask } from "@/lib/workflow/task/BranchNode";
+import { ClickElementTask } from "@/lib/workflow/task/ClickElement";
+import { CondenseHtmlTask } from "@/lib/workflow/task/CondenseHtml";
+import { DelayTask } from "@/lib/workflow/task/Delay";
+import { EmailDeliveryTask } from "@/lib/workflow/task/EmailDelivery";
+import { ExtractDataOpenAITask } from "@/lib/workflow/task/ExtractDataOpenAI";
+import { FillInputTask } from "@/lib/workflow/task/FillInput";
 import { GetHtmlTask } from "@/lib/workflow/task/GetHtml";
 import { GetTextFromHtmlTask } from "@/lib/workflow/task/GetTextFromHtml";
-import { WorkflowTask } from "@/types/workflows";
-import { TaskType } from "@/types/task";
-import { ClickElementTask } from "@/lib/workflow/task/ClickElement";
-import { FillInputTask } from "@/lib/workflow/task/FillInput";
-import { ExtractDataOpenAITask } from "@/lib/workflow/task/ExtractDataOpenAI";
+import { JsonTransformTask } from "@/lib/workflow/task/JsonTransform";
+import { LaunchBrightDataBrowserTask } from "@/lib/workflow/task/LaunchBrightDataBrowser";
+import { LaunchStandardBrowserTask } from "@/lib/workflow/task/LaunchStandardBrowser";
+import { LaunchStealthBrowserTask } from "@/lib/workflow/task/LaunchStealthBrowser";
+import { MergeDataTask } from "@/lib/workflow/task/MergeData";
 import { ReadPropertyFromJsonTask } from "@/lib/workflow/task/ReadPropertyFromJson";
-import { WaitForElementTask } from "@/lib/workflow/task/WaitForElement";
-import { DelayTask } from "@/lib/workflow/task/Delay";
-import { CondenseHtmlTask } from "@/lib/workflow/task/CondenseHtml";
-import { DeliverToWebhookTask } from "./DeliverToWebhook";
 import { SendSMSTask } from "@/lib/workflow/task/SendSMS";
+import { WaitForElementTask } from "@/lib/workflow/task/WaitForElement";
+import { WritePropertyToJsonTask } from "@/lib/workflow/task/WritePropertyToJson";
+import { TaskType } from "@/types/task";
+import { WorkflowTask } from "@/types/workflows";
+import { DeliverToWebhookTask } from "./DeliverToWebhook";
 
 
 type Registry = {
@@ -35,4 +40,9 @@ export const TaskRegistry: Registry = {
     condense_html: CondenseHtmlTask,
     deliver_to_webhook: DeliverToWebhookTask,
     send_sms: SendSMSTask,
+    branch: BranchNodeTask,
+    json_transform: JsonTransformTask,
+    merge_data: MergeDataTask,
+    write_property_to_json: WritePropertyToJsonTask,
+    email_delivery: EmailDeliveryTask,
 }
