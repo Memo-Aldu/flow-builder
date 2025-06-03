@@ -31,11 +31,15 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+  INFRASTRUCTURE_TYPE: ${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}
+
 jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    environment: dev
+    environment: ${{ github.event.inputs.environment || 'dev' }}
 
     steps:
       - name: Checkout code
@@ -58,7 +62,7 @@ jobs:
         id: infra-path
         run: |
           # Set the infrastructure path based on the input
-          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+          if [ "${{ env.INFRASTRUCTURE_TYPE }}" = "standard" ]; then
             echo "INFRA_PATH=infra/tf" >> $GITHUB_OUTPUT
             echo "Using standard infrastructure path: infra/tf"
           else
@@ -73,12 +77,12 @@ jobs:
           INFRA_PATH="${{ steps.infra-path.outputs.INFRA_PATH }}"
 
           # For standard infrastructure
-          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+          if [ "${{ env.INFRASTRUCTURE_TYPE }}" = "standard" ]; then
             # Get the DynamoDB table name from the backend config
-            DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend | cut -d'"' -f2)
+            DYNAMODB_TABLE=$(grep -o 'dynamodb_table = "[^"]*"' infra/tf/backend.${{ env.ENVIRONMENT }}.tfbackend | cut -d'"' -f2)
           else
             # For ultra-cost-optimized, use a default table name
-            DYNAMODB_TABLE="workflow-build-tf-lock-${{ github.event.inputs.environment || 'dev' }}"
+            DYNAMODB_TABLE="workflow-build-tf-lock-${{ env.ENVIRONMENT }}"
           fi
 
           echo "DynamoDB table for state locking: $DYNAMODB_TABLE"
@@ -97,8 +101,8 @@ jobs:
         working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         run: |
           # For standard infrastructure
-          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
-            terraform init -backend-config=backend.${{ github.event.inputs.environment || 'dev' }}.tfbackend ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
+          if [ "${{ env.INFRASTRUCTURE_TYPE }}" = "standard" ]; then
+            terraform init -backend-config=backend.${{ env.ENVIRONMENT }}.tfbackend ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
           else
             # For ultra-cost-optimized, initialize without backend config
             terraform init ${{ steps.check-dynamodb.outputs.LOCK_FLAG }}
@@ -150,10 +154,10 @@ jobs:
         id: plan
         run: |
           # Use the variables from the check-vars step
-          if [ "${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" = "standard" ]; then
+          if [ "${{ env.INFRASTRUCTURE_TYPE }}" = "standard" ]; then
             # For standard infrastructure
             terraform plan ${{ steps.check-dynamodb.outputs.LOCK_FLAG }} \
-              -var-file=environments/${{ github.event.inputs.environment || 'dev' }}.tfvars \
+              -var-file=environments/${{ env.ENVIRONMENT }}.tfvars \
               -var="db_password=${{ steps.check-vars.outputs.DB_PASSWORD }}" \
               -var="secret_encryption_password=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
               -var="secret_encryption_salt=${{ steps.check-vars.outputs.SECRET_ENCRYPTION_SALT }}" \
@@ -177,23 +181,32 @@ jobs:
       - name: Save Infrastructure Type
         id: save-infra-type
         run: |
-          echo "INFRA_TYPE=${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}" >> $GITHUB_OUTPUT
+          echo "INFRA_TYPE=${{ env.INFRASTRUCTURE_TYPE }}" >> $GITHUB_OUTPUT
           echo "INFRA_PATH=${{ steps.infra-path.outputs.INFRA_PATH }}" >> $GITHUB_OUTPUT
 
   approval:
-    name: Approval
+    name: Manual Approval Required
     needs: terraform-plan
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
-      - name: Manual approval
-        run: echo "Deployment approved for ${{ github.event.inputs.environment }}"
+      - name: Manual approval step
+        run: |
+          echo "Terraform plan completed successfully!"
+          echo "Environment: ${{ github.event.inputs.environment || 'dev' }}"
+          echo "Infrastructure Type: ${{ github.event.inputs.infrastructure_type || 'ultra-cost-optimized' }}"
+          echo ""
+          echo "This job requires manual approval before proceeding with terraform apply."
+          echo "Please review the terraform plan output above before approving."
+          echo "✅ Click 'Approve and run' to proceed with the deployment."
 
   terraform-apply:
     name: Terraform Apply
     needs: [approval, terraform-plan]
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ github.event.inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
 
     steps:
