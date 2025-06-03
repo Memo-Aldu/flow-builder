@@ -1,5 +1,5 @@
 from croniter import croniter, CroniterBadCronError
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -33,4 +33,4 @@ def utcnow() -> datetime:
     Returns:
         datetime: The current UTC datetime.
     """
-    return datetime.now(datetime.timetz.utc)
+    return datetime.now(timezone.utc)
