@@ -184,15 +184,16 @@ jobs:
     name: Approval
     needs: terraform-plan
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
+    environment: ${{ github.event.inputs.environment }}
 
     steps:
       - name: Manual approval
-        run: echo "Deployment approved for ${{ github.event.inputs.environment || 'dev' }}"
+        run: echo "Deployment approved for ${{ github.event.inputs.environment }}"
 
   terraform-apply:
     name: Terraform Apply
     needs: [approval, terraform-plan]
+    environment: ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
 
     steps:
