@@ -238,40 +238,15 @@ jobs:
             echo "Using ultra-cost-optimized infrastructure path: infra/tf/ultra-cost-optimized"
           fi
 
-      - name: Check Required Variables
-        id: check-vars-apply
+      - name: Verify Plan File
         run: |
-          # Check if DB_PASSWORD is set
-          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
-            echo "ERROR: DB_PASSWORD secret is not set."
-            echo "You must set the DB_PASSWORD secret in your GitHub repository settings."
-            echo "This is a required variable and the workflow cannot proceed without it."
+          echo "🔍 Verifying terraform plan file exists..."
+          if [ ! -f "${{ steps.infra-path.outputs.INFRA_PATH }}/tfplan" ]; then
+            echo "❌ ERROR: Terraform plan file not found!"
+            echo "The plan file should have been created in the terraform-plan job."
             exit 1
           else
-            echo "DB_PASSWORD is set."
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_OUTPUT
-          fi
-
-          # Check if SECRET_ENCRYPTION_PASSWORD is set
-          if [ -z "${{ secrets.SECRET_ENCRYPTION_PASSWORD }}" ]; then
-            echo "ERROR: SECRET_ENCRYPTION_PASSWORD secret is not set."
-            echo "You must set the SECRET_ENCRYPTION_PASSWORD secret in your GitHub repository settings."
-            echo "This is a required variable and the workflow cannot proceed without it."
-            exit 1
-          else
-            echo "SECRET_ENCRYPTION_PASSWORD is set."
-            echo "SECRET_ENCRYPTION_PASSWORD=${{ secrets.SECRET_ENCRYPTION_PASSWORD }}" >> $GITHUB_OUTPUT
-          fi
-
-          # Check if SECRET_ENCRYPTION_SALT is set
-          if [ -z "${{ secrets.SECRET_ENCRYPTION_SALT }}" ]; then
-            echo "ERROR: SECRET_ENCRYPTION_SALT secret is not set."
-            echo "You must set the SECRET_ENCRYPTION_SALT secret in your GitHub repository settings."
-            echo "This is a required variable and the workflow cannot proceed without it."
-            exit 1
-          else
-            echo "SECRET_ENCRYPTION_SALT is set."
-            echo "SECRET_ENCRYPTION_SALT=${{ secrets.SECRET_ENCRYPTION_SALT }}" >> $GITHUB_OUTPUT
+            echo "✅ Terraform plan file found and ready for apply."
           fi
 
       - name: Check DynamoDB permissions
@@ -321,10 +296,5 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ steps.infra-path.outputs.INFRA_PATH }}
         run: |
-          # Note: We're using the plan file, but for some variables like passwords,
-          # Terraform might still ask for input during apply, so we provide them again
-          terraform apply ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }} \
-            -var="db_password=${{ steps.check-vars-apply.outputs.DB_PASSWORD }}" \
-            -var="secret_encryption_password=${{ steps.check-vars-apply.outputs.SECRET_ENCRYPTION_PASSWORD }}" \
-            -var="secret_encryption_salt=${{ steps.check-vars-apply.outputs.SECRET_ENCRYPTION_SALT }}" \
-            -auto-approve tfplan
+          # Apply the saved plan file - no additional variables needed since they're already in the plan
+          terraform apply ${{ steps.check-dynamodb-apply.outputs.LOCK_FLAG }} -auto-approve tfplan
