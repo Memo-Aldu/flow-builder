@@ -1,7 +1,6 @@
 import Greeting from "@/components/Greeting";
 import { Logo } from "@/components/Logo";
 import { createUser } from "@/lib/api/users";
-import { waitFor } from "@/lib/helper/waitFor";
 import { auth } from "@clerk/nextjs/server";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 

@@ -2,7 +2,6 @@ import Greeting from "@/components/Greeting";
 import { Logo } from "@/components/Logo";
 import { Separator } from "@/components/ui/separator";
 import { getUser } from "@/lib/api/users";
-import { waitFor } from "@/lib/helper/waitFor";
 import { auth } from "@clerk/nextjs/server";
 
 export default async function SignInSuccessPage() {
