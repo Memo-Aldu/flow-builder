@@ -62,7 +62,7 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "POSTGRES_PASSWORD", value = var.db_password },
 
         # Browser configuration
-        { name = "PLAYWRIGHT_HEADLESS", value = var.headless_mode ? "True" : "False" },
+        { name = "PLAYWRIGHT_HEADLESS", value = var.headless_mode ? "true" : "false" },
 
         # Logging configuration
         { name = "LOG_LEVEL", value = "INFO" },

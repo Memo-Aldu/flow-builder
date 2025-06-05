@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    PLAYWRIGHT_HEADLESS=True \
+    PLAYWRIGHT_HEADLESS=true \
     POLLING_MODE=false \
     EVENTBRIDGE_PIPES_MODE=true \
     BATCH_SIZE=1 \
@@ -26,8 +26,10 @@ ENV PYTHONPATH=/app \
     MAX_EXECUTION_TIME_SECONDS=240 \
     EXIT_AFTER_COMPLETION=true
 
-# Make start.sh executable
-RUN chmod +x /app/worker/start.sh
+# Convert line endings and make start.sh executable
+RUN apt-get update -y && apt-get install -y dos2unix \
+ && dos2unix /app/worker/start.sh && chmod +x /app/worker/start.sh \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Use the start script
 CMD ["/bin/bash", "/app/worker/start.sh"]
