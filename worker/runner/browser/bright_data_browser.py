@@ -1,4 +1,3 @@
-import os
 import asyncio
 from typing import Optional, Callable, Any
 
@@ -25,17 +24,17 @@ class BrightDataBrowser(BaseBrowser):
     - Automatic unblocking of websites
     """
 
-    def __init__(self) -> None:
+    def __init__(self, username: str, password: str) -> None:
         super().__init__()
         self.endpoint_url: Optional[str] = None
+        self.username = username
+        self.password = password
         self._setup_credentials()
 
     def _setup_credentials(self) -> None:
         """Setup Bright Data credentials from environment variables"""
-        username = os.environ.get("BRIGHT_DATA_USERNAME")
-        password = os.environ.get("BRIGHT_DATA_PASSWORD")
 
-        if not username or not password:
+        if not self.username or not self.password:
             logger.warning(
                 "Bright Data credentials not found. Set BRIGHT_DATA_USERNAME and "
                 "BRIGHT_DATA_PASSWORD environment variables."
@@ -43,7 +42,7 @@ class BrightDataBrowser(BaseBrowser):
             self.endpoint_url = None
             return
 
-        auth = f"{username}:{password}"
+        auth = f"{self.username}:{self.password}"
         self.endpoint_url = f"wss://{auth}@brd.superproxy.io:9222"
         logger.info("Bright Data credentials configured successfully")
 

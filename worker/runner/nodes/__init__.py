@@ -54,7 +54,7 @@ NODE_REGISTRY: Dict[str, Type[NodeExecutor]] = {
 NODE_CREDIT_COSTS = {
     "launch_standard_browser": 5,
     "launch_stealth_browser": 6,
-    "launch_bright_data_browser": 10,
+    "launch_bright_data_browser": 7,
     "fill_input": 1,
     "click_element": 1,
     "get_html": 2,

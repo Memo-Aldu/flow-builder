@@ -15,6 +15,18 @@ export const LaunchBrightDataBrowserTask = {
             helperText: "eg: https://www.google.com",
             required: true,
             hideHandle: true,
+        },
+        {
+            name: "Bright Data Browser Username",
+            type: TaskParamType.STRING,
+            required: true,
+            hideHandle: true,
+        },
+        {
+            name: "Bright Data Browser Password",
+            type: TaskParamType.CREDENTIAL,
+            required: true,
+            hideHandle: true,
         }
     ],
     outputs: [
@@ -23,5 +35,5 @@ export const LaunchBrightDataBrowserTask = {
             type: TaskParamType.BROWSER_INSTANCE,
         }
     ],
-    credits: 10,
+    credits: 7,
 } satisfies WorkflowTask

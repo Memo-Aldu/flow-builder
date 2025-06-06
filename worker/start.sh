@@ -9,7 +9,7 @@ if [ "$PLAYWRIGHT_HEADLESS" = "false" ]; then
     export DISPLAY=:99
 
     # Wait for Xvfb to start
-    sleep 2
+    sleep 5
 
     echo "Xvfb started successfully"
 fi

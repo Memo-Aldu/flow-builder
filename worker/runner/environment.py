@@ -61,14 +61,18 @@ class Environment:
         self.resources: Dict[str, Dict[str, Any]] = {}
         logger.info("Environment initialized.")
 
-    def set_browser(self, browser_type: str = "normal") -> None:
+    def set_browser(
+        self, browser_type: str = "normal", username: str = "", password: str = ""
+    ) -> None:
         """
         Set the browser instance based on the specified type.
 
         Args:
             browser_type: The type of browser to use ('normal' or 'stealth')
         """
-        self.browser = BrowserFactory.create_browser(browser_type)
+        self.browser = BrowserFactory.create_browser(
+            browser_type=browser_type, username=username, password=password
+        )
         logger.info(f"Set browser type to: {browser_type}")
 
     def create_phase(self, phase_id: UUID, name: str) -> Phase:

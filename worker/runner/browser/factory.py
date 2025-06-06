@@ -10,7 +10,9 @@ class BrowserFactory:
     """
 
     @staticmethod
-    def create_browser(browser_type: str = "normal") -> BaseBrowser:
+    def create_browser(
+        browser_type: str = "normal", username: str = "", password: str = ""
+    ) -> BaseBrowser:
         """
         Create a browser instance based on the specified type.
 
@@ -25,6 +27,6 @@ class BrowserFactory:
         if browser_type == "stealth":
             return StealthBrowser()
         elif browser_type == "brightdata" or browser_type == "bright_data":
-            return BrightDataBrowser()
+            return BrightDataBrowser(username, password)
         else:
             return NormalBrowser()

@@ -45,17 +45,20 @@ function DesktopSidebar() {
             <Logo />
         </div>
         <div className='p-2'><UserCreditsBadge/></div>
-        <div className='flex flex-col p-2'>
+        <div className='flex flex-col p-2 space-y-1'>
             {routes.map(route => (
+                <div key={route.href} className='flex flex-col'>
                 <Link key={`/${route.href}`} 
                 href={`/dashboard/${route.href}`}
                 className={buttonVariants({
                     variant: activeRoute.href === route.href ? 'sidebarItemActive' : 'sidebarItem',
+                    size: 'lg',
                 })}
                 >
-                    <route.icon className='w-6 h-6' size={20} />
+                    <route.icon className='w-8 h-8' size={20} />
                     {route.label}
                 </Link>
+                </div>
             ))}
         </div>
     </div>
@@ -88,7 +91,7 @@ export const MobileSidebar = () => {
                             })}
                             onClick={() => setIsOpen(false)}
                             >
-                                <route.icon className='w-6 h-6' size={20} />
+                                <route.icon className='w-8 h-8' size={20} />
                                 {route.label}
                             </Link>
                         ))}

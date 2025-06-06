@@ -1,6 +1,9 @@
 import os
+from uuid import UUID
+from shared.crud.credentials_crud import get_credential_by_id
 from typing import Any, Dict
 from shared.models import LogLevel
+from shared.secrets import retrieve_secret
 from worker.runner.environment import Environment, Node
 from worker.runner.nodes.base import NodeExecutor
 
@@ -124,7 +127,9 @@ class BrightDataBrowserNode(NodeExecutor):
 
     __name__ = "Bright Data Browser Node"
 
-    required_input_keys = ["Website URL"]
+    required_input_keys = [
+        "Website URL", "Bright Data Browser Username", "Bright Data Browser Password"
+    ]
     output_keys = ["Web Page"]
     can_be_start_node = True
 
@@ -133,11 +138,26 @@ class BrightDataBrowserNode(NodeExecutor):
 
         phase = env.get_phase_of_node(node.id)
         url = node.inputs["Website URL"]
+
+        # Get credentials from node inputs
+        username = node.inputs["Bright Data Browser Username"]
+        password_cred_id = node.inputs["Bright Data Browser Password"]
+
+        # Get password from secret storage
+        credential = await get_credential_by_id(
+            session=self.session, credential_id=UUID(password_cred_id)
+        )
+        if not credential:
+            raise ValueError(f"Credential {password_cred_id} not found.")
+        if not credential.secret_arn:
+            raise ValueError(f"Credential {password_cred_id} missing secret_arn.")
+
+        password = await retrieve_secret(credential.secret_arn, self.session)
         phase.add_log(f"Launching Bright Data browser to {url}...", LogLevel.INFO)
 
         try:
             if not hasattr(env, "browser") or env.browser is None:
-                env.set_browser("brightdata")
+                env.set_browser("brightdata", username, password)
                 if env.browser is None:
                     raise ValueError("Failed to create Bright Data browser.")
 
