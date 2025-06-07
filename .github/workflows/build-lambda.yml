@@ -73,7 +73,7 @@ jobs:
             fi
           done
 
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Update Lambda Function
         run: |
@@ -83,9 +83,10 @@ jobs:
           # Check if the Lambda function exists
           if aws lambda get-function --function-name $FUNCTION_NAME >/dev/null 2>&1; then
             echo "Updating Lambda function $FUNCTION_NAME"
+            IMAGE_URI=${{ steps.build-image.outputs.image }}
             aws lambda update-function-code \
               --function-name $FUNCTION_NAME \
-              --image-uri ${{ steps.build-image.outputs.image }}
+              --image-uri $IMAGE_URI
           else
             echo "Lambda function $FUNCTION_NAME not found. Skipping update."
             echo "You may need to deploy the infrastructure first."
