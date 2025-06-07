@@ -202,7 +202,6 @@ class EmailDeliveryNode(NodeExecutor):
 
     required_input_keys = [
         "SMTP Server",
-        "SMTP Port",
         "Username",
         "Password",
         "From Email",
