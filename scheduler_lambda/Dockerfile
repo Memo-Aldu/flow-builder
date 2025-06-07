@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.12
+FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.12
 
 COPY scheduler_lambda/requirements.txt ${LAMBDA_TASK_ROOT}/
 
