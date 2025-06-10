@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -14,8 +16,10 @@ from api.app.routers import (
     logs,
     versions,
     executions,
+    guest,
 )
 from api.app import logger
+from api.app.middleware.hybrid_rate_limit import hybrid_limiter
 
 
 @asynccontextmanager
@@ -32,6 +36,10 @@ app = FastAPI(
     summary="A service for building and executing workflows",
     lifespan=lifespan,
 )
+
+# Add rate limiting
+app.state.limiter = hybrid_limiter.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,14 +63,18 @@ app.include_router(executions.router, prefix="/api/v1/executions", tags=["Execut
 app.include_router(phases.router, prefix="/api/v1/phases", tags=["ExecutionPhase"])
 app.include_router(logs.router, prefix="/api/v1/logs", tags=["ExecutionLogs"])
 app.include_router(purchases.router, prefix="/api/v1/purchases", tags=["Purchases"])
+app.include_router(guest.router, prefix="/api/v1/guest", tags=["Guest"])
 
 
 @app.get("/ping")
-async def pong() -> dict[str, str]:
+@hybrid_limiter.limiter.limit("100/minute")
+async def pong(request: Request) -> dict[str, str]:
+    """Basic ping endpoint with rate limiting."""
     return {"ping": "pong!"}
 
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
+@hybrid_limiter.limiter.limit("100/minute")
+async def health_check(request: Request) -> dict[str, str]:
     """Health check endpoint for ECS container health checks."""
     return {"status": "healthy"}
