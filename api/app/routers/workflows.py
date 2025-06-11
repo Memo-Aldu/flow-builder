@@ -1,13 +1,13 @@
 from typing import List
 from uuid import UUID
-from venv import logger
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.app.auth import verify_clerk_token
-from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.auth import verify_user_or_guest, get_current_user_from_auth
 from api.app.services import workflows as svc
+from api.app.middleware.hybrid_rate_limit import workflows_rate_limit, check_hybrid_rate_limit
 from shared.db import get_session
 from shared.models import (
     User,
@@ -18,21 +18,22 @@ from shared.models import (
     WorkflowStatus,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["Workflows"])
 
 
 async def _current_user(
     db: AsyncSession = Depends(get_session),
-    info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
 ) -> User:
-    user = await get_local_user_by_clerk_id(db, info["sub"])
-    if not user:
-        raise HTTPException(404, "User not found")
-    return user
+    return await get_current_user_from_auth(auth_data, db)
 
 
 @router.get("", response_model=List[WorkflowRead])
+@workflows_rate_limit
 async def list_workflows(
+    request: Request,
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=100),
     sort: svc.SortField = Query(svc.SortField.CREATED_AT),
@@ -41,6 +42,9 @@ async def list_workflows(
     user=Depends(_current_user),
 ) -> List[svc.Workflow]:
     """List all workflows for the current user"""
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, db, user)
+
     logger.info(f"Listing workflows for user: {user.id}")
     return await svc.list_user_workflows(
         db, user.id, page=page, limit=limit, sort=sort, order=order
@@ -61,11 +65,16 @@ async def get_workflow(
 
 
 @router.post("", response_model=WorkflowRead, status_code=status.HTTP_201_CREATED)
+@workflows_rate_limit
 async def create_workflow(
+    request: Request,
     data: WorkflowCreate,
     db: AsyncSession = Depends(get_session),
     user=Depends(_current_user),
 ) -> svc.Workflow:
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, db, user)
+
     wf = await svc.create_workflow(db, user.id, data)
     await svc.create_initial_version(db, wf, created_by=user.username or str(user.id))
     return wf

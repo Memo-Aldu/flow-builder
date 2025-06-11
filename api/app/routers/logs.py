@@ -1,12 +1,12 @@
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.routers import logger
-from api.app.auth import verify_clerk_token
-from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.auth import verify_user_or_guest, get_current_user_from_auth
+from api.app.middleware.hybrid_rate_limit import default_rate_limit, check_hybrid_rate_limit
 from api.app.crud.log_crud import (
     SortField,
     SortOrder,
@@ -23,22 +23,24 @@ router = APIRouter(tags=["ExecutionLogs"])
 
 
 @router.get("/{log_id}", response_model=ExecutionLogRead)
+@default_rate_limit
 async def get_log_endpoint(
+    request: Request,
     log_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> ExecutionLog:
     """Get a log by ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    user = await get_current_user_from_auth(auth_data, session)
 
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     log = await get_log_by_id(session, log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     execution_phase = await get_phase_by_id_and_user(
-        session, log.execution_phase_id, local_user.id
+        session, log.execution_phase_id, user.id
     )
     if not execution_phase:
         raise HTTPException(
@@ -46,14 +48,16 @@ async def get_log_endpoint(
         )
     if execution_phase.id != log.execution_phase_id:
         raise HTTPException(status_code=404, detail="Log not found")
-    logger.info(f"Getting log: {log.id}")
+    logger.info("Getting log: %s", log.id)
     return log
 
 
 @router.get("", response_model=List[ExecutionLogRead])
+@default_rate_limit
 async def get_logs_endpoint(
+    request: Request,
     execution_phase_id: UUID = Query(..., description="Filter by execution phase ID"),
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),
@@ -61,12 +65,13 @@ async def get_logs_endpoint(
     order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[ExecutionLog]:
     """Get all logs for a given execution phase ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
+
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     execution_phase = await get_phase_by_id_and_user(
-        session, execution_phase_id, local_user.id
+        session, execution_phase_id, user.id
     )
 
     if not execution_phase:
@@ -77,5 +82,5 @@ async def get_logs_endpoint(
     logs = await get_logs_by_execution_phase_id(
         session, execution_phase_id, page, limit, sort, order
     )
-    logger.info(f"Getting logs for execution phase: {execution_phase_id}")
+    logger.info("Getting logs for execution phase: %s", execution_phase_id)
     return logs

@@ -1,12 +1,12 @@
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.routers import logger
-from api.app.auth import verify_clerk_token
-from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.auth import verify_user_or_guest, get_current_user_from_auth
+from api.app.middleware.hybrid_rate_limit import default_rate_limit, check_hybrid_rate_limit
 from api.app.crud.workflow_version_crud import (
     SortField,
     SortOrder,
@@ -27,51 +27,59 @@ router = APIRouter(tags=["WorkflowVersions"])
     "/{workflow_id}/versions/number/{version_num}",
     response_model=WorkflowVersionRead,
 )
+@default_rate_limit
 async def get_version_by_number(
+    request: Request,
     workflow_id: UUID,
     version_num: int,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowVersionRead:
     """Get a specific workflow version by ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
+
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     workflow_version = await get_workflow_version_by_version(
         session, workflow_id, version_num
     )
     if not workflow_version:
         raise HTTPException(status_code=404, detail="Workflow version not found")
-    logger.info(f"Get workflow version by number: {workflow_version.version_number}")
+    logger.info("Get workflow version by number: %s", workflow_version.version_number)
     return WorkflowVersionRead.model_validate(workflow_version)
 
 
 @router.get("/{workflow_id}/versions/{version_id}", response_model=WorkflowVersionRead)
+@default_rate_limit
 async def get_version_by_id(
+    request: Request,
     workflow_id: UUID,
     version_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowVersionRead:
     """Get a specific workflow version by ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
+
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     workflow_version = await get_workflow_version_by_id(
         session, workflow_id, version_id
     )
     if not workflow_version:
         raise HTTPException(status_code=404, detail="Workflow version not found")
-    logger.info(f"Get workflow version by ID: {version_id}")
+    logger.info("Get workflow version by ID: %s", version_id)
     return WorkflowVersionRead.model_validate(workflow_version)
 
 
 @router.get("/{workflow_id}/versions", response_model=List[WorkflowVersionRead])
+@default_rate_limit
 async def list_versions(
+    request: Request,
     workflow_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),
@@ -79,14 +87,15 @@ async def list_versions(
     order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[WorkflowVersionRead]:
     """Get all versions for a given workflow"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
+
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     workflow_versions = await get_workflow_versions_by_workflow_id(
         session, workflow_id, page, limit, sort, order
     )
-    logger.info(f"Getting versions for workflow {workflow_id}")
+    logger.info("Getting versions for workflow %s", workflow_id)
     return [
         WorkflowVersionRead.model_validate(workflow_version)
         for workflow_version in workflow_versions
@@ -98,20 +107,23 @@ async def list_versions(
     response_model=WorkflowVersionRead,
     status_code=201,
 )
+@default_rate_limit
 async def create_version(
+    request: Request,
     workflow_id: UUID,
     version_in: WorkflowVersionCreate,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowVersionRead:
     """
     Create a new version for a workflow and mark it as the active version.
     """
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
-    workflow = await get_workflow_by_id_and_user(session, workflow_id, local_user.id)
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
+
+    workflow = await get_workflow_by_id_and_user(session, workflow_id, user.id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -120,7 +132,7 @@ async def create_version(
         workflow_id=workflow_id,
         workflow_version=WorkflowVersion(
             **version_in.model_dump(exclude_unset=True),
-            created_by=local_user.username or str(local_user.id),
+            created_by=user.username or str(user.id),
             parent_version_id=workflow.active_version_id,
             workflow_id=workflow_id,
         ),
@@ -137,7 +149,9 @@ async def create_version(
     session.add(workflow)
     await session.commit()
     logger.info(
-        f"Created new workflow version: {new_version.version_number} for workflow {workflow_id}"
+        "Created new workflow version: %s for workflow %s",
+        new_version.version_number,
+        workflow_id
     )
 
     return WorkflowVersionRead.model_validate(new_version)
