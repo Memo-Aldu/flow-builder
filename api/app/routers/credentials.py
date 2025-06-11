@@ -1,12 +1,12 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.app.auth import verify_clerk_token
+from api.app.auth import verify_user_or_guest, get_current_user_from_auth
+from api.app.middleware.hybrid_rate_limit import credentials_rate_limit, check_hybrid_rate_limit
 from api.app.crud.credentials_crud import create_credential, delete_credential
-from api.app.crud.user_crud import get_local_user_by_clerk_id
 from api.app.routers import logger
 from shared.crud.credentials_crud import (
     SortField,
@@ -22,41 +22,47 @@ router = APIRouter(tags=["Credentials"])
 
 
 @router.get("", response_model=List[CredentialRead])
+@credentials_rate_limit
 async def list_credentials_endpoint(
-    user_info: dict = Depends(verify_clerk_token),
+    request: Request,
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),
     sort: SortField = Query(SortField.CREATED_AT, description="Sort field"),
     order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[Credential]:
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
+
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     creds = await list_credentials_for_user(
-        session, local_user.id, page, limit, sort, order
+        session, user.id, page, limit, sort, order
     )
-    logger.info(f"Getting credentials for user: {local_user.id}")
+    logger.info("Getting credentials for user: %s", user.id)
     return creds
 
 
 @router.post("", response_model=CredentialRead, status_code=status.HTTP_201_CREATED)
+@credentials_rate_limit
 async def create_credential_endpoint(
+    request: Request,
     credential_in: CredentialCreate,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
+
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     # Create the secret using the appropriate storage method
     secret_id_or_arn = await create_secret(
         session=session,
         secret_name=credential_in.name,
         secret_value=credential_in.value,
-        user_id=local_user.id,
+        user_id=user.id,
     )
 
     # Determine if this is a DB secret based on the returned ID/ARN
@@ -65,7 +71,7 @@ async def create_credential_endpoint(
     # Create the credential record
     new_cred = await create_credential(
         session=session,
-        user_id=local_user.id,
+        user_id=user.id,
         secret_id_or_arn=secret_id_or_arn,
         credential_data=credential_in,
         is_db_secret=is_db_secret,
@@ -78,33 +84,39 @@ async def create_credential_endpoint(
 
 
 @router.get("/{credential_id}", response_model=CredentialRead)
+@credentials_rate_limit
 async def get_credential_endpoint(
+    request: Request,
     credential_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
-    cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
+
+    cred = await get_credential_by_id_and_user(session, credential_id, user.id)
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
-    logger.info(f"Getting credential: {cred.id}")
+    logger.info("Getting credential: %s", cred.id)
     return cred
 
 
 @router.delete("/{credential_id}", status_code=status.HTTP_204_NO_CONTENT)
+@credentials_rate_limit
 async def delete_credential_endpoint(
+    request: Request,
     credential_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
-    cred = await get_credential_by_id_and_user(session, credential_id, local_user.id)
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
+
+    cred = await get_credential_by_id_and_user(session, credential_id, user.id)
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
 
@@ -112,11 +124,11 @@ async def delete_credential_endpoint(
     success = await delete_secret(
         session=session,
         secret_id_or_arn=cred.secret_arn,
-        user_id=local_user.id if cred.is_db_secret else None,
+        user_id=user.id if cred.is_db_secret else None,
     )
 
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete secret")
 
-    logger.info(f"Deleting credential: {cred.id}")
+    logger.info("Deleting credential: %s", cred.id)
     await delete_credential(session, cred)
