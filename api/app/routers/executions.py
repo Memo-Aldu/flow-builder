@@ -4,12 +4,12 @@ from uuid import UUID
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlmodel.ext.asyncio.session import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 
 from api.app.routers import logger
-from api.app.auth import verify_clerk_token
-from api.app.crud.user_crud import get_local_user_by_clerk_id
+from api.app.auth import verify_user_or_guest, get_current_user_from_auth
+from api.app.middleware.hybrid_rate_limit import executions_rate_limit, check_hybrid_rate_limit
 from api.app.crud.execution_crud import (
     SortField,
     SortOrder,
@@ -56,7 +56,7 @@ sqs_client = get_sqs_client()
 
 @router.get("", response_model=List[WorkflowExecutionRead])
 async def list_executions_endpoint(
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     workflow_id: Optional[UUID] = Query(None, description="Filter by workflow ID"),
     page: int = Query(1, ge=1, description="Current page number"),
@@ -65,21 +65,18 @@ async def list_executions_endpoint(
     order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
 ) -> List[WorkflowExecution]:
     """Gets all executions for a given workflow ID or all executions for a user"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
     if workflow_id:
         executions = await get_executions_by_workflow_id_and_user(
-            session, workflow_id, local_user.id, page, limit, sort, order
+            session, workflow_id, user.id, page, limit, sort, order
         )
         return executions
 
     executions = await get_executions_for_user(
-        session, local_user.id, page, limit, sort, order
+        session, user.id, page, limit, sort, order
     )
-    logger.info(f"Getting executions for user: {local_user.id}")
+    logger.info(f"Getting executions for user: {user.id}")
     return executions
 
 
@@ -87,14 +84,11 @@ async def list_executions_endpoint(
 async def get_execution_stats_endpoint(
     start_date: datetime = Query(..., description="Start date for stats"),
     end_date: datetime = Query(..., description="End date for stats"),
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> ExecutionStats:
     """Gets execution stats for a user within a date range"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
     if start_date > end_date:
         raise HTTPException(
@@ -102,10 +96,10 @@ async def get_execution_stats_endpoint(
         )
 
     logger.info(
-        f"Getting execution stats for user: {local_user.id} from {start_date} to {end_date}"
+        f"Getting execution stats for user: {user.id} from {start_date} to {end_date}"
     )
 
-    executions = await get_execution_stats(session, local_user.id, start_date, end_date)
+    executions = await get_execution_stats(session, user.id, start_date, end_date)
 
     num_executions = len(executions)
     total_credits = sum(e.credits_consumed or 0 for e in executions)
@@ -185,23 +179,25 @@ async def get_execution_stats_endpoint(
 @router.post(
     "", response_model=WorkflowExecutionRead, status_code=status.HTTP_201_CREATED
 )
+@executions_rate_limit
 async def create_execution_endpoint(
+    request: Request,
     exec_in: WorkflowExecutionCreate,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
     """Creates a new execution and sends a message to the SQS queue."""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    user = await get_current_user_from_auth(auth_data, session)
 
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # Check additional guest-specific rate limits
+    await check_hybrid_rate_limit(request, session, user)
 
     workflow = await get_workflow_by_id_and_user(
-        session, exec_in.workflow_id, local_user.id
+        session, exec_in.workflow_id, user.id
     )
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    new_execution = await create_execution(session, local_user.id, exec_in)
+    new_execution = await create_execution(session, user.id, exec_in)
 
     message_body = {
         "execution_id": str(new_execution.id),
@@ -230,15 +226,13 @@ async def create_execution_endpoint(
 @router.get("/{execution_id}", response_model=WorkflowExecutionRead)
 async def get_execution_endpoint(
     execution_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
     """Gets a single execution by ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
+    user = await get_current_user_from_auth(auth_data, session)
 
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
+    execution = await get_execution_by_id_and_user(session, execution_id, user.id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
     logger.info(f"Getting execution: {execution.id}")
@@ -249,15 +243,13 @@ async def get_execution_endpoint(
 async def update_execution_endpoint(
     execution_id: UUID,
     exec_in: WorkflowExecutionUpdate,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
     """Updates a single execution by ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
-    execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
+    execution = await get_execution_by_id_and_user(session, execution_id, user.id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
 
@@ -269,15 +261,13 @@ async def update_execution_endpoint(
 @router.delete("/{execution_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_execution_endpoint(
     execution_id: UUID,
-    user_info: dict = Depends(verify_clerk_token),
+    auth_data = Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Deletes a single execution by ID"""
-    local_user = await get_local_user_by_clerk_id(session, user_info["sub"])
-    if not local_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await get_current_user_from_auth(auth_data, session)
 
-    execution = await get_execution_by_id_and_user(session, execution_id, local_user.id)
+    execution = await get_execution_by_id_and_user(session, execution_id, user.id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
 
