@@ -1,22 +1,80 @@
-# FlowBuilder API
+# Flow Builder API
 
-This is the API service for the FlowBuilder application. It provides endpoints for managing workflows, executing workflows, and handling user authentication.
+FastAPI backend service for the Flow Builder workflow automation platform.
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "API Layer"
+        Router[FastAPI Routers]
+        Auth[Authentication Layer]
+        RateLimit[Hybrid Rate Limiting]
+        Middleware[Custom Middleware]
+    end
+
+    subgraph "Business Logic"
+        Services[Service Layer]
+        CRUD[CRUD Operations]
+        Validation[Data Validation]
+    end
+
+    subgraph "Data Layer"
+        Models[SQLModel Models]
+        DB[(PostgreSQL)]
+        Redis[(Redis Cache)]
+        Secrets[AWS Secrets Manager]
+    end
+
+    subgraph "External Services"
+        Clerk[Clerk Auth]
+        SQS[AWS SQS]
+        EventBridge[AWS EventBridge]
+    end
+
+    Router --> Auth
+    Router --> RateLimit
+    Auth --> Services
+    Services --> CRUD
+    CRUD --> Models
+    Models --> DB
+    RateLimit --> Redis
+    Services --> Secrets
+    Services --> SQS
+    Auth --> Clerk
+
+    classDef api fill:#e1f5fe
+    classDef business fill:#f3e5f5
+    classDef data fill:#e8f5e8
+    classDef external fill:#fff3e0
+
+    class Router,Auth,RateLimit,Middleware api
+    class Services,CRUD,Validation business
+    class Models,DB,Redis,Secrets data
+    class Clerk,SQS,EventBridge external
+```
 
 ## Features
 
-- RESTful API for workflow management
-- Authentication with Clerk
-- Database integration with PostgreSQL
-- SQS integration for workflow execution requests
-- Secrets management for secure credential storage
+### Core API Features
+- **RESTful API**: Clean, consistent REST endpoints
+- **OpenAPI Documentation**: Auto-generated API docs at `/docs`
+- **Type Safety**: Full TypeScript-like typing with Pydantic
+- **Async/Await**: High-performance async request handling
+- **Database ORM**: SQLModel for type-safe database operations
 
-## Tech Stack
+### Authentication & Authorization
+- **Clerk Integration**: Secure JWT token validation
+- **Guest Access**: Custom guest session management
+- **Role-based Access**: Different permissions for user types
+- **Session Validation**: Automatic session expiry and cleanup
 
-- FastAPI: Modern, high-performance web framework
-- SQLModel: SQL databases in Python, designed for simplicity and compatibility with FastAPI
-- Pydantic: Data validation and settings management
-- AsyncPG: Asynchronous PostgreSQL driver
-- Boto3: AWS SDK for Python
+### Security & Performance
+- **Hybrid Rate Limiting**: Memory + Redis-based rate limiting
+- **Input Validation**: Comprehensive request validation
+- **SQL Injection Protection**: Parameterized queries
+- **CORS Configuration**: Secure cross-origin requests
+- **Error Handling**: Structured error responses
 
 ## Environment Variables
 
@@ -26,7 +84,7 @@ This is the API service for the FlowBuilder application. It provides endpoints f
 | `DB_PORT` | Database port | `5433` |
 | `DB_NAME` | Database name | `flow-builder` |
 | `DB_USER` | Database username | `root` |
-| `DB_PASSWORD` | Database password | `rootpassword` |
+| `DB_PASSWORD` | Database password | `-` |
 | `DB_SSL_MODE` | SSL mode for database connection | `require` |
 | `CLERK_SECRET_KEY` | Clerk API secret key | - |
 | `CLERK_FRONTEND_URL` | Clerk frontend URL | - |

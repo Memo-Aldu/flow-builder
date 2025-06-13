@@ -1,6 +1,6 @@
 import enum
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, ClassVar
 from pytz import timezone
 from sqlmodel import DateTime, SQLModel, Field, Relationship, Column, JSON, ForeignKey
@@ -10,26 +10,52 @@ from sqlalchemy import LargeBinary
 class User(SQLModel, table=True):
     __tablename__: ClassVar[str] = "user"
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
-    clerk_id: str = Field(index=True, unique=True)
+    clerk_id: Optional[str] = Field(index=True, unique=True, default=None)
     email: Optional[str] = None
     username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+    # Guest user fields
+    is_guest: bool = Field(default=False, index=True)
+    guest_session_id: Optional[str] = Field(index=True, default=None)
+    guest_ip_address: Optional[str] = Field(default=None, index=True)
+    guest_created_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
+    guest_expires_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)), default=None
+    )
+
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
 
     workflows: List["Workflow"] = Relationship(
-        back_populates="user", cascade_delete=True
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
     executions: List["WorkflowExecution"] = Relationship(
-        back_populates="user", cascade_delete=True
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
     credentials: List["Credential"] = Relationship(
-        back_populates="user", cascade_delete=True
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
     db_secrets: List["DbSecret"] = Relationship(
-        back_populates="user", cascade_delete=True
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
     purchases: List["UserPurchase"] = Relationship(
-        back_populates="user", cascade_delete=True
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
-    balance: Optional["UserBalance"] = Relationship(back_populates="user")
+    balance: Optional["UserBalance"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan", "passive_deletes": True}
+    )
 
 
 #
@@ -89,11 +115,16 @@ class Workflow(WorkflowBase, table=True):
     __tablename__: ClassVar[str] = "workflow"
 
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     user: Optional["User"] = Relationship(back_populates="workflows")
     executions: List["WorkflowExecution"] = Relationship(
-        back_populates="workflow", cascade_delete=True
+        back_populates="workflow",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
 
     versions: List["WorkflowVersion"] = Relationship(
@@ -229,7 +260,11 @@ class ExecutionTrigger(str, enum.Enum):
 
 
 class WorkflowExecutionBase(SQLModel):
-    workflow_id: UUID = Field(foreign_key="workflow.id", index=True)
+    workflow_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("workflow.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     trigger: ExecutionTrigger = Field(default=ExecutionTrigger.MANUAL)
     status: ExecutionStatus = Field(default=ExecutionStatus.PENDING)
@@ -254,12 +289,17 @@ class WorkflowExecutionBase(SQLModel):
 class WorkflowExecution(WorkflowExecutionBase, table=True):
     __tablename__: ClassVar[str] = "workflow_execution"
     id: UUID = Field(primary_key=True, index=True, default_factory=uuid4)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     workflow: Optional["Workflow"] = Relationship(back_populates="executions")
     user: Optional["User"] = Relationship(back_populates="executions")
     phases: List["ExecutionPhase"] = Relationship(
-        back_populates="execution", cascade_delete=True
+        back_populates="execution",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
 
 
@@ -292,7 +332,11 @@ class ExecutionPhaseStatus(str, enum.Enum):
 
 
 class ExecutionPhaseBase(SQLModel):
-    workflow_execution_id: UUID = Field(foreign_key="workflow_execution.id", index=True)
+    workflow_execution_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("workflow_execution.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     # E.g: phase #1, #2, #3 in the pipeline
     number: int
@@ -317,11 +361,16 @@ class ExecutionPhaseBase(SQLModel):
 class ExecutionPhase(ExecutionPhaseBase, table=True):
     __tablename__: ClassVar[str] = "execution_phase"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     execution: Optional["WorkflowExecution"] = Relationship(back_populates="phases")
     logs: List["ExecutionLog"] = Relationship(
-        back_populates="phase", cascade_delete=True
+        back_populates="phase",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "passive_deletes": True}
     )
 
 
@@ -354,7 +403,11 @@ class LogLevel(str, enum.Enum):
 
 
 class ExecutionLogBase(SQLModel):
-    execution_phase_id: UUID = Field(foreign_key="execution_phase.id", index=True)
+    execution_phase_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("execution_phase.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
     log_level: LogLevel = Field(default=LogLevel.INFO)
     message: str
 
@@ -390,7 +443,11 @@ class UserBalanceBase(SQLModel):
 
 class UserBalance(UserBalanceBase, table=True):
     __tablename__: ClassVar[str] = "user_balance"
-    user_id: UUID = Field(primary_key=True, foreign_key="user.id")
+    user_id: UUID = Field(
+        sa_column=Column(
+            "user_id", ForeignKey("user.id", ondelete="CASCADE"), primary_key=True, nullable=False
+        )
+    )
     updated_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True)),
         default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
@@ -429,7 +486,11 @@ class DbSecret(DbSecretBase, table=True):
         sa_column=Column("encrypted_value", type_=LargeBinary)
     )
     nonce: bytes = Field(sa_column=Column("nonce", type_=LargeBinary))
-    user_id: UUID = Field(foreign_key="user.id", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True)),
         default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
@@ -453,7 +514,11 @@ class Credential(CredentialBase, table=True):
     secret_arn: str = Field(index=True)
     # Flag to indicate if this is a DB secret or AWS secret
     is_db_secret: bool = Field(default=False)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True)),
         default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
@@ -491,7 +556,11 @@ class UserPurchaseBase(SQLModel):
 class UserPurchase(UserPurchaseBase, table=True):
     __tablename__: ClassVar[str] = "user_purchase"
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
 
     user: Optional["User"] = Relationship(back_populates="purchases")
 
@@ -510,3 +579,35 @@ class UserPurchaseRead(UserPurchaseBase):
         default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
     )
     stripe_id: Optional[str] = Field(default=None, exclude=True)
+
+
+
+
+
+#
+# GUEST SESSION TRACKING
+#
+
+
+class GuestSession(SQLModel, table=True):
+    """Track guest sessions and prevent multiple accounts per IP."""
+    __tablename__: ClassVar[str] = "guest_session"
+
+    id: UUID = Field(primary_key=True, default_factory=uuid4)
+    session_id: str = Field(unique=True, index=True)
+    ip_address: str = Field(index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+        )
+    )
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")),
+    )
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True) , index=True),
+        default_factory=lambda: datetime.now(tz=timezone("US/Eastern")) + timedelta(days=3),
+    )
+    is_active: bool = Field(default=True, index=True)
+    converted_to_user: bool = Field(default=False)  # Track if guest converted to real user
