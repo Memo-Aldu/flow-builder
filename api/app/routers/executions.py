@@ -9,7 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 
 from api.app.routers import logger
 from api.app.auth import verify_user_or_guest, get_current_user_from_auth
-from api.app.middleware.hybrid_rate_limit import executions_rate_limit, check_hybrid_rate_limit
+from api.app.middleware.hybrid_rate_limit import (
+    executions_rate_limit,
+    check_hybrid_rate_limit,
+)
 from api.app.crud.execution_crud import (
     SortField,
     SortOrder,
@@ -56,7 +59,7 @@ sqs_client = get_sqs_client()
 
 @router.get("", response_model=List[WorkflowExecutionRead])
 async def list_executions_endpoint(
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     workflow_id: Optional[UUID] = Query(None, description="Filter by workflow ID"),
     page: int = Query(1, ge=1, description="Current page number"),
@@ -84,7 +87,7 @@ async def list_executions_endpoint(
 async def get_execution_stats_endpoint(
     start_date: datetime = Query(..., description="Start date for stats"),
     end_date: datetime = Query(..., description="End date for stats"),
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> ExecutionStats:
     """Gets execution stats for a user within a date range"""
@@ -183,7 +186,7 @@ async def get_execution_stats_endpoint(
 async def create_execution_endpoint(
     request: Request,
     exec_in: WorkflowExecutionCreate,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
     """Creates a new execution and sends a message to the SQS queue."""
@@ -192,9 +195,7 @@ async def create_execution_endpoint(
     # Check additional guest-specific rate limits
     await check_hybrid_rate_limit(request, session, user)
 
-    workflow = await get_workflow_by_id_and_user(
-        session, exec_in.workflow_id, user.id
-    )
+    workflow = await get_workflow_by_id_and_user(session, exec_in.workflow_id, user.id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     new_execution = await create_execution(session, user.id, exec_in)
@@ -226,7 +227,7 @@ async def create_execution_endpoint(
 @router.get("/{execution_id}", response_model=WorkflowExecutionRead)
 async def get_execution_endpoint(
     execution_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
     """Gets a single execution by ID"""
@@ -243,7 +244,7 @@ async def get_execution_endpoint(
 async def update_execution_endpoint(
     execution_id: UUID,
     exec_in: WorkflowExecutionUpdate,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowExecution:
     """Updates a single execution by ID"""
@@ -261,7 +262,7 @@ async def update_execution_endpoint(
 @router.delete("/{execution_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_execution_endpoint(
     execution_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Deletes a single execution by ID"""

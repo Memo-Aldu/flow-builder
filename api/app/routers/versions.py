@@ -6,7 +6,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.routers import logger
 from api.app.auth import verify_user_or_guest, get_current_user_from_auth
-from api.app.middleware.hybrid_rate_limit import default_rate_limit, check_hybrid_rate_limit
+from api.app.middleware.hybrid_rate_limit import (
+    default_rate_limit,
+    check_hybrid_rate_limit,
+)
 from api.app.crud.workflow_version_crud import (
     SortField,
     SortOrder,
@@ -32,7 +35,7 @@ async def get_version_by_number(
     request: Request,
     workflow_id: UUID,
     version_num: int,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowVersionRead:
     """Get a specific workflow version by ID"""
@@ -56,7 +59,7 @@ async def get_version_by_id(
     request: Request,
     workflow_id: UUID,
     version_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowVersionRead:
     """Get a specific workflow version by ID"""
@@ -79,7 +82,7 @@ async def get_version_by_id(
 async def list_versions(
     request: Request,
     workflow_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),
@@ -112,7 +115,7 @@ async def create_version(
     request: Request,
     workflow_id: UUID,
     version_in: WorkflowVersionCreate,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowVersionRead:
     """
@@ -151,7 +154,7 @@ async def create_version(
     logger.info(
         "Created new workflow version: %s for workflow %s",
         new_version.version_number,
-        workflow_id
+        workflow_id,
     )
 
     return WorkflowVersionRead.model_validate(new_version)
