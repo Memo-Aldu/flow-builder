@@ -9,8 +9,15 @@ from stripe.error import SignatureVerificationError  # type: ignore
 from api.app.routers import logger
 from api.app.config import settings, PackageID
 from api.app.services import purchases as svc
-from api.app.auth import verify_clerk_token, verify_user_or_guest, get_current_user_from_auth
-from api.app.middleware.hybrid_rate_limit import default_rate_limit, check_hybrid_rate_limit
+from api.app.auth import (
+    verify_clerk_token,
+    verify_user_or_guest,
+    get_current_user_from_auth,
+)
+from api.app.middleware.hybrid_rate_limit import (
+    default_rate_limit,
+    check_hybrid_rate_limit,
+)
 from shared.models import User
 from shared.db import get_session
 
@@ -31,7 +38,7 @@ async def list_packages(request: Request) -> dict:
 async def get_purchases(
     request: Request,
     db: AsyncSession = Depends(get_session),
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     page: int = 1,
     limit: int = 10,
 ) -> List[svc.UserPurchaseRead]:
@@ -45,7 +52,7 @@ async def get_purchases(
     if user.is_guest:
         raise HTTPException(
             status_code=403,
-            detail="Guest users cannot access purchase history. Please create an account."
+            detail="Guest users cannot access purchase history. Please create an account.",
         )
 
     purchases = await svc.get_purchases(db, user.id, page, limit)
@@ -58,7 +65,7 @@ async def create_checkout(
     request: Request,
     package: PackageID,
     db: AsyncSession = Depends(get_session),
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
 ) -> svc.CheckoutSession:
     """Create a new checkout session for the specified package."""
     user = await get_current_user_from_auth(auth_data, db)
@@ -70,7 +77,7 @@ async def create_checkout(
     if user.is_guest:
         raise HTTPException(
             status_code=403,
-            detail="Guest users cannot make purchases. Please create an account to buy credits."
+            detail="Guest users cannot make purchases. Please create an account to buy credits.",
         )
 
     try:
@@ -97,7 +104,7 @@ async def stripe_webhook(
         raise HTTPException(400, "Invalid signature") from exc
 
     # Handle event
-    logger.info("Received Stripe event: %s", event['type'])
+    logger.info("Received Stripe event: %s", event["type"])
     if event["type"] == "checkout.session.completed":
         data = event["data"]["object"]
         try:

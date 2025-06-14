@@ -6,7 +6,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.routers import logger
 from api.app.auth import verify_user_or_guest, get_current_user_from_auth
-from api.app.middleware.hybrid_rate_limit import default_rate_limit, check_hybrid_rate_limit
+from api.app.middleware.hybrid_rate_limit import (
+    default_rate_limit,
+    check_hybrid_rate_limit,
+)
 from api.app.crud.log_crud import (
     SortField,
     SortOrder,
@@ -27,7 +30,7 @@ router = APIRouter(tags=["ExecutionLogs"])
 async def get_log_endpoint(
     request: Request,
     log_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> ExecutionLog:
     """Get a log by ID"""
@@ -57,7 +60,7 @@ async def get_log_endpoint(
 async def get_logs_endpoint(
     request: Request,
     execution_phase_id: UUID = Query(..., description="Filter by execution phase ID"),
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),

@@ -57,8 +57,7 @@ async def verify_clerk_token(request: Request) -> Optional[Dict[str, Any]]:
 
 # Combined authentication dependency that supports both Clerk and guest users
 async def verify_user_or_guest(
-    request: Request,
-    session: AsyncSession = Depends(get_session)
+    request: Request, session: AsyncSession = Depends(get_session)
 ) -> Union[Dict[str, Any], User]:
     """
     Verify either Clerk token or guest session.
@@ -86,14 +85,13 @@ async def verify_user_or_guest(
     # Neither authentication method worked
     raise HTTPException(
         status_code=401,
-        detail="Authentication required. Please sign in or use guest access."
+        detail="Authentication required. Please sign in or use guest access.",
     )
 
 
 # Optional authentication - allows both authenticated and unauthenticated access
 async def optional_auth(
-    request: Request,
-    session: AsyncSession = Depends(get_session)
+    request: Request, session: AsyncSession = Depends(get_session)
 ) -> Optional[Union[Dict[str, Any], User]]:
     """
     Optional authentication that doesn't raise errors.
@@ -110,8 +108,7 @@ async def optional_auth(
 
 
 async def get_current_user_from_auth(
-    auth_data: Union[Dict[str, Any], User],
-    session: AsyncSession
+    auth_data: Union[Dict[str, Any], User], session: AsyncSession
 ) -> User:
     """
     Extract User object from either Clerk auth data or guest User object.
@@ -132,6 +129,7 @@ async def get_current_user_from_auth(
     else:
         # Clerk authenticated user - look up in database
         from api.app.crud.user_crud import get_local_user_by_clerk_id
+
         clerk_id = auth_data.get("sub", "")
         user = await get_local_user_by_clerk_id(session, clerk_id)
         if not user:

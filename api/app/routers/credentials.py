@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.auth import verify_user_or_guest, get_current_user_from_auth
-from api.app.middleware.hybrid_rate_limit import credentials_rate_limit, check_hybrid_rate_limit
+from api.app.middleware.hybrid_rate_limit import (
+    credentials_rate_limit,
+    check_hybrid_rate_limit,
+)
 from api.app.crud.credentials_crud import create_credential, delete_credential
 from api.app.routers import logger
 from shared.crud.credentials_crud import (
@@ -25,7 +28,7 @@ router = APIRouter(tags=["Credentials"])
 @credentials_rate_limit
 async def list_credentials_endpoint(
     request: Request,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1, description="Current page number"),
     limit: int = Query(10, le=100, description="Number of items per page"),
@@ -37,9 +40,7 @@ async def list_credentials_endpoint(
     # Check additional guest-specific rate limits
     await check_hybrid_rate_limit(request, session, user)
 
-    creds = await list_credentials_for_user(
-        session, user.id, page, limit, sort, order
-    )
+    creds = await list_credentials_for_user(session, user.id, page, limit, sort, order)
     logger.info("Getting credentials for user: %s", user.id)
     return creds
 
@@ -49,7 +50,7 @@ async def list_credentials_endpoint(
 async def create_credential_endpoint(
     request: Request,
     credential_in: CredentialCreate,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
     user = await get_current_user_from_auth(auth_data, session)
@@ -88,7 +89,7 @@ async def create_credential_endpoint(
 async def get_credential_endpoint(
     request: Request,
     credential_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> Credential:
     user = await get_current_user_from_auth(auth_data, session)
@@ -108,7 +109,7 @@ async def get_credential_endpoint(
 async def delete_credential_endpoint(
     request: Request,
     credential_id: UUID,
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     user = await get_current_user_from_auth(auth_data, session)

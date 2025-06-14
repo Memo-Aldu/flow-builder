@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -20,6 +21,7 @@ from api.app.routers import (
 )
 from api.app import logger
 from api.app.middleware.hybrid_rate_limit import hybrid_limiter
+from fastapi.responses import JSONResponse
 
 
 @asynccontextmanager
@@ -37,9 +39,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+# Global exception handler for production
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Global exception handler to prevent sensitive information leakage."""
+    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+
+    # In production, don't expose internal error details
+    if os.getenv("ENVIRONMENT") == "production":
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
+    else:
+        # In development, show more details
+        return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+
 # Add rate limiting
 app.state.limiter = hybrid_limiter.limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(
+    RateLimitExceeded,
+    global_exception_handler,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,4 +99,16 @@ async def pong(request: Request) -> dict[str, str]:
 @hybrid_limiter.limiter.limit("100/minute")
 async def health_check(request: Request) -> dict[str, str]:
     """Health check endpoint for ECS container health checks."""
-    return {"status": "healthy"}
+    from shared.db import test_connection
+
+    # Test database connectivity
+    db_healthy = await test_connection()
+
+    if db_healthy:
+        return {"status": "healthy", "database": "connected"}
+    else:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=503, detail={"status": "unhealthy", "database": "disconnected"}
+        )

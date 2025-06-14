@@ -3,8 +3,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.routers import logger
-from api.app.auth import verify_clerk_token, verify_user_or_guest, get_current_user_from_auth
-from api.app.middleware.hybrid_rate_limit import default_rate_limit, check_hybrid_rate_limit
+from api.app.auth import (
+    verify_clerk_token,
+    verify_user_or_guest,
+    get_current_user_from_auth,
+)
+from api.app.middleware.hybrid_rate_limit import (
+    default_rate_limit,
+    check_hybrid_rate_limit,
+)
 from api.app.crud.user_crud import get_local_user_by_clerk_id
 
 from shared.models import User, UserBalance
@@ -70,7 +77,7 @@ async def create_user(
         email=email,
         username=username,
         first_name=first_name,
-        last_name=last_name
+        last_name=last_name,
     )
     balance = UserBalance(user_id=user.id, credits=200)
     user.balance = balance

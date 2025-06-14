@@ -7,7 +7,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.app.auth import verify_user_or_guest, get_current_user_from_auth
 from api.app.services import workflows as svc
-from api.app.middleware.hybrid_rate_limit import workflows_rate_limit, check_hybrid_rate_limit
+from api.app.middleware.hybrid_rate_limit import (
+    workflows_rate_limit,
+    check_hybrid_rate_limit,
+)
 from shared.db import get_session
 from shared.models import (
     User,
@@ -25,7 +28,7 @@ router = APIRouter(tags=["Workflows"])
 
 async def _current_user(
     db: AsyncSession = Depends(get_session),
-    auth_data = Depends(verify_user_or_guest),
+    auth_data=Depends(verify_user_or_guest),
 ) -> User:
     return await get_current_user_from_auth(auth_data, db)
 
