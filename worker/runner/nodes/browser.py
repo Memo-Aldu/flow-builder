@@ -128,7 +128,9 @@ class BrightDataBrowserNode(NodeExecutor):
     __name__ = "Bright Data Browser Node"
 
     required_input_keys = [
-        "Website URL", "Bright Data Browser Username", "Bright Data Browser Password"
+        "Website URL",
+        "Bright Data Browser Username",
+        "Bright Data Browser Password",
     ]
     output_keys = ["Web Page"]
     can_be_start_node = True
