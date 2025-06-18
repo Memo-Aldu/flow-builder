@@ -1,7 +1,15 @@
 {
-  "name": "flow-builder",
-  "version": "0.1.0",
+  "name": "flowbuilder-frontend",
+  "version": "1.0.0",
   "private": true,
+  "description": "FlowBuilder - Visual Workflow Automation Platform Frontend",
+  "homepage": "https://flowbuilder.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowbuilder/flowbuilder.git"
+  },
+  "keywords": ["workflow", "automation", "visual-builder", "nextjs", "react"],
+  "author": "FlowBuilder Team",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

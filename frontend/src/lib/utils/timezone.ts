@@ -1,5 +1,5 @@
-import { formatInTimeZone } from 'date-fns-tz';
 import parser from 'cron-parser';
+import { formatInTimeZone } from 'date-fns-tz';
 
 
 // Common timezone options for the dropdown
@@ -90,7 +90,7 @@ export function getNextRunInTimezone(cronExpr: string, userTimezone: string): Da
   try {
     const parser = require('cron-parser');
     const interval = parser.parse(cronExpr, { tz: userTimezone });
-    console.log(interval.next().toDate());
+    // Get next execution time
     return interval.next().toDate();
   } catch {
     return null;
