@@ -1,16 +1,16 @@
 "use client";
 
-import { WorkflowVersion } from '@/types/versions'
-import React from 'react'
-import { Edge } from '@xyflow/react';
-import { AppNode } from '@/types/nodes';
-import VersionCard from './VersionCard';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
 import useFlowDiff from '@/hooks/use-FlowDiff';
-import { useAuth } from '@clerk/nextjs';
-import { rollbackWorkflow } from '@/lib/api/workflows';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { AppNode } from '@/types/nodes';
+import { WorkflowVersion } from '@/types/versions';
 import { Workflow } from '@/types/workflows';
+import { Edge } from '@xyflow/react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+import { toast } from 'sonner';
+import VersionCard from './VersionCard';
 
 
 type CompareProps = {
@@ -20,16 +20,16 @@ type CompareProps = {
 }
 
 const VersionCompare = ({ versionA, versionB, workflow }: CompareProps) => {
-  const { getToken } = useAuth();
+  const { isAuthenticated, getToken } = useUnifiedAuth();
   const router = useRouter();
   
   const nodesA = (versionA.definition?.nodes as AppNode[]) || [];
   const edgesA = (versionA.definition?.edges as Edge[]) || [];
-  const viewportA = versionA.definition?.viewport || { x: 0, y: 0, zoom: 1 };
+  const viewportA = versionA.definition?.viewport ?? { x: 0, y: 0, zoom: 1 };
 
   const nodesB = (versionB.definition?.nodes as AppNode[]) || [];
   const edgesB = (versionB.definition?.edges as Edge[]) || [];
-  const viewportB = versionB.definition?.viewport || { x: 0, y: 0, zoom: 1 };
+  const viewportB = versionB.definition?.viewport ?? { x: 0, y: 0, zoom: 1 };
 
   const {
     highlightNodesA,
@@ -95,10 +95,11 @@ const VersionCompare = ({ versionA, versionB, workflow }: CompareProps) => {
   });
 
   const onRollbackVersion = async (versionId: string) => {
-    const token = await getToken();
-    if (!token) {
+    if (!isAuthenticated) {
+      toast.error("Please log in to rollback a version");
       return;
     }
+    const token = await getToken();
 
     if (workflow.active_version_id === versionId) {
       toast.warning("Cannot rollback to the active version");
@@ -111,14 +112,13 @@ const VersionCompare = ({ versionA, versionB, workflow }: CompareProps) => {
     }
 
     try {
-      await rollbackWorkflow(workflow.id, versionId, token);
-      toast.success(`Rolled back to version ${versionA.id === versionId ? 
+      await UnifiedWorkflowsAPI.client.rollback(workflow.id, versionId, token);
+      toast.success(`Rolled back to version ${versionA.id === versionId ?
         versionA.version_number : versionB.version_number}`);
       router.push(`/workflow/versions/${workflow.id}`);
     }
     catch (error) {
       toast.error("Failed to rollback version");
-      console.error("Failed to rollback version", error);
     }
 
   };

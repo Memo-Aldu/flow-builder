@@ -1,10 +1,9 @@
-import { getWorkflowVersionByNumber } from '@/lib/api/versions';
-import { auth } from '@clerk/nextjs/server';
-import React, { Suspense } from 'react'
-import VersionCompare from '@/app/workflow/versions/[workflowId]/compare/_components/VersionCompare';
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
+import VersionCompare from '@/app/workflow/versions/[workflowId]/compare/_components/VersionCompare';
+import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions';
+import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 import { InboxIcon, Loader2Icon } from 'lucide-react';
-import { getWorkflow } from '@/lib/api/workflows';
+import React, { Suspense } from 'react';
 
 
 type CompareProps = {
@@ -42,9 +41,8 @@ export default compare
 
 
 const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { workflowId: string, version_1: number, version_2: number}) => {
-  const { userId, getToken } = await auth();
-  const token = await getToken();
-  if (!userId || !token) {
+  const user = await getUnifiedAuth();
+  if (!user) {
     return (
       <div>
         Please log in again.
@@ -74,9 +72,9 @@ const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { w
   }
 
   const [vA, vB, workflow] = await Promise.all([
-    getWorkflowVersionByNumber(workflowId, version_1, token),
-    getWorkflowVersionByNumber(workflowId, version_2, token),
-    getWorkflow(workflowId, token)
+    UnifiedVersionsAPI.server.getByNumber(workflowId, version_1),
+    UnifiedVersionsAPI.server.getByNumber(workflowId, version_2),
+    UnifiedWorkflowsAPI.server.get(workflowId)
   ]).catch(() => [null, null, null]);
   
 

@@ -1,12 +1,12 @@
 "use client";
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { getWorkflowVersions } from '@/lib/api/versions';
-import { WorkflowVersion } from '@/types/versions';
-import { useAuth } from '@clerk/nextjs';
-import { useQuery } from '@tanstack/react-query';
-import React, { useState } from 'react'
 import VersionTable from '@/app/workflow/versions/[workflowId]/_components/VersionTable';
 import VersionTimeline from '@/app/workflow/versions/[workflowId]/_components/VersionTimeline';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedVersionsAPI } from '@/lib/api/unified-functions-client';
+import { WorkflowVersion } from '@/types/versions';
+import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
 
 type Props = {
     workflowId: string;
@@ -14,20 +14,19 @@ type Props = {
   };
 
 const VersionControl = ({ workflowId, initialData }: Props) => {
-    const { getToken } = useAuth();
+    const { getToken, isAuthenticated } = useUnifiedAuth();
     const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
 
     const versionsQuery = useQuery({
         queryKey: ["versions", workflowId],
         queryFn: async () => {
             const token = await getToken();
-            if (!token) return [];
-            return await getWorkflowVersions(workflowId, token, 1, 50);
+            return UnifiedVersionsAPI.client.list(workflowId, 1, 50, undefined, undefined, token);
         },
 
-        refetchInterval: 10000,
+        refetchInterval: isAuthenticated ? 10000 : false, // Only refetch if authenticated
         initialData,
-        enabled: !!getToken,
+        enabled: isAuthenticated,
     });
 
   return (

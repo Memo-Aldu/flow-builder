@@ -2,9 +2,9 @@
 import useExecutionPlan from '@/components/hooks/useExecutionPlan'
 import { TooltipWrapper } from '@/components/TooltipWrapper'
 import { Button } from '@/components/ui/button'
-import { createWorkflowVersion } from '@/lib/api/versions'
+import { useUnifiedAuth } from '@/contexts/AuthContext'
+import { UnifiedVersionsAPI } from '@/lib/api/unified-functions-client'
 import { WorkflowVersionCreate } from '@/types/versions'
-import { useAuth } from '@clerk/nextjs'
 import { useMutation } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { FilePlus } from 'lucide-react'
@@ -14,15 +14,12 @@ import { toast } from 'sonner'
 const VersionBtn = ({ workflowId }: { workflowId: string }) => {
   const generate  = useExecutionPlan()
   const { toObject } = useReactFlow()
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
 
   const { mutate, isPending } = useMutation({
   mutationFn: async ({ version }: {version: WorkflowVersionCreate }) => {
-    const token  = await getToken();
-    if (!token) {
-      throw new Error("User not authenticated");
-    }
-    return await createWorkflowVersion(workflowId, version, token);
+    const token = await getToken();
+    return await UnifiedVersionsAPI.client.create(workflowId, version, token);
   },
 	onSuccess: () => {
 	  toast.success("Version created successfully", { id: "created-version" });

@@ -3,13 +3,13 @@
 import useExecutionPlan from '@/components/hooks/useExecutionPlan';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
-import { publishWorkflow } from '@/lib/api/workflows';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
 import { sanitizeHandleId } from '@/lib/workflow/handleUtils';
 import CalculateWorkflowCost from '@/lib/workflow/helper';
 import { TaskRegistry } from '@/lib/workflow/task/registry';
 import { AppNode } from '@/types/nodes';
 import { WorkflowPublishRequest } from '@/types/workflows';
-import { useAuth } from '@clerk/nextjs';
 import { useMutation } from '@tanstack/react-query';
 import { useReactFlow } from '@xyflow/react';
 import { UploadIcon } from 'lucide-react';
@@ -25,7 +25,7 @@ type PublishBtnProps = {
 
 const PublishBtn = ( { workflowId }: PublishBtnProps) => {
   const generate  = useExecutionPlan()
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const { toObject } = useReactFlow();
   const router = useRouter();
 
@@ -59,11 +59,8 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
 
   const mutation = useMutation({
     mutationFn: async ({ id, values }: { id: string, values: WorkflowPublishRequest }) => {
-      const token  = await getToken();
-      if (!token) {
-        throw new Error("User not authenticated");
-      }
-      return await publishWorkflow(values, id, token)
+      const token = await getToken();
+      return await UnifiedWorkflowsAPI.client.publish(id, values, token);
     },
     onSuccess: () => {
       toast.success("Workflow Published", { id: workflowId });

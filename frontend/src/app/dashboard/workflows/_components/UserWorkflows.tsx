@@ -1,35 +1,33 @@
 "use client"
-import { Alert, AlertTitle } from '@/components/ui/alert';
-import { getWorkflows } from '@/lib/api/workflows';
-import { useAuth } from '@clerk/nextjs'
-import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, InboxIcon } from 'lucide-react';
-import React from 'react'
 import { CreateWorkflowDialog } from '@/app/dashboard/workflows/_components/CreateWorkflowDialog';
 import { WorkflowCard } from '@/app/dashboard/workflows/_components/WorkflowCard';
 import { AppLoading } from '@/components/AppLoading';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { WorkflowListResponse } from '@/types/workflows';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, InboxIcon } from 'lucide-react';
+import React from 'react';
 
 type UserWorkflowsProps = {
     initialData: WorkflowListResponse
 }
 
 const UserWorkflows = ({ initialData }: UserWorkflowsProps) => {
-    const { getToken } = useAuth();
+    const { getToken, isAuthenticated } = useUnifiedAuth();
 
     const query = useQuery({
-        queryKey: ["workflows"],
+        queryKey: ["workflows", isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
             const token = await getToken();
-            if (!token) {
-                throw new Error('No valid token found.');
-            }
-            const workflows = await getWorkflows(token, 1, 50);
+            const workflows = await UnifiedWorkflowsAPI.client.list(1, 50, undefined, undefined, token);
             return workflows;
         },
-        // 10 seconds
-        refetchInterval: 10000,
+        // Only refetch if authenticated to prevent spam
+        refetchInterval: isAuthenticated ? 10000 : false,
         initialData,
+        enabled: isAuthenticated, // Only enable when authenticated
     });
 
     if (query.isFetching && !query.data) {

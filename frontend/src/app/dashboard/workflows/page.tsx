@@ -1,12 +1,12 @@
 
 import { CreateWorkflowDialog } from '@/app/dashboard/workflows/_components/CreateWorkflowDialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import React, { Suspense } from 'react'
 import UserWorkflows from '@/app/dashboard/workflows/_components/UserWorkflows'
-import { getWorkflows } from '@/lib/api/workflows'
-import { auth } from '@clerk/nextjs/server'
 import { Alert, AlertTitle } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { getServerWorkflows } from '@/lib/api/unified-server-api'
+import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { AlertCircle } from 'lucide-react'
+import React, { Suspense } from 'react'
 
 const page = () => {
   return (
@@ -41,27 +41,19 @@ const UserWorkflowSkeleton = () => {
 
 
 const UserWorkflowsWrapper = async () => {
-  const { userId, getToken } = await auth()
+  const user = await getUnifiedAuth();
 
-  if (!userId) {
+  if (!user) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Please log in again.</AlertTitle>
+        <AlertTitle>Please log in to access your workflows.</AlertTitle>
       </Alert>
     )
   }
 
-  const token = await getToken()
-  if (!token) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="w-4 h-4" />
-        <AlertTitle>No valid token found.</AlertTitle>
-      </Alert>
-    )
-  }
-    const workflows = await getWorkflows(token);
+  try {
+    const workflows = await getServerWorkflows();
     if (!workflows) {
         return (
         <Alert
@@ -75,6 +67,15 @@ const UserWorkflowsWrapper = async () => {
         );
     }
     return <UserWorkflows initialData={workflows} />
+  } catch (error) {
+    console.error("Failed to fetch workflows:", error);
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="w-4 h-4" />
+        <AlertTitle>Something went wrong. Please try again later.</AlertTitle>
+      </Alert>
+    );
+  }
 }
 
 

@@ -1,9 +1,9 @@
-import React, { Suspense } from 'react'
 import TopBar from '@/app/workflow/_components/topbar/TopBar'
-import { getExecutions } from '@/lib/api/executions'
-import { auth } from '@clerk/nextjs/server'
-import { InboxIcon, Loader2Icon } from 'lucide-react'
 import ExecutionTable from '@/app/workflow/runs/[workflowId]/_components/ExecutionTable'
+import { UnifiedExecutionsAPI } from '@/lib/api/unified-functions'
+import { getUnifiedAuth } from '@/lib/auth/unified-auth'
+import { InboxIcon, Loader2Icon } from 'lucide-react'
+import React, { Suspense } from 'react'
 
 const ExecutionsPage = async ({ params } : { params: {workflowId: string}}) => {
   const resolvedParams = await Promise.resolve(params); 
@@ -32,17 +32,16 @@ export default ExecutionsPage
 
 
 const ExecutionTableWrapper = async ({ workflowId } : {workflowId: string}) => {
-    const { userId, getToken } = await auth();
-    const token = await getToken();
-    if (!userId || !token) {
+    const user = await getUnifiedAuth();
+    if (!user) {
       return (
         <div>
           Please log in again.
         </div>
       )
     }
-    
-    const executions = await getExecutions(token, workflowId)
+
+    const executions = await UnifiedExecutionsAPI.server.list(workflowId)
 
     if (!executions) {
       return (

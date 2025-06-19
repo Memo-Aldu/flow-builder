@@ -1,25 +1,25 @@
 "use client";
 
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getExecutions } from '@/lib/api/executions'
-import { DatesToDurationString } from '@/lib/helper/dates';
-import { WorkflowExecution, WorkflowExecutionSortField, WorkflowExecutionSortFieldLabels } from '@/types/executions'
-import { useAuth } from '@clerk/nextjs'
-import { useQuery } from '@tanstack/react-query'
-import React, { useState } from 'react'
 import ExecutionStatusIndicator from '@/app/workflow/runs/[workflowId]/_components/ExecutionStatusIndicator';
-import { CoinsIcon, SortAscIcon, SortDescIcon } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { useRouter } from 'next/navigation';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { usePagination } from '@/hooks/use-pagination';
 import { PaginationControls } from '@/components/PaginationControls';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { usePagination } from '@/hooks/use-pagination';
+import { UnifiedExecutionsAPI } from '@/lib/api/unified-functions-client';
+import { DatesToDurationString } from '@/lib/helper/dates';
 import { SortDir } from '@/types/base';
+import { WorkflowExecution, WorkflowExecutionSortField, WorkflowExecutionSortFieldLabels } from '@/types/executions';
+import { useQuery } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+import { CoinsIcon, SortAscIcon, SortDescIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 const ExecutionTable = ({ workflowId, initialData }: { workflowId: string, initialData: WorkflowExecution[]}) => {
-    const { getToken } = useAuth();
+    const { getToken, isAuthenticated } = useUnifiedAuth();
     const router = useRouter();
 
     const {
@@ -39,18 +39,16 @@ const ExecutionTable = ({ workflowId, initialData }: { workflowId: string, initi
     const [sortDir, setSortDir] = useState<SortDir>("desc");
 
     const query = useQuery({
-        queryKey: ["executions", workflowId, page, limit, sortField, sortDir],
+        queryKey: ["executions", workflowId, page, limit, sortField, sortDir, isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
           const token = await getToken();
-          if (!token) return [];
-          const executions = await getExecutions(token, workflowId, page, limit, sortField, sortDir);
-          console.log(executions.length, limit);
+          const executions = await UnifiedExecutionsAPI.client.list(workflowId, page, limit, sortField, sortDir, token);
           updateCanGoNext(executions.length >= limit)
           return executions;
         },
         initialData,
-        refetchInterval: 5000,
-        enabled: !!getToken,
+        refetchInterval: isAuthenticated ? 5000 : false, // Only refetch if authenticated
+        enabled: isAuthenticated,
     });
 
   return (

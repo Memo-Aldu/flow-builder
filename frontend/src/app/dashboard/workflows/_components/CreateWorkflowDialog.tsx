@@ -1,29 +1,29 @@
 "use client";
 
-import { toast } from 'sonner'
-import { useAuth } from "@clerk/nextjs";
-import { useForm } from 'react-hook-form'
-import React, { useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Layers2Icon, Loader2 } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
-import { CustomDialogHeader } from '@/components/CustomDialogHeader'
-import { DialogTrigger, Dialog, DialogContent } from '@/components/ui/dialog'
-import { createWorkflowSchema, CreateWorkflowSchemaType } from '@/schema/workflow'
-import { 
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { createWorkflow } from '@/lib/api/workflows'
+import { CustomDialogHeader } from '@/components/CustomDialogHeader';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { createWorkflowSchema, CreateWorkflowSchemaType } from '@/schema/workflow';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Layers2Icon, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 
 type CreateWorkflowDialogProps = {
@@ -33,7 +33,7 @@ type CreateWorkflowDialogProps = {
 export const CreateWorkflowDialog = ({ triggerText }: CreateWorkflowDialogProps) => {
   const [open, setOpen] = React.useState(false)
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useUnifiedAuth();
   const router = useRouter();
 
   const form = useForm<CreateWorkflowSchemaType>({
@@ -43,11 +43,12 @@ export const CreateWorkflowDialog = ({ triggerText }: CreateWorkflowDialogProps)
 
   const { mutate, isPending } = useMutation({
 	mutationFn: async (values: CreateWorkflowSchemaType) => {
-		const token  = await getToken();
-		if (!token) {
-			throw new Error("User not authenticated");
+		if (isAuthenticated) {
+			const token = await getToken();
+			return await UnifiedWorkflowsAPI.client.create(values, token);
+		} else {
+			return await UnifiedWorkflowsAPI.client.create(values);
 		}
-		return await createWorkflow(values, token);
 	},
 	onSuccess: (workflow) => {
 	  toast.success("Workflow created successfully", { id: "create-workflow" });
@@ -55,9 +56,8 @@ export const CreateWorkflowDialog = ({ triggerText }: CreateWorkflowDialogProps)
 	  queryClient.invalidateQueries({ queryKey: ["workflows"] });
 	  router.push(`/workflow/editor/${workflow.id}`);
 	},
-	onError: (err) => {
-		console.error(err);
-		toast.error("Failed to create workflow", { id: "create-workflow" });			
+	onError: () => {
+		toast.error("Failed to create workflow", { id: "create-workflow" });
 	}
   })
 

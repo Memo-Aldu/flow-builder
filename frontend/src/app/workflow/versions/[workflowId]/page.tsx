@@ -1,10 +1,11 @@
 import { InboxIcon, Loader2Icon } from 'lucide-react';
 import React, { Suspense } from 'react'
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
-import { getWorkflowVersions } from '@/lib/api/versions';
+import { UnifiedVersionsAPI } from '@/lib/api/unified-functions';
 import { auth } from '@clerk/nextjs/server';
 import VersionControl from './_components/VersionControl';
 import { ReactFlowProvider } from '@xyflow/react';
+import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 
 const WorkflowVersionsPage = async ({ params } : { params: {workflowId: string}}) => {
     const resolvedParams = await Promise.resolve(params); 
@@ -35,9 +36,8 @@ export default WorkflowVersionsPage
 
 
 const WorkflowVersionsWrapper = async ({ workflowId } : {workflowId: string}) => {
-    const { userId, getToken } = await auth();
-    const token = await getToken();
-    if (!userId || !token) {
+    const user = await getUnifiedAuth();
+    if (!user?.id) {
       return (
         <div>
           Please log in again.
@@ -45,7 +45,7 @@ const WorkflowVersionsWrapper = async ({ workflowId } : {workflowId: string}) =>
       )
     }
     
-    const versions = await getWorkflowVersions(workflowId, token, 1, 25)
+    const versions = await UnifiedVersionsAPI.server.list(workflowId, 1, 25);
 
     if (versions.length === 0) {
       return (

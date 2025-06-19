@@ -11,7 +11,6 @@ import { NodeProps, useEdges } from '@xyflow/react';
 import React, { memo } from 'react';
 
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
 const NodeComponent = memo((props: NodeProps) => {
     const nodeData = props.data as AppNodeData;
     const task = TaskRegistry[nodeData.type];

@@ -7,11 +7,13 @@ import React from 'react'
 type LogoProps = {
     fontSize?: string
     iconSize?: number
+    className?: string
 }
 
-export const Logo = ({ fontSize = 'text-2xl', iconSize = 20}: LogoProps) => {
+export const Logo = ({ fontSize = 'text-2xl', iconSize = 20, className}: LogoProps) => {
   return <Link href="/dashboard" className={cn("text-2xl font-extrabold flex items-center gap-2",
-    fontSize
+    fontSize,
+    className
   )}>
     <div className='rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 p-2'>
         <Waypoints size={iconSize} className='stroke-white' />

@@ -1,13 +1,13 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { GitBranch, RotateCcw, User } from "lucide-react";
-import { ReactFlowProvider, Edge, Node } from "@xyflow/react";
 import { WorkflowVersion } from "@/types/versions";
-import ReadOnlyFlowViewer from "../../../../../../components/ReadOnlyFlowViewer";
+import { Edge, Node, ReactFlowProvider } from "@xyflow/react";
 import { format } from "date-fns/format";
+import { GitBranch, RotateCcw, User } from "lucide-react";
+import React from "react";
+import ReadOnlyFlowViewer from "../../../../../../components/ReadOnlyFlowViewer";
 
 type VersionCardProps = {
   version: WorkflowVersion;
@@ -50,7 +50,9 @@ const VersionCard = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onRollback(version.id)}
+                  onClick={() => {
+                    onRollback(version.id)
+                  }}
                 >
                   <RotateCcw size={12} />
                   Revert

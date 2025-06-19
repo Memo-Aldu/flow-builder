@@ -1,9 +1,9 @@
 "use client"
 
-import { getExecution } from '@/lib/api/executions'
+import { useUnifiedAuth } from '@/contexts/AuthContext'
+import { UnifiedExecutionsAPI, UnifiedPhasesAPI } from '@/lib/api/unified-functions-client'
 import { ExecutionStatus, WorkflowExecution } from '@/types/executions'
 import { ExecutionPhase, ExecutionPhaseStatus } from '@/types/phases'
-import { useAuth } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
 
 import { PhaseLogs } from '@/app/workflow/runs/[workflowId]/[executionId]/_components/PhaseLogs'
@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { listPhases } from '@/lib/api/phases'
+
 import { DatesToDurationString } from '@/lib/helper/dates'
 import { GetWorkflowCost } from '@/lib/helper/phases'
 import { TaskRegistry } from '@/lib/workflow/task/registry'
@@ -34,7 +34,7 @@ const getSetupStageMessage = (progress: number): string => {
 };
 
 const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: WorkflowExecution, initialPhases: ExecutionPhase[] }) => {
-    const { getToken } = useAuth();
+    const { getToken, isAuthenticated } = useUnifiedAuth();
     const [selectedPhase, setSelectedPhase] = useState<ExecutionPhase | null>(null);
     const [progress, setProgress] = useState<number>(0);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -43,27 +43,25 @@ const ExecutionView = ({ initialExecution, initialPhases }: { initialExecution: 
     const TOTAL_DURATION = 90000;
 
     const executionQuery = useQuery({
-        queryKey: ['execution', initialExecution.id],
+        queryKey: ['execution', initialExecution.id, isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
             const token = await getToken();
-            if (!token) throw new Error("No token available");
-            return getExecution(token, initialExecution.id);
+            return UnifiedExecutionsAPI.client.get(initialExecution.id, token);
         },
         refetchInterval: (q) => q.state.data?.status === ExecutionStatus.RUNNING
         || q.state.data?.status === ExecutionStatus.PENDING ? 1000 : false,
-        enabled: !!getToken,
+        enabled: isAuthenticated,
         initialData: initialExecution,
         refetchIntervalInBackground: true,
     });
     const phasesQuery = useQuery({
-        queryKey: ['phases', initialExecution.id],
+        queryKey: ['phases', initialExecution.id, isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
             const token = await getToken();
-            if (!token) throw new Error("No token available");
-            return listPhases(token, initialExecution.id)
+            return UnifiedPhasesAPI.client.list(initialExecution.id, 1, 25, undefined, undefined, token);
         },
         refetchInterval: () => executionQuery.data?.status === ExecutionStatus.RUNNING ? 1000 : false,
-        enabled: !!getToken,
+        enabled: isAuthenticated,
         initialData: initialPhases,
         refetchIntervalInBackground: true,
     });

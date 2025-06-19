@@ -1,29 +1,29 @@
 "use client";
 
-import { toast } from 'sonner'
-import { useAuth } from "@clerk/nextjs";
-import { useForm } from 'react-hook-form'
-import React, { useCallback } from 'react'
-import { Loader2, ShieldEllipsis } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
-import { CustomDialogHeader } from '@/components/CustomDialogHeader'
-import { DialogTrigger, Dialog, DialogContent } from '@/components/ui/dialog'
-import { 
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { CustomDialogHeader } from '@/components/CustomDialogHeader';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedCredentialsAPI } from '@/lib/api/unified-functions-client';
 import { createCredentialSchema, CreateCredentialSchemaType } from '@/schema/credential';
-import { createCredential } from '@/lib/api/credential';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Loader2, ShieldEllipsis } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import React, { useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 
 type CreateCredentialDialogProps = {
@@ -33,7 +33,7 @@ type CreateCredentialDialogProps = {
 export const CreateCredentialDialog = ({ triggerText }: CreateCredentialDialogProps) => {
   const [open, setOpen] = React.useState(false)
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const router = useRouter();
 
   const form = useForm<CreateCredentialSchemaType>({
@@ -43,11 +43,8 @@ export const CreateCredentialDialog = ({ triggerText }: CreateCredentialDialogPr
 
   const { mutate, isPending } = useMutation({
 	mutationFn: async (values: CreateCredentialSchemaType) => {
-		const token  = await getToken();
-		if (!token) {
-			throw new Error("User not authenticated");
-		}
-		return await createCredential(token, values);
+		const token = await getToken();
+		return await UnifiedCredentialsAPI.client.create(values, token);
 	},
 	onSuccess: () => {
 	  toast.success("Credential created successfully", { id: "create-credential" });
@@ -56,8 +53,7 @@ export const CreateCredentialDialog = ({ triggerText }: CreateCredentialDialogPr
 	  router.push("/dashboard/credentials");
 	},
 	onError: (err) => {
-		console.error(err);
-		toast.error("Failed to create credential", { id: "create-credential" });			
+		toast.error("Failed to create credential", { id: "create-credential" });
 	}
   })
 

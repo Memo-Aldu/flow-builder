@@ -2,12 +2,12 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React from 'react'
+import React from 'react';
 
 const NavigationTabs = ( { workflowId } : {workflowId: string}) => {
   const pathName = usePathname()
   const activeTab = pathName.split('/')[2]
-  console.log(activeTab)
+
   return (
     <Tabs value={activeTab} className='w-[400px]'>
       <TabsList className='grid w-full grid-cols-3'>

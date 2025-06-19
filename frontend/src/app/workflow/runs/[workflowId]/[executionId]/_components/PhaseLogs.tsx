@@ -1,15 +1,15 @@
 "use client";
 
-import React from "react";
-import { getLogs } from "@/lib/api/logs";
-import { ExecutionLog } from "@/types/logs";
-import { ExecutionPhase } from "@/types/phases";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useUnifiedAuth } from "@/contexts/AuthContext";
+import { UnifiedLogsAPI } from "@/lib/api/unified-functions-client";
 import { cn } from "@/lib/utils";
+import { ExecutionLog } from "@/types/logs";
+import { ExecutionPhase } from "@/types/phases";
 import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import { toast } from "sonner";
-import { useAuth } from "@clerk/nextjs";
 
 interface PhaseLogsProps {
   phase: ExecutionPhase;
@@ -17,18 +17,17 @@ interface PhaseLogsProps {
 }
 
 export function PhaseLogs({ phase, isRunning }: Readonly<PhaseLogsProps>) {
-    const { getToken } = useAuth();
+    const { getToken, isAuthenticated } = useUnifiedAuth();
 
     const logsQuery = useQuery<ExecutionLog[]>({
-        queryKey: ["phaseLogs", phase.id],
+        queryKey: ["phaseLogs", phase.id, isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
-            const token = await getToken();
             if (!phase) return [];
-            if (!token) return [];
-            return getLogs(token, phase.id);
+            const token = await getToken();
+            return UnifiedLogsAPI.client.list(phase.id, 1, 50, undefined, undefined, token);
         },
         refetchInterval: isRunning ? 1000 : false,
-        enabled: !!phase && !!getToken,
+        enabled: !!phase && isAuthenticated,
       });
     
       if (logsQuery.isLoading || logsQuery.isFetching) {

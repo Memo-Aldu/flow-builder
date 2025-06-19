@@ -1,24 +1,46 @@
+"use client";
+
 import CreditsPurchase from "@/app/dashboard/billing/_components/CreditsPurchase";
 import CreditUsageChart from "@/app/dashboard/billing/_components/CreditUsageChart";
 import CountUpWrapper from "@/components/CountUpWrapper";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCredit } from "@/lib/api/balances";
-import { getExecutionStats } from "@/lib/api/executions";
-import { getPurchases } from "@/lib/api/purchases";
+import { useUnifiedAuth } from "@/contexts/AuthContext";
+import { useUserBalance } from "@/hooks/useUserBalance";
+import { UnifiedExecutionsAPI, UnifiedPurchasesAPI } from "@/lib/api/unified-functions-client";
 import { PeriodToDateRange } from "@/lib/helper/dates";
 import { Period } from "@/types/base";
-import { auth } from "@clerk/nextjs/server";
-import { ArrowLeftRightIcon, CoinsIcon } from "lucide-react";
-import { Suspense } from "react";
+import { AlertCircle, ArrowLeftRightIcon, CoinsIcon, Loader2Icon } from "lucide-react";
+import Link from "next/link";
+import React, { Suspense } from "react";
 
 const BillingPage = () => {
+  const { user, isAuthenticated } = useUnifiedAuth();
+
+  // Guest users cannot access billing
+  if (isAuthenticated && user?.isGuest) {
+    return (
+      <div className="mx-auto p-4 space-y-8">
+        <h1 className="text-3xl font-bold">Billing</h1>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Guest Access Limitation</AlertTitle>
+          <AlertDescription>
+            Billing features are not available for guest users.
+            <Link href="/sign-up" className="underline ml-1">
+              Create an account
+            </Link> to access billing and purchase credits.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto p-4 space-y-8">
       <h1 className="text-3xl font-bold">Billing</h1>
-      <Suspense fallback={<Skeleton className="h-[166px] w-hull" />} >
-        <BalanceCard />
-      </Suspense>
+      <BalanceCard />
       <CreditsPurchase />
       <Suspense fallback={<Skeleton className="h-[166px] w-hull" />}>
         <CreditsUsageCard />
@@ -32,16 +54,8 @@ const BillingPage = () => {
 
 export default BillingPage
 
-const BalanceCard = async () => {
-  const { getToken } = await auth()
-
-  const getUserBalance = async () => {
-    const token = await getToken()
-    if (!token) {
-      throw new Error('No valid token found.')
-    }
-    return getCredit(token)
-  }
+const BalanceCard = () => {
+  const { balance, isLoading } = useUserBalance();
 
   return (
     <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background
@@ -53,7 +67,11 @@ const BalanceCard = async () => {
               Available Credits
             </h3>
             <p className="text-4xl font-bold text-primary">
-              <CountUpWrapper value={await getUserBalance()} /> credits
+              {isLoading ? (
+                <Loader2Icon className="h-8 w-8 animate-spin" />
+              ) : (
+                <><CountUpWrapper value={balance} /> credits</>
+              )}
             </p>
             <CoinsIcon className="text-primary opacity-20 absolute bottom-0 right-0" size={140} />
           </div>
@@ -67,22 +85,47 @@ const BalanceCard = async () => {
 }
 
 
-const CreditsUsageCard = async () => {
-  const { getToken } = await auth()
+const CreditsUsageCard = () => {
+  const { getToken, user } = useUnifiedAuth();
 
   const period: Period = {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   }
 
-  const token = await getToken()
-  if (!token) {
-    throw new Error('No valid token found.')
-  }
+  const [stats, setStats] = React.useState<any>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const dateRange = PeriodToDateRange(period);
-  const stats = await getExecutionStats(token, dateRange.start, dateRange.end);
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      if (user?.isGuest) return; // Don't fetch for guest users
 
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.error('No token available');
+          return;
+        }
+        const dateRange = PeriodToDateRange(period);
+        const data = await UnifiedExecutionsAPI.client.getStats(
+          dateRange.start.toISOString(),
+          dateRange.end.toISOString(),
+          token
+        );
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [getToken, user?.isGuest]);
+
+  if (user?.isGuest) return null;
+  if (isLoading) return <div>Loading...</div>;
+  if (!stats) return <div>Failed to load stats</div>;
 
   return <CreditUsageChart data={stats.credits_dates_status} title={"Credits spend"}
     description={"Daily credits consumed this month"}
@@ -90,15 +133,35 @@ const CreditsUsageCard = async () => {
 }
 
 
-const PurchaseHistoryCard = async () => {
-  const { getToken } = await auth()
+const PurchaseHistoryCard = () => {
+  const { getToken, user } = useUnifiedAuth();
+  const [purchases, setPurchases] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const token = await getToken()
-  if (!token) {
-    throw new Error('No valid token found.')
-  }
+  React.useEffect(() => {
+    const fetchPurchases = async () => {
+      if (user?.isGuest) return; // Don't fetch for guest users
 
-  const purchases = await getPurchases(token, 1, 50)
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.error('No token available');
+          return;
+        }
+        const data = await UnifiedPurchasesAPI.client.list(1, 50, token);
+        setPurchases(data);
+      } catch (error) {
+        console.error('Failed to fetch purchases:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPurchases();
+  }, [getToken, user?.isGuest]);
+
+  if (user?.isGuest) return null;
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <Card className="">

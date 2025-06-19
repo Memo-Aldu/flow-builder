@@ -1,24 +1,20 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PaginationControls } from "@/components/PaginationControls";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileStackIcon, GitCompareIcon, SortAscIcon, SortDescIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useUnifiedAuth } from "@/contexts/AuthContext";
+import { usePagination } from "@/hooks/use-pagination";
+import { UnifiedVersionsAPI } from "@/lib/api/unified-functions-client";
+import { SortDir } from "@/types/base";
+import { WorkflowVersion, WorkflowVersionSortField, WorkflowVersionSortFieldLabels } from "@/types/versions";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-
-import { useAuth } from "@clerk/nextjs";
-import { usePagination } from "@/hooks/use-pagination";
-import { PaginationControls } from "@/components/PaginationControls";
-import { SortDir } from "@/types/base";
-
-import { WorkflowVersion, WorkflowVersionSortField, WorkflowVersionSortFieldLabels } from "@/types/versions";
-import {
-  getWorkflowVersions,
-} from "@/lib/api/versions";
+import { FileStackIcon, GitCompareIcon, SortAscIcon, SortDescIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 
@@ -29,7 +25,7 @@ type VersionTableProps = {
 };
 
 const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useUnifiedAuth();
   const router = useRouter();
 
   const {
@@ -55,14 +51,13 @@ const VersionTable = ({ workflowId, initialData }: VersionTableProps) => {
     queryKey: ["versions", workflowId, page, limit, sortField, sortDir],
     queryFn: async () => {
       const token = await getToken();
-      if (!token) return [];
-      const resp = await getWorkflowVersions(workflowId, token, page, limit, sortField, sortDir);
+      const resp = await UnifiedVersionsAPI.client.list(workflowId, page, limit, sortField, sortDir, token);
       updateCanGoNext(resp.length >= limit);
       return resp;
     },
     initialData,
-    refetchInterval: 10000,
-    enabled: !!getToken
+    refetchInterval: isAuthenticated ? 10000 : false, // Only refetch if authenticated
+    enabled: isAuthenticated,
   });
   
 

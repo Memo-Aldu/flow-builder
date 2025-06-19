@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { deleteCredential } from '@/lib/api/credential'
-import { useAuth } from '@clerk/nextjs'
+import { useUnifiedAuth } from '@/contexts/AuthContext'
+import { UnifiedCredentialsAPI } from '@/lib/api/unified-functions-client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -30,16 +30,13 @@ export const DeleteCredentialDialog = ({credentialName, credentialId }: DeleteCr
   const [confirmText, setConfirmText] = React.useState('')
   const [open, setOpen] = React.useState(false)
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-  const router = useRouter();   
-  
+  const { getToken } = useUnifiedAuth();
+  const router = useRouter();
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-        const token  = await getToken();
-        if (!token) {
-            throw new Error("User not authenticated");
-        }
-        return await deleteCredential(token, id);
+        const token = await getToken();
+        return await UnifiedCredentialsAPI.client.delete(id, token);
     },
     onSuccess: () => {
         toast.success("Credential deleted successfully", { id: credentialId });
@@ -48,11 +45,10 @@ export const DeleteCredentialDialog = ({credentialName, credentialId }: DeleteCr
         router.push("/dashboard/credentials");
 
     },
-    onError: (err) => {
-        console.error(err);
+    onError: () => {
         toast.error("Failed to delete credential", { id: credentialId });
     }
-  }) 
+  })
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>

@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useEffect } from "react";
 import {
-  ReactFlow,
   Background,
   BackgroundVariant,
   Controls,
-  useReactFlow,
-  Node,
   Edge,
+  Node,
+  ReactFlow,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import React, { useEffect, useMemo } from "react";
 
-import NodeComponent from "@/app/workflow/_components/nodes/NodeComponent";
 import DeletableEdge from "@/app/workflow/_components/edges/DeletableEdge";
+import NodeComponent from "@/app/workflow/_components/nodes/NodeComponent";
+import { sanitizeHandleId } from "@/lib/workflow/handleUtils";
 
 const nodeTypes = {
   FlowBuilderNode: NodeComponent,
@@ -23,7 +24,7 @@ const edgeTypes = {
 };
 
 
-type ReadOnlyFlowViewerProps = {
+interface ReadOnlyFlowViewerProps {
   nodes: Node[];
   edges: Edge[];
   initialViewport?: {
@@ -31,7 +32,7 @@ type ReadOnlyFlowViewerProps = {
     y: number;
     zoom: number;
   };
-};
+}
 
 const ReadOnlyFlowViewer = ({
   nodes,
@@ -39,6 +40,15 @@ const ReadOnlyFlowViewer = ({
   initialViewport,
 }: ReadOnlyFlowViewerProps) => {
   const { setViewport } = useReactFlow();
+
+  // Sanitize edge handle IDs for React Flow compatibility
+  const sanitizedEdges = useMemo(() => {
+    return edges.map(edge => ({
+      ...edge,
+      sourceHandle: edge.sourceHandle ? sanitizeHandleId(edge.sourceHandle) : edge.sourceHandle,
+      targetHandle: edge.targetHandle ? sanitizeHandleId(edge.targetHandle) : edge.targetHandle
+    }));
+  }, [edges]);
 
   useEffect(() => {
     if (initialViewport) {
@@ -50,7 +60,7 @@ const ReadOnlyFlowViewer = ({
     <div className="w-full h-full">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={sanitizedEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         panOnDrag

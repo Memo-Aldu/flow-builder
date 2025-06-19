@@ -1,25 +1,23 @@
 "use client";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getCredentials } from '@/lib/api/credential';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedCredentialsAPI } from '@/lib/api/unified-functions-client';
 import { ParamProps } from '@/types/nodes';
-import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
-import React, { useId } from 'react'
+import React, { useId } from 'react';
 
 const CredentialParam = ({ param, value, updateNodeParamValue }: ParamProps) => {
   const id = useId();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useUnifiedAuth();
   const query = useQuery({
-    queryKey: ['credentials-for-input'],
+    queryKey: ['credentials-for-input', isAuthenticated ? 'auth' : 'guest'],
     queryFn: async () => {
       const token = await getToken();
-      if (!token) {
-        return;
-      }
-      return getCredentials(token)
+      return UnifiedCredentialsAPI.client.list(1, 50, undefined, undefined, token);
     },
-    refetchInterval: 10000,
+    refetchInterval: isAuthenticated ? 10000 : false, // Only refetch if authenticated
+    enabled: isAuthenticated,
   })
   return (
     <div className="flex flex-col gap-1 w-full">
