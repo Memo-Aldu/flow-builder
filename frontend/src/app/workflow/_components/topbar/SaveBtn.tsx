@@ -1,12 +1,12 @@
 "use client"
 import { TooltipWrapper } from '@/components/TooltipWrapper'
 import { Button } from '@/components/ui/button'
-import { updateWorkflow } from '@/lib/api/workflows'
+import { useUnifiedAuth } from '@/contexts/AuthContext'
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client'
 import { sanitizeHandleId } from '@/lib/workflow/handleUtils'
 import { TaskRegistry } from '@/lib/workflow/task/registry'
 import { AppNode } from '@/types/nodes'
 import { WorkflowUpdateRequest } from '@/types/workflows'
-import { useAuth } from '@clerk/nextjs'
 import { useMutation } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { CheckIcon } from 'lucide-react'
@@ -15,7 +15,7 @@ import { toast } from 'sonner'
 
 const SaveBtn = ({ workflowId }: { workflowId: string }) => {
   const { toObject } = useReactFlow()
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
 
   const convertEdgesForBackend = (edges: any[], nodes: AppNode[]) => {
     return edges.map(edge => {
@@ -47,17 +47,13 @@ const SaveBtn = ({ workflowId }: { workflowId: string }) => {
 
   const { mutate, isPending } = useMutation({
   mutationFn: async ({ id, values }: { id: string, values: WorkflowUpdateRequest }) => {
-    const token  = await getToken();
-    if (!token) {
-      throw new Error("User not authenticated");
-    }
-    return await updateWorkflow(id, values, token);
+    const token = await getToken();
+    return await UnifiedWorkflowsAPI.client.update(id, values, token);
   },
-	onSuccess: (workflow) => {
+	onSuccess: () => {
 	  toast.success("Workflow saved successfully", { id: "save-workflow" });
 	},
-	onError: (err) => {
-		console.error(err);
+	onError: () => {
 		toast.error("Failed to save workflow", { id: "save-workflow" });
 	}
   })

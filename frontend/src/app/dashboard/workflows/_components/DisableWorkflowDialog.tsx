@@ -8,13 +8,13 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
-} from '@/components/ui/alert-dialog'
-import { updateWorkflow } from '@/lib/api/workflows'
-import { useAuth } from '@clerk/nextjs'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import React from 'react'
-import { toast } from 'sonner'
+} from '@/components/ui/alert-dialog';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+import { toast } from 'sonner';
 
 type DisableWorkflowDialogProps = {
     open: boolean
@@ -24,17 +24,14 @@ type DisableWorkflowDialogProps = {
 }
 
 export const DisableWorkflowDialog = ({ open, setOpen, disableWorkflow, workflowId }: DisableWorkflowDialogProps) => {
-  const { getToken } = useAuth();
-  const router = useRouter();   
+  const { getToken } = useUnifiedAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  
+
   const mutation = useMutation({
     mutationFn: async (id: string) => {
-        const token  = await getToken();
-        if (!token) {
-            throw new Error("User not authenticated");
-        }
-        return await updateWorkflow(id, {
+        const token = await getToken();
+        return await UnifiedWorkflowsAPI.client.update(id, {
             status: disableWorkflow ? 'published' : 'disabled'
         }, token);
     },
@@ -43,8 +40,7 @@ export const DisableWorkflowDialog = ({ open, setOpen, disableWorkflow, workflow
         router.refresh();
         queryClient.invalidateQueries({ queryKey: ["workflows"] });
     },
-    onError: (err) => {
-        console.error(err);
+    onError: () => {
         toast.error(`Failed to ${ disableWorkflow ? "enabled" : "disabled" } workflow`, { id: workflowId });
     }
   }) 

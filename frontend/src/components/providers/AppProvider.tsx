@@ -1,10 +1,15 @@
 "use client";
 
+import { AuthProvider } from '@/contexts/AuthContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
-import React, { useState } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import NextTopLoader from 'nextjs-toploader'
+import NextTopLoader from 'nextjs-toploader';
+import React, { useState } from 'react';
+
+// Only import DevTools in development
+const ReactQueryDevtools = process.env.NODE_ENV === 'development'
+  ? React.lazy(() => import('@tanstack/react-query-devtools').then(module => ({ default: module.ReactQueryDevtools })))
+  : null;
 
 type AppProviderProps = {
     children: React.ReactNode
@@ -24,9 +29,15 @@ export const AppProvider = ({ children }: AppProviderProps ) => {
     <QueryClientProvider client={queryClient}>
       <NextTopLoader color='#3c81f6' showSpinner={false}/>
       <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false}>
+        <AuthProvider>
           {children}
+        </AuthProvider>
       </ThemeProvider>
-      <ReactQueryDevtools />
+      {process.env.NODE_ENV === 'development' && ReactQueryDevtools && (
+        <React.Suspense fallback={null}>
+          <ReactQueryDevtools />
+        </React.Suspense>
+      )}
     </QueryClientProvider>
   )
 }

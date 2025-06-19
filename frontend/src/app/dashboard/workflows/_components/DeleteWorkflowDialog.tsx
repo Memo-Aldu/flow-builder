@@ -9,14 +9,14 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
-} from '@/components/ui/alert-dialog'
-import { Input } from '@/components/ui/input'
-import { deleteWorkflow } from '@/lib/api/workflows'
-import { useAuth } from '@clerk/nextjs'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import React from 'react'
-import { toast } from 'sonner'
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+import { toast } from 'sonner';
 
 type DeleteWorkflowDialogProps = {
     open: boolean
@@ -28,16 +28,17 @@ type DeleteWorkflowDialogProps = {
 export const DeleteWorkflowDialog = ({ open, setOpen, workflowName, workflowId }: DeleteWorkflowDialogProps) => {
   const [confirmText, setConfirmText] = React.useState('')
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-  const router = useRouter();   
-  
+  const { getToken, isAuthenticated } = useUnifiedAuth();
+  const router = useRouter();
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-        const token  = await getToken();
-        if (!token) {
-            throw new Error("User not authenticated");
+        if (isAuthenticated) {
+            const token = await getToken();
+            return await UnifiedWorkflowsAPI.client.delete(id, token);
+        } else {
+            return await UnifiedWorkflowsAPI.client.delete(id);
         }
-        return await deleteWorkflow(id, token);
     },
     onSuccess: () => {
         toast.success("Workflow deleted successfully", { id: workflowId });
@@ -45,11 +46,10 @@ export const DeleteWorkflowDialog = ({ open, setOpen, workflowName, workflowId }
         queryClient.invalidateQueries({ queryKey: ["workflows"] });
 
     },
-    onError: (err) => {
-        console.error(err);
+    onError: () => {
         toast.error("Failed to delete workflow", { id: workflowId });
     }
-  }) 
+  })
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent className="">

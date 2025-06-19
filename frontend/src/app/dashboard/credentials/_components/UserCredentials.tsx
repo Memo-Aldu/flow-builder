@@ -1,35 +1,32 @@
 "use client";
 
+import { DeleteCredentialDialog } from '@/app/dashboard/credentials/_components/DeleteWorkflowDialog';
 import { Card } from '@/components/ui/card';
-import { getCredentials } from '@/lib/api/credential';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedCredentialsAPI } from '@/lib/api/unified-functions-client';
 import { Credential as AppCredential, CredentialSortField } from '@/types/credential';
-import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { LockKeyholeIcon } from 'lucide-react';
-import React from 'react'
-import { DeleteCredentialDialog } from '@/app/dashboard/credentials/_components/DeleteWorkflowDialog';
+import React from 'react';
 
 const UserCredentials = ({ initialData }: { initialData: AppCredential[]}) => {
-    const { getToken } = useAuth();
+    const { getToken, isAuthenticated } = useUnifiedAuth();
 
     const credentialMutation = useQuery<AppCredential[], Error, AppCredential[]>({
-        queryKey: ["credentials"],
+        queryKey: ["credentials", isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
             const token = await getToken();
-            if (!token) {
-                throw new Error('No valid token found.');
-            }
-            const credentials = await getCredentials(token, 1, 50, CredentialSortField.CREATED_AT, 'desc');
-            return credentials;
+            return UnifiedCredentialsAPI.client.list(1, 50, CredentialSortField.CREATED_AT, 'desc', token);
         },
-        refetchInterval: 10000,
+        refetchInterval: isAuthenticated ? 10000 : false, // Only refetch if authenticated
         initialData: initialData,
+        enabled: isAuthenticated,
     });
 
     return (
         <div className='flex gap-2 flex-wrap'>
-            { credentialMutation.data.map((credential) => {
+            { credentialMutation.data?.map((credential) => {
                 const createdAt = formatDistanceToNow(new Date(credential.created_at), { addSuffix: true });
                 return <Card key={credential.id} className='w-full p-4 flex justify-between'>
                     <div className='flex gap-2 items-center'>

@@ -1,16 +1,16 @@
+import ExecutionStatusChart from "@/app/dashboard/(home)/_components/ExecutionStatusChart";
+import StatsCard from "@/app/dashboard/(home)/_components/StatsCard";
+import CreditUsageChart from "@/app/dashboard/billing/_components/CreditUsageChart";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { getAllExecutions, getExecutionStats } from "@/lib/api/executions";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getServerExecutions, getServerExecutionStats } from "@/lib/api/unified-server-api";
+import { getUnifiedAuth } from "@/lib/auth/unified-auth";
+import { PeriodToDateRange } from "@/lib/helper/dates";
+import { Period } from "@/types/base";
 import { ExecutionStats, WorkflowExecutionSortField } from "@/types/executions";
-import { auth } from "@clerk/nextjs/server";
 import { AlertCircle, CirclePlayIcon, CoinsIcon, WaypointsIcon } from "lucide-react";
 import { Suspense } from "react";
 import DateSelector from "./_components/DateSelector";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Period } from "@/types/base";
-import { PeriodToDateRange } from "@/lib/helper/dates";
-import StatsCard from "@/app/dashboard/(home)/_components/StatsCard";
-import ExecutionStatusChart from "@/app/dashboard/(home)/_components/ExecutionStatusChart";
-import CreditUsageChart from "@/app/dashboard/billing/_components/CreditUsageChart";
 
 export default async function HomePage({ searchParams }: { searchParams:  { month?: string; year?: string }}) {
   const currentDate = new Date()
@@ -22,20 +22,19 @@ export default async function HomePage({ searchParams }: { searchParams:  { mont
     year: year ? parseInt(year) : currentDate.getFullYear(),
   }
 
-  const { userId, getToken } = await auth();
-  const token = await getToken();
+  const user = await getUnifiedAuth();
 
-  if (!userId || !token) {
+  if (!user) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Please log in again.</AlertTitle>
+        <AlertTitle>Please log in to access the dashboard.</AlertTitle>
       </Alert>
     );
   }
 
   const dateRange = PeriodToDateRange(period);
-  const statsPromise = getExecutionStats(token, dateRange.start, dateRange.end);
+  const statsPromise = getServerExecutionStats(dateRange.start.toISOString(), dateRange.end.toISOString());
 
   return (
     <div className="flex flex-1 flex-col h-full">
@@ -61,38 +60,45 @@ export default async function HomePage({ searchParams }: { searchParams:  { mont
 }
 
 const PeriodSelectorWrapper = async ({selectedPeriod}: {selectedPeriod: Period}) => {
-  const { userId, getToken } = await auth()
-  const token = await getToken()
-  if (!userId || !token) {
+  const user = await getUnifiedAuth();
+
+  if (!user) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Please log in again.</AlertTitle>
+        <AlertTitle>Please log in to access the dashboard.</AlertTitle>
       </Alert>
     )
   }
-  const firstExecution = await getAllExecutions(token, 1, 1, WorkflowExecutionSortField.CREATED_AT, 'asc')
 
-  if (firstExecution.length === 0) {
-    return []
-  }
-  const firstExecutionDate = new Date(firstExecution[0].created_at)
-  const now = new Date()
-  const periods = []
+  try {
+    const firstExecution = await getServerExecutions(1, 1, WorkflowExecutionSortField.CREATED_AT, 'asc') as any[];
 
-  for (let year = firstExecutionDate.getFullYear(); year <= now.getFullYear(); year++) {
-    for (let month = 1; month <= 12; month++) {
-      if (year === firstExecutionDate.getFullYear() && month < firstExecutionDate.getMonth() + 1) {
-        continue
-      }
-      if (year === now.getFullYear() && month > now.getMonth() + 1) {
-        continue
-      }
-      periods.push({ year, month })
+    if (firstExecution.length === 0) {
+      return <DateSelector periods={[]} selectedPeriod={selectedPeriod} />;
     }
-  }
 
-  return <DateSelector periods={periods} selectedPeriod={selectedPeriod} />;
+    const firstExecutionDate = new Date(firstExecution[0].created_at)
+    const now = new Date()
+    const periods = []
+
+    for (let year = firstExecutionDate.getFullYear(); year <= now.getFullYear(); year++) {
+      for (let month = 1; month <= 12; month++) {
+        if (year === firstExecutionDate.getFullYear() && month < firstExecutionDate.getMonth() + 1) {
+          continue
+        }
+        if (year === now.getFullYear() && month > now.getMonth() + 1) {
+          continue
+        }
+        periods.push({ year, month })
+      }
+    }
+
+    return <DateSelector periods={periods} selectedPeriod={selectedPeriod} />;
+  } catch (error) {
+    console.error("Failed to fetch executions:", error);
+    return <DateSelector periods={[]} selectedPeriod={selectedPeriod} />;
+  }
 }
 
 const StatsCards = async ({statsPromise, selectedPeriod }: {statsPromise: Promise<ExecutionStats>, selectedPeriod: Period}) => {

@@ -1,8 +1,8 @@
 "use client"
 import { TooltipWrapper } from '@/components/TooltipWrapper'
 import { Button } from '@/components/ui/button'
-import { updateWorkflow } from '@/lib/api/workflows'
-import { useAuth } from '@clerk/nextjs'
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client'
+import { useUnifiedAuth } from '@/contexts/AuthContext';
 import { useMutation } from '@tanstack/react-query'
 import { CheckIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -10,17 +10,14 @@ import React from 'react'
 import { toast } from 'sonner'
 
 const EnableBtn = ({ workflowId }: { workflowId: string }) => {
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const router = useRouter();
-  
+
 
   const { mutate, isPending } = useMutation({
   mutationFn: async ({ id }: { id: string}) => {
-    const token  = await getToken();
-    if (!token) {
-      throw new Error("User not authenticated");
-    }
-    return await updateWorkflow(id, {
+    const token = await getToken();
+    return await UnifiedWorkflowsAPI.client.update(id, {
       status: 'published'
     }, token);
   },

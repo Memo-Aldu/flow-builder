@@ -5,7 +5,7 @@ import { Globe2Icon, LucideProps } from "lucide-react";
 export const LaunchStealthBrowserTask = {
     type: TaskType.LAUNCH_STEALTH_BROWSER,
     label: "Stealth Browser",
-    icon: (props: LucideProps) => <Globe2Icon className="stroke-orange-400" {...props} />,
+    icon: (props: LucideProps) => <Globe2Icon className="stroke-primary" {...props} />,
     description: "Launch a stealth browser with anti-detection measures and navigate to a specific URL",
     isEntryPoint: true,
     inputs: [

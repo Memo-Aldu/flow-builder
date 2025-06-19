@@ -3,15 +3,14 @@
 import useExecutionPlan from '@/components/hooks/useExecutionPlan';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
-import { createExecution } from '@/lib/api/executions';
-import { updateWorkflow } from '@/lib/api/workflows';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedExecutionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { ExecutionStatus, ExecutionTrigger, WorkflowExecutionCreate } from '@/types/executions';
 import { WorkflowUpdateRequest } from '@/types/workflows';
-import { useAuth } from '@clerk/nextjs';
 import { useMutation } from '@tanstack/react-query';
 import { PlayIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation'
-import React from 'react'
+import { useRouter } from 'next/navigation';
+import React from 'react';
 import { toast } from 'sonner';
 
 
@@ -23,17 +22,14 @@ type ExecuteBtnProps = {
 
 const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
   const generate  = useExecutionPlan()
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const router = useRouter();
 
   const mutation = useMutation({
     mutationFn: async ({ id, values }: { id: string, values: WorkflowUpdateRequest }) => {
-      const token  = await getToken();
-      if (!token) {
-        throw new Error("User not authenticated");
-      }
+      const token = await getToken();
       if (!isPublished) {
-        await updateWorkflow(id, values, token)
+        await UnifiedWorkflowsAPI.client.update(id, values, token);
       }
       const workflowExecution: WorkflowExecutionCreate = {
         workflow_id: id,
@@ -41,14 +37,13 @@ const ExecuteBtn = ( { workflowId, isPublished }: ExecuteBtnProps) => {
         status: ExecutionStatus.PENDING,
       }
 
-      return await createExecution(token, workflowExecution)
+      return await UnifiedExecutionsAPI.client.create(workflowExecution, token);
     },
     onSuccess: (execution) => {
       toast.success("Execution Started", { id: "execution-started" });
       router.push(`/workflow/runs/${workflowId}/${execution.id}`);
     },
-    onError: (err) => {
-      console.error(err);
+    onError: () => {
       toast.error("Execution Failed", { id: "execution-started" });
   }})
   return (

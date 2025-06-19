@@ -6,10 +6,10 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { unscheduleWorkflow, updateWorkflow } from '@/lib/api/workflows';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { cn } from '@/lib/utils';
 import { COMMON_TIMEZONES, convertCronToUTC, formatDateInTimezone, getNextRunInTimezone, getUserTimezone } from '@/lib/utils/timezone';
-import { useAuth } from '@clerk/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parser from 'cron-parser';
 import cronstrue from 'cronstrue';
@@ -26,7 +26,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
   const [intervalError, setIntervalError] = React.useState<string>('');
   const [userTimezone, setUserTimezone] = useState<string>(getUserTimezone());
   const [nextRunLocal, setNextRunLocal] = useState<Date | null>(null);
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -64,10 +64,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
 
   const mutation = useMutation({
     mutationFn: async (cron : string) => {
-      const token  = await getToken();
-      if (!token) {
-        throw new Error("User not authenticated");
-      }
+      const token = await getToken();
       try {
         // Convert cron from user timezone to UTC for backend storage
         const utcCron = convertCronToUTC(cron, userTimezone);
@@ -87,12 +84,11 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
         const utcInterval = parser.parse(utcCron);
         const nextRunUTC = utcInterval.next().toISOString();
 
-        return await updateWorkflow(props.workflowId, {
+        return await UnifiedWorkflowsAPI.client.update(props.workflowId, {
           cron: utcCron,  // Store UTC cron expression
           next_run_at: nextRunUTC
         }, token);
       } catch (err) {
-        console.error(err);
         throw new Error(err instanceof Error ? err.message : "Invalid cron expression");
       }
     },
@@ -101,22 +97,17 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
       router.push(`/dashboard/workflows`);
     },
-    onError: (err) => {
-      console.error(err);
+    onError: () => {
       toast.error("Failed to schedule workflow", { id: "schedule-workflow" });
     }
   })
 
   const unscheduleMutation = useMutation({
     mutationFn: async () => {
-      const token  = await getToken();
-      if (!token) {
-        throw new Error("User not authenticated");
-      }
+      const token = await getToken();
       try {
-        return await unscheduleWorkflow(props.workflowId, token);
+        return await UnifiedWorkflowsAPI.client.unschedule(props.workflowId, token);
       } catch (err) {
-        console.error(err);
         throw new Error("Failed to unschedule workflow");
       }
     },
@@ -125,8 +116,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
       router.push(`/dashboard/workflows`);
     },
-    onError: (err) => {
-      console.error(err);
+    onError: () => {
       toast.error("Failed to unschedule workflow", { id: "unschedule-workflow" });
     }
   })
@@ -139,7 +129,7 @@ const ScheduleDialog = (props : { workflowId : string, cron : string }) => {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant='link' size='sm' className=
-        {cn("text-sm p-0 h-auto text-orange-500", workflowHasValidCron && 'text-primary')}
+        {cn("text-sm p-0 h-auto text-muted-foreground", workflowHasValidCron && 'text-primary')}
         >
           { workflowHasValidCron && (
             <div className="flex items-center gap-2">

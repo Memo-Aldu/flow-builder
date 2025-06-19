@@ -1,36 +1,32 @@
 import { Button } from '@/components/ui/button';
-import { createExecution } from '@/lib/api/executions';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedExecutionsAPI } from '@/lib/api/unified-functions-client';
 import { ExecutionStatus, ExecutionTrigger, WorkflowExecutionCreate } from '@/types/executions';
-import { useAuth } from '@clerk/nextjs';
 import { useMutation } from '@tanstack/react-query';
 import { PlayIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React from 'react'
+import React from 'react';
 import { toast } from 'sonner';
 
 const RunBtn = ({ workflowId } : {workflowId : string}) => {
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const router = useRouter();
   const mutation = useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const token  = await getToken();
-      if (!token) {
-        throw new Error("User not authenticated");
-      }
+      const token = await getToken();
       const workflowExecution: WorkflowExecutionCreate = {
         workflow_id: id,
         trigger: ExecutionTrigger.MANUAL,
         status: ExecutionStatus.PENDING,
       }
 
-      return await createExecution(token, workflowExecution)
+      return await UnifiedExecutionsAPI.client.create(workflowExecution, token)
     },
     onSuccess: (execution) => {
       toast.success("Execution Started", { id: "execution-started" });
       router.push(`/workflow/runs/${workflowId}/${execution.id}`);
     },
-    onError: (err) => {
-      console.error(err);
+    onError: () => {
       toast.error("Execution Failed", { id: "execution-started" });
   }})
   return (

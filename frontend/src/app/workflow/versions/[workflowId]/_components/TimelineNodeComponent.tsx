@@ -1,12 +1,11 @@
-import { Handle, NodeProps, Position } from '@xyflow/react'
-import React, { memo } from 'react'
-import { TimelineNodeData } from '@/types/nodes';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { TimelineNodeData } from '@/types/nodes';
+import { Handle, NodeProps, Position } from '@xyflow/react';
+import { formatDistanceToNow } from 'date-fns';
+import React, { memo } from 'react';
 
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
 const TimelineNodeComponent = memo((props: NodeProps) => {
   const nodeData = props.data as TimelineNodeData;
 

@@ -2,12 +2,12 @@
 
 import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
-import { unPublishWorkflow } from '@/lib/api/workflows';
-import { useAuth } from '@clerk/nextjs';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { useUnifiedAuth } from '@/contexts/AuthContext';
 import { useMutation } from '@tanstack/react-query';
 import { DownloadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React from 'react'
+import React from 'react';
 import { toast } from 'sonner';
 
 
@@ -17,16 +17,13 @@ type PublishBtnProps = {
 
 
 const UnPublishBtn = ( { workflowId }: PublishBtnProps) => {
-  const { getToken } = useAuth();
+  const { getToken } = useUnifiedAuth();
   const router = useRouter();
 
   const mutation = useMutation({
     mutationFn: async ({ id }: { id: string}) => {
-      const token  = await getToken();
-      if (!token) {
-        throw new Error("User not authenticated");
-      }
-      return await unPublishWorkflow(id, token)
+      const token = await getToken();
+      return await UnifiedWorkflowsAPI.client.unpublish(id, token);
     },
     onSuccess: () => {
       toast.success("Workflow Unpublished", { id: workflowId });

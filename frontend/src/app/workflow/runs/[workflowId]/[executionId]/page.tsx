@@ -1,10 +1,9 @@
 import TopBar from '@/app/workflow/_components/topbar/TopBar'
-import { getExecution } from '@/lib/api/executions'
-import { listPhases } from '@/lib/api/phases'
-import { auth } from '@clerk/nextjs/server'
+import ExecutionView from '@/app/workflow/runs/[workflowId]/[executionId]/_components/ExecutionView'
+import { UnifiedExecutionsAPI, UnifiedPhasesAPI } from '@/lib/api/unified-functions'
+import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { Loader2Icon } from 'lucide-react'
 import React, { Suspense } from 'react'
-import ExecutionView from '@/app/workflow/runs/[workflowId]/[executionId]/_components/ExecutionView'
 
 const ExecutionPage = async ({ params} : { params: {executionId: string, workflowId: string}}) => {
     const resolvedParams = await Promise.resolve(params); 
@@ -33,18 +32,17 @@ export default ExecutionPage
 
 
 const ExecutionViewWrapper = async ({ executionId, workflowId }: { executionId: string, workflowId: string }) => {
-  const { getToken } = await auth()
-  const token = await getToken()
+  const user = await getUnifiedAuth()
 
-  if (!token) {
+  if (!user) {
     return <div>
       Please log in again.
     </div>
   }
 
   const [execution, phases] = await Promise.all([
-    getExecution(token, executionId),
-    listPhases(token, executionId)
+    UnifiedExecutionsAPI.server.get(executionId),
+    UnifiedPhasesAPI.server.list(executionId)
   ]);
 
   if (!execution || !phases) {

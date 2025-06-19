@@ -5,7 +5,7 @@ import { GlobeLockIcon, LucideProps } from "lucide-react";
 export const LaunchBrightDataBrowserTask = {
     type: TaskType.LAUNCH_BRIGHT_DATA_BROWSER,
     label: "Bright Data Browser",
-    icon: (props: LucideProps) => <GlobeLockIcon className="stroke-orange-400" {...props} />,
+    icon: (props: LucideProps) => <GlobeLockIcon className="stroke-primary" {...props} />,
     description: "Launch a Bright Data browser with automatic proxy rotation and captcha solving",
     isEntryPoint: true,
     inputs: [

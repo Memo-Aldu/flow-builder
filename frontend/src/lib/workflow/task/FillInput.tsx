@@ -5,7 +5,7 @@ import { LucideProps, RectangleEllipsisIcon } from "lucide-react";
 export const FillInputTask = {
     type: TaskType.FILL_INPUT,
     label: "Fill Input on Page",
-    icon: (props: LucideProps) => <RectangleEllipsisIcon className="stroke-orange-400" {...props} />,
+    icon: (props: LucideProps) => <RectangleEllipsisIcon className="stroke-primary" {...props} />,
     description: "Fill an input on a web page",
     isEntryPoint: false,
     inputs: [

@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { createCheckoutSession } from '@/lib/api/purchases'
+import { useUnifiedAuth } from '@/contexts/AuthContext'
+import { UnifiedPurchasesAPI } from '@/lib/api/unified-functions-client'
 import { CreditsPackages, PackageType } from '@/types/billing'
-import { useAuth } from '@clerk/nextjs'
 import { useMutation } from '@tanstack/react-query'
 import { CoinsIcon, CreditCard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -13,7 +13,7 @@ import React from 'react'
 import { toast } from 'sonner'
 
 const CreditsPurchase = () => {
-    const { getToken } = useAuth()
+    const { getToken } = useUnifiedAuth()
     const router = useRouter()
     const [selectedPackage, setSelectedPackage] = React.useState(CreditsPackages[1].id)
 
@@ -23,7 +23,7 @@ const CreditsPurchase = () => {
             if (!token) {
                 throw new Error("User not authenticated");
             }
-            const session = await createCheckoutSession(token, id);
+            const session = await UnifiedPurchasesAPI.client.createCheckoutSession(id, token);
             if (!session) {
                 throw new Error("Failed to create checkout session");
             }
@@ -32,9 +32,8 @@ const CreditsPurchase = () => {
         onSuccess: () => {
             toast.success("Credits purchased successfully", { id: "purchase-credits" });
         },
-        onError: (error) => {
+        onError: () => {
             toast.error("Failed to purchase credits", { id: "purchase-credits" });
-            console.error(error)
         }
     })
     return (

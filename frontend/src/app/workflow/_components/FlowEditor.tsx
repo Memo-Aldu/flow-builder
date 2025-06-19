@@ -2,17 +2,17 @@
 
 import { Workflow } from '@/types/workflows';
 import {
-  addEdge,
-  Background,
-  BackgroundVariant,
-  Connection,
-  Controls,
-  Edge,
-  getOutgoers,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  useReactFlow
+    addEdge,
+    Background,
+    BackgroundVariant,
+    Connection,
+    Controls,
+    Edge,
+    getOutgoers,
+    ReactFlow,
+    useEdgesState,
+    useNodesState,
+    useReactFlow
 } from '@xyflow/react';
 import React, { useCallback, useEffect } from 'react';
 
@@ -74,7 +74,6 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
 
     // Don't set value for CONDITIONAL inputs - they get their values from the connected outputs
     if (targetInput?.type === TaskParamType.CONDITIONAL) {
-      console.log("Conditional input detected, skipping value update");
       return;
     }
 
@@ -112,7 +111,7 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
       setViewport({ x, y, zoom });
 
     } catch (error) {
-
+      // Silently handle viewport parsing errors - use default viewport
     }
   }, [workflow.active_version?.definition, setEdges, setNodes, setViewport, migrateHandleNames])
 

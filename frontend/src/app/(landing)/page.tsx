@@ -1,5 +1,18 @@
 "use client";
 
+import { Logo } from "@/components/Logo";
+import { ModeToggle } from "@/components/ThemeToggle";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { useUnifiedAuth } from "@/contexts/AuthContext";
+import { CreditsPackages } from "@/types/billing";
 import {
   SignedIn,
   SignedOut,
@@ -29,25 +42,39 @@ import {
   Zap
 } from "lucide-react";
 import Link from "next/link";
-
-import { Logo } from "@/components/Logo";
-import { ModeToggle } from "@/components/ThemeToggle";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { CreditsPackages } from "@/types/billing";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 export default function LandingPage() {
-  const { isSignedIn } = useUser();
+  const { user: clerkUser } = useUser();
+  const { createGuestAccount, isLoading } = useUnifiedAuth();
+  const router = useRouter();
+  const [isCreatingGuest, setIsCreatingGuest] = useState(false);
+
+  const handleStartFreeTrial = () => {
+    if (clerkUser) {
+      router.push("/dashboard");
+    } else {
+      router.push("/sign-up");
+    }
+  };
+
+  const handleTryAsGuest = async () => {
+    try {
+      setIsCreatingGuest(true);
+      await createGuestAccount();
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Failed to create guest account:", error);
+      // Still redirect to dashboard - the auth context will handle the error
+      router.push("/dashboard");
+    } finally {
+      setIsCreatingGuest(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
-      {/* ---------------- Header ---------------- */}
       <header className="w-full border-b sticky top-0 z-20 bg-background/70 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
           <Logo fontSize="text-xl" iconSize={18} />
@@ -132,7 +159,7 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            {isSignedIn ? (
+            {clerkUser ? (
               <Link href="/dashboard">
                 <Button size="lg" className="px-8 py-6 text-lg font-semibold">
                   <LayoutDashboard className="w-5 h-5 mr-2" />
@@ -141,16 +168,33 @@ export default function LandingPage() {
               </Link>
             ) : (
               <>
-                <Link href="/sign-up">
-                  <Button size="lg" className="px-8 py-6 text-lg font-semibold">
-                    <Play className="w-5 h-5 mr-2" />
-                    Start Building Free
-                  </Button>
-                </Link>
-
-                <Button size="lg" variant="outline" className="px-8 py-6 text-lg font-semibold">
+                <Button
+                  size="lg"
+                  className="px-8 py-6 text-lg font-semibold"
+                  onClick={handleStartFreeTrial}
+                >
                   <Play className="w-5 h-5 mr-2" />
-                  Watch Demo
+                  Start Free Trial
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="px-8 py-6 text-lg font-semibold border-blue-300 text-blue-700 hover:bg-blue-50"
+                  onClick={handleTryAsGuest}
+                  disabled={isCreatingGuest}
+                >
+                  {isCreatingGuest ? (
+                    <>
+                      <div className="w-5 h-5 mr-2 animate-spin rounded-full border-2 border-blue-300 border-t-blue-600" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      Try as Guest
+                    </>
+                  )}
                 </Button>
               </>
             )}
@@ -159,7 +203,7 @@ export default function LandingPage() {
           {/* Trust indicators */}
           <p className="text-sm text-muted-foreground mt-4">
             <CheckCircle className="w-4 h-4 inline mr-2 text-green-500" />
-            Free 200 credits • No credit card required • Cancel anytime
+            Free 200 credits • Try as guest • No credit card required
           </p>
         </div>
       </section>

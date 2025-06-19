@@ -1,7 +1,7 @@
 import Greeting from "@/components/Greeting";
 import { Logo } from "@/components/Logo";
 import { Separator } from "@/components/ui/separator";
-import { getUser } from "@/lib/api/users";
+import { UnifiedUsersAPI } from "@/lib/api/unified-functions";
 import { auth } from "@clerk/nextjs/server";
 
 export default async function SignInSuccessPage() {
@@ -22,7 +22,7 @@ export default async function SignInSuccessPage() {
     );
   }
 
-  const user = await getUser(token).catch((error) => {
+  const user = await UnifiedUsersAPI.server.getCurrent().catch((error) => {
     return null;
   });
 
@@ -40,7 +40,7 @@ export default async function SignInSuccessPage() {
     );
   }
 
-  const greetingName = user.username ?? `${user.firstName} ${user.lastName}`;
+  const greetingName = user.username ?? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User');
   return (
     <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
       <Logo iconSize={50} fontSize="text-3xl" />
