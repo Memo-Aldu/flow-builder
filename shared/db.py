@@ -72,13 +72,6 @@ class DatabaseConfig:
         )
 
 
-def _create_ssl_context() -> ssl.SSLContext:
-    """Create SSL context for Supabase pooler connections."""
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    return ssl_context
-
 
 def _get_connect_args(app_name: str = "flow-builder") -> Dict[str, Any]:
     """Get connection arguments for asyncpg with proper Supabase compatibility."""
@@ -100,7 +93,8 @@ def _get_connect_args(app_name: str = "flow-builder") -> Dict[str, Any]:
     # Configure SSL
     if config.use_ssl:
         if config.is_supabase_pooler:
-            connect_args["ssl"] = _create_ssl_context()
+            # For Supabase, use the configured SSL mode as string
+            connect_args["ssl"] = config.ssl_mode
         else:
             connect_args["ssl"] = True
 

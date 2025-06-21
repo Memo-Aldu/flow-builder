@@ -9,15 +9,15 @@ public_subnet_tag_pattern = ["main-subnet-public*"]
 assign_public_ip = true
 
 # Database Configuration
-db_host     = "dpg-d0kfukt6ubrc73b98l3g-a.virginia-postgres.render.com"
-db_port     = "5432"
-db_name     = "flowbuilder"
-db_username = "root"
+db_host     = "aws-0-us-east-1.pooler.supabase.com"
+db_port     = "6543"
+db_name     = "postgres"
+db_username = "postgres.uctqyckvmrgpxzxkzhxv"
 # db_password = "" # Set this via environment variable TF_VAR_db_password
 
 # Database secrets and encryption configuration
-use_db_secrets             = false
-secret_encryption_key      = ""
+use_db_secrets             = true
+#secret_encryption_key      =  ""
 # Set via environment variables
 # secret_encryption_salt     = ""
 # secret_encryption_password = ""

@@ -254,8 +254,10 @@ module "scheduler_lambda" {
     DB_NAME     = var.db_name
     DB_USER     = var.db_username
     DB_PASSWORD = var.db_password
-    # Enable SSL for Render database
-    DB_SSL_MODE = "require"
+    # Enable SSL for Supabase database
+    DB_USE_SSL  = true
+    DB_SSL_MODE = "allow"
+    DB_POOL_MODE = "session"
 
     CUSTOM_AWS_REGION = var.aws_region
     USE_DB_SECRETS = var.use_db_secrets ? "true" : "false"

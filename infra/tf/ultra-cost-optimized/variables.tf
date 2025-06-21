@@ -68,7 +68,6 @@ variable "use_db_secrets" {
 # Encryption configuration for database-stored secrets
 variable "secret_encryption_key" {
   type        = string
-  default     = ""
   description = "Base64-encoded encryption key for database-stored secrets"
   sensitive   = true
 }
