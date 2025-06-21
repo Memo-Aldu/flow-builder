@@ -57,10 +57,19 @@ class DatabaseConfig:
 
     def get_database_url(self) -> str:
         """Get the database URL with appropriate SSL configuration."""
-        if self.use_ssl:
-            return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}?ssl={self.ssl_mode}"
-        else:
-            return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
+        if self.use_ssl and not self.is_supabase_pooler:
+            # For non-Supabase connections, include SSL mode in URL
+            return (
+                f"postgresql+asyncpg://{self.user}:{self.password}@"
+                f"{self.host}:{self.port}/{self.db_name}?ssl={self.ssl_mode}"
+            )
+
+        # For Supabase pooler or non-SSL connections, don't include SSL in URL
+        # SSL will be configured via connect_args for Supabase
+        return (
+            f"postgresql+asyncpg://{self.user}:{self.password}@"
+            f"{self.host}:{self.port}/{self.db_name}"
+        )
 
 
 def _create_ssl_context() -> ssl.SSLContext:
