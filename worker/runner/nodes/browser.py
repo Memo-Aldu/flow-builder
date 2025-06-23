@@ -47,7 +47,7 @@ class StandardBrowserNode(NodeExecutor):
                 # Start the browser with logging callback
                 await env.browser.start(
                     headless=headless_mode,
-                    log_callback=lambda msg, level: phase.add_log(msg, level),
+                    log_callback=lambda msg, level: phase.add_log(msg, LogLevel(level.lower()) if isinstance(level, str) else level),
                 )
 
                 page = await env.browser.new_page()
@@ -97,7 +97,7 @@ class StealthBrowserNode(NodeExecutor):
                 headless_mode = os.environ.get("PLAYWRIGHT_HEADLESS", "True") == "True"
                 await env.browser.start(
                     headless=headless_mode,
-                    log_callback=lambda msg, level: phase.add_log(msg, level),
+                    log_callback=lambda msg, level: phase.add_log(msg, LogLevel(level.lower()) if isinstance(level, str) else level),
                 )
 
                 # Create a new page
@@ -149,12 +149,24 @@ class BrightDataBrowserNode(NodeExecutor):
         credential = await get_credential_by_id(
             session=self.session, credential_id=UUID(password_cred_id)
         )
+        logger.info("Password credential retrieved from secret storage")
         if not credential:
             raise ValueError(f"Credential {password_cred_id} not found.")
         if not credential.secret_arn:
             raise ValueError(f"Credential {password_cred_id} missing secret_arn.")
 
-        password = await retrieve_secret(credential.secret_arn, self.session)
+        logger.info("Retrieving password from secret storage")
+        try:
+            phase.add_log(f"Retrieving password from secret storage (type: {'DB' if credential.secret_arn.startswith('db:') else 'AWS'})", LogLevel.INFO)
+            password = await retrieve_secret(credential.secret_arn, self.session)
+            logger.info("Password retrieved from secret storage")
+            phase.add_log("Password retrieved successfully", LogLevel.INFO)
+        except Exception as e:
+            error_msg = f"Failed to retrieve Bright Data password: {str(e)}"
+            phase.add_log(error_msg, LogLevel.ERROR)
+            logger.error(error_msg)
+            raise ValueError(error_msg) from e
+
         phase.add_log(f"Launching Bright Data browser to {url}...", LogLevel.INFO)
 
         try:
@@ -168,7 +180,7 @@ class BrightDataBrowserNode(NodeExecutor):
                 # Start the browser with logging callback
                 await env.browser.start(
                     headless=headless_mode,
-                    log_callback=lambda msg, level: phase.add_log(msg, level),
+                    log_callback=lambda msg, level: phase.add_log(msg, LogLevel(level.lower()) if isinstance(level, str) else level),
                 )
 
                 page = await env.browser.new_page()
@@ -199,8 +211,8 @@ class FillInputNode(NodeExecutor):
 
     __name__ = "Fill Input Node"
 
-    required_input_keys = ["Selector", "Value"]
-    output_keys = ["filled_input"]
+    required_input_keys = ["Selector", "Value", "Web Page"]
+    output_keys = ["Web Page"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
@@ -221,7 +233,7 @@ class FillInputNode(NodeExecutor):
         try:
             await env.browser.fill_input(selector, value, delay=delay)
             phase.add_log(f"Filled '{selector}' successfully.", LogLevel.INFO)
-            return {"filled_input": True}
+            return {"Web Page": True}
 
         except Exception as e:
             friendly = f"Could not fill input '{selector}': {str(e)}"
@@ -239,8 +251,8 @@ class ClickElementNode(NodeExecutor):
 
     __name__ = "Click Element Node"
 
-    required_input_keys = ["Selector"]
-    output_keys = ["clicked_element"]
+    required_input_keys = ["Selector", "Web Page"]
+    output_keys = ["Web Page"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
@@ -258,7 +270,7 @@ class ClickElementNode(NodeExecutor):
         try:
             await env.browser.click(selector, force=force)
             phase.add_log(f"Clicked '{selector}' successfully.", LogLevel.INFO)
-            return {"clicked_element": True}
+            return {"Web Page": True}
 
         except Exception as e:
             friendly = f"Could not click element '{selector}': {str(e)}"

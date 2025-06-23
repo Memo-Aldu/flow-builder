@@ -30,7 +30,7 @@ class NormalBrowser(BaseBrowser):
             log_callback: Optional callback for logging
         """
         if log_callback:
-            log_callback("Starting normal browser...", LogLevel.INFO)
+            log_callback("Starting normal browser...", "info")
 
         # Initialize Playwright
         self.playwright = await async_playwright().start()
@@ -51,7 +51,7 @@ class NormalBrowser(BaseBrowser):
         await self.setup_popup_handling()
 
         if log_callback:
-            log_callback("Normal browser started successfully", LogLevel.INFO)
+            log_callback("Normal browser started successfully", "info")
 
     async def new_page(self) -> Page:
         """

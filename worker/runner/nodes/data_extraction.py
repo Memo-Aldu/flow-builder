@@ -28,7 +28,8 @@ class GetHTMLNode(NodeExecutor):
 
     __name__ = "Get HTML Node"
 
-    output_keys = ["Html Content"]
+    required_input_keys = ["Web Page"]
+    output_keys = ["Html Content", "Web Page"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
@@ -40,7 +41,7 @@ class GetHTMLNode(NodeExecutor):
         try:
             html = await env.page.content()
             phase.add_log("HTML content retrieved.", level=LogLevel.INFO)
-            return {"Html Content": html}
+            return {"Html Content": html, "Web Page": True}
         except PlaywrightError as e:
             phase.add_log(f"Error getting page HTML: {str(e)}", level=LogLevel.ERROR)
             raise ValueError(f"Error getting page HTML: {str(e)}")

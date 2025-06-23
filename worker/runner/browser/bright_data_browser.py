@@ -35,47 +35,58 @@ class BrightDataBrowser(BaseBrowser):
         """Setup Bright Data credentials from environment variables"""
 
         if not self.username or not self.password:
-            logger.warning(
-                "Bright Data credentials not found. Set BRIGHT_DATA_USERNAME and "
-                "BRIGHT_DATA_PASSWORD environment variables."
+            logger.error(
+                f"Bright Data credentials missing. Username: {'SET' if self.username else 'MISSING'}, "
+                f"Password: {'SET' if self.password else 'MISSING'}"
             )
             self.endpoint_url = None
             return
 
         auth = f"{self.username}:{self.password}"
         self.endpoint_url = f"wss://{auth}@brd.superproxy.io:9222"
-        logger.info("Bright Data credentials configured successfully")
+        logger.info(f"Bright Data credentials configured successfully for user: {self.username[:5]}***")
 
     async def start(
         self, headless: bool = True, log_callback: Optional[Callable] = None
     ) -> None:
         """Start the Bright Data browser"""
         if not self.endpoint_url:
-            raise ValueError(
-                "Bright Data credentials required. Set BRIGHT_DATA_USERNAME and "
-                "BRIGHT_DATA_PASSWORD environment variables."
+            error_msg = (
+                f"Bright Data credentials required. Username: {'SET' if self.username else 'MISSING'}, "
+                f"Password: {'SET' if self.password else 'MISSING'}. "
+                "Please check your credential configuration in the workflow."
             )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         try:
+            logger.info(f"Starting Bright Data browser (headless: {headless})...")
             self.playwright = await async_playwright().start()
 
-            logger.info("Connecting to Bright Data Scraping Browser...")
+            logger.info(f"Connecting to Bright Data Scraping Browser at {self.endpoint_url[:20]}...")
             self.browser = await self.playwright.chromium.connect_over_cdp(
                 self.endpoint_url
             )
             logger.info("Successfully connected to Bright Data Scraping Browser")
 
             if not self.browser:
-                raise ValueError("Browser not initialized")
+                raise ValueError("Browser connection failed - browser object is None")
+
+            logger.info("Creating browser context...")
             self.context = await self.browser.new_context()
 
             # Setup popup handling
             await self.setup_popup_handling()
 
-            logger.info("Bright Data browser context created")
+            logger.info("Bright Data browser context created successfully")
+            if log_callback:
+                log_callback("Bright Data browser started successfully", "info")
 
         except Exception as e:
-            logger.error(f"Failed to start Bright Data browser: {str(e)}")
+            error_msg = f"Failed to start Bright Data browser: {str(e)}"
+            logger.error(error_msg)
+            if log_callback:
+                log_callback(error_msg, "error")
             raise
 
     async def new_page(self) -> Page:

@@ -199,6 +199,15 @@ class BaseBrowser(ABC):
         if not self.page:
             return False
 
+        # Check if page is still valid and not closed
+        try:
+            if self.page.is_closed():
+                logger.debug("Page is closed, skipping modal dialog closing")
+                return False
+        except Exception:
+            logger.debug("Cannot check page status, skipping modal dialog closing")
+            return False
+
         closed_something = False
 
         try:
@@ -240,9 +249,19 @@ class BaseBrowser(ABC):
             # Try each selector
             for selector in close_selectors:
                 try:
+                    # Double-check page is still valid before each query
+                    if self.page.is_closed():
+                        logger.debug("Page closed during modal dialog closing")
+                        break
+
                     elements = await self.page.query_selector_all(selector)
 
                     for element in elements:
+                        # Check if page is still valid before interacting with element
+                        if self.page.is_closed():
+                            logger.debug("Page closed while processing elements")
+                            break
+
                         if await element.is_visible():
                             await element.click(timeout=2000)
                             logger.info(
@@ -252,7 +271,12 @@ class BaseBrowser(ABC):
                             await asyncio.sleep(0.5)  # Small delay between clicks
 
                 except Exception as e:
-                    logger.debug(f"Error trying selector {selector}: {str(e)}")
+                    # Check if the error is due to page/context being closed
+                    if "closed" in str(e).lower():
+                        logger.debug(f"Page/context closed while trying selector {selector}")
+                        break
+                    else:
+                        logger.debug(f"Error trying selector {selector}: {str(e)}")
 
             return closed_something
 

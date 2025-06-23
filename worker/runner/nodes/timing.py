@@ -23,8 +23,8 @@ class WaitElementNode(NodeExecutor):
 
     __name__ = "Wait For Element Node"
 
-    required_input_keys = ["Selector", "Visibility"]
-    output_keys = ["element_appeared"]
+    required_input_keys = ["Selector", "Visibility", "Web Page"]
+    output_keys = ["element_appeared", "Web Page"]
 
     async def run(self, node: Node, env: Environment) -> Dict[str, Any]:
         self.validate(node, env)
@@ -43,7 +43,7 @@ class WaitElementNode(NodeExecutor):
         try:
             await env.page.wait_for_selector(selector, state=visibility, timeout=50000)
             phase.add_log(f"Element '{selector}' appeared.", LogLevel.INFO)
-            return {"element_appeared": True}
+            return {"element_appeared": True, "Web Page": True}
 
         except PlaywrightTimeoutError:
             friendly = (

@@ -306,8 +306,6 @@ class WorkflowRunner:
                 target_handle = edge_def["targetHandle"]
 
                 # retrieve env.resources[source_id][source_handle]
-                if source_handle == "Web Page":
-                    continue
                 if str(source_id) not in env.resources:
                     raise ValueError(f"Node outputs for {source_id} not found in env.")
                 source_outputs = env.resources[str(source_id)]
