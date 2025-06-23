@@ -26,7 +26,6 @@ const NodeComponent = memo((props: NodeProps) => {
 
     return (
     <NodeCard nodeId={props.id} isSelected={props.selected}>
-        {DEV_MODE && <Badge>DEV: {props.id}</Badge>}
         <NodeHeader taskType={nodeData.type} nodeId={props.id}/>
         {/* Required Inputs */}
         {requiredInputs.length > 0 && (

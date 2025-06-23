@@ -118,7 +118,8 @@ const getInvalidInputs = (node: AppNode, edges: Edge[], planned: Set<string>) =>
 
         const incomingEdges = edges.filter(edge => edge.target === node.id)
         const inputLinkedToOutput = incomingEdges.find((edge) => {
-            return edge.targetHandle === sanitizeHandleId(input.name)
+            // Check both sanitized and original handle names for compatibility
+            return edge.targetHandle === sanitizeHandleId(input.name) || edge.targetHandle === input.name
         })
 
         const requiredInputProvidedByVisitedOutput = input.required &&

@@ -63,11 +63,25 @@ app.add_exception_handler(
     global_exception_handler,
 )
 
+# Configure CORS origins based on environment
+cors_origins = ["*"]  # Default to allow all origins
+if frontend_url := os.getenv("FRONTEND_URL"):
+    cors_origins = [frontend_url]
+if clerk_frontend_url := os.getenv("CLERK_FRONTEND_URL"):
+    if clerk_frontend_url not in cors_origins:
+        cors_origins.append(clerk_frontend_url)
+
+# In production, be more restrictive
+if os.getenv("ENVIRONMENT") == "production":
+    # Remove wildcard if we have specific origins
+    if len(cors_origins) > 1 and "*" in cors_origins:
+        cors_origins.remove("*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 

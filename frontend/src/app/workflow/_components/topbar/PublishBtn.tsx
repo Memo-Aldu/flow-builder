@@ -1,10 +1,10 @@
 "use client";
 
-import useExecutionPlan from '@/components/hooks/useExecutionPlan';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
-import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { FlowToExecutionPlan } from '@/lib/workflow/executionPlan';
 import { sanitizeHandleId } from '@/lib/workflow/handleUtils';
 import CalculateWorkflowCost from '@/lib/workflow/helper';
 import { TaskRegistry } from '@/lib/workflow/task/registry';
@@ -24,7 +24,6 @@ type PublishBtnProps = {
 
 
 const PublishBtn = ( { workflowId }: PublishBtnProps) => {
-  const generate  = useExecutionPlan()
   const { getToken } = useUnifiedAuth();
   const { toObject } = useReactFlow();
   const router = useRouter();
@@ -74,21 +73,24 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
     <TooltipWrapper content='Publish the workflow'>
       <Button variant={'outline'} className='flex items-center gap-2' disabled={mutation.isPending} onClick={() => {
           toast.loading("Publishing Workflow", { id: workflowId });
-          const plan = generate()
-          if (!plan) {
-              return
-          }
 
           const flowDefinition = toObject()
-
           const convertedEdges = convertEdgesForBackend(flowDefinition.edges, flowDefinition.nodes as AppNode[]);
+
+          // Generate execution plan with converted edges (original handles)
+          const { executionPlan, error } = FlowToExecutionPlan(flowDefinition.nodes as AppNode[], convertedEdges);
+          if (error) {
+              toast.error("Failed to generate execution plan");
+              return;
+          }
+
           const backendCompatibleDef = {
             ...flowDefinition,
             edges: convertedEdges
           };
 
           const workflowPublishRequest: WorkflowPublishRequest = {
-              execution_plan: plan,
+              execution_plan: executionPlan,
               definition: backendCompatibleDef,
               credits_cost: CalculateWorkflowCost(flowDefinition.nodes as AppNode[])
           }
