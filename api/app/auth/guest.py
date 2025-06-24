@@ -106,6 +106,14 @@ class GuestAuthManager:
         result = await session.execute(stmt)
         return result.scalars().first()
 
+    async def get_user_by_session_id_any_state(
+        self, session: AsyncSession, session_id: str
+    ) -> Optional[User]:
+        """Get user by session ID regardless of guest status (for conversion)."""
+        stmt = select(User).where(User.guest_session_id == session_id)
+        result = await session.execute(stmt)
+        return result.scalars().first()
+
     async def get_guest_user_by_fingerprint(
         self, session: AsyncSession, ip_address: str, fingerprint: str
     ) -> Optional[User]:
@@ -183,6 +191,18 @@ class GuestAuthManager:
             return guest_user
         except Exception as e:
             await session.rollback()
+            # Check if this is a unique constraint violation on clerk_id
+            if "unique constraint" in str(e).lower() and "clerk_id" in str(e).lower():
+                # User with this clerk_id already exists, check if it's the same user
+                from api.app.crud.user_crud import get_local_user_by_clerk_id
+                existing_user = await get_local_user_by_clerk_id(session, clerk_id)
+                if existing_user and existing_user.id == guest_user.id:
+                    # This is the same user, conversion already happened
+                    return existing_user
+                else:
+                    raise HTTPException(
+                        status_code=409, detail="A user with this account already exists"
+                    )
             raise HTTPException(
                 status_code=500, detail=f"Failed to convert guest user: {str(e)}"
             )

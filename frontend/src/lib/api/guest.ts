@@ -196,10 +196,55 @@ export class GuestSessionManager {
   }
 
   /**
+   * Validate and clean up corrupted session data
+   */
+  static validateAndCleanSession(): boolean {
+    if (typeof window === "undefined") return false;
+
+    try {
+      const sessionId = this.getSessionId();
+      const expiry = this.getSessionExpiry();
+
+      // If we have a session ID but no valid expiry, clear everything
+      if (sessionId && !expiry) {
+        this.clearSession();
+        return false;
+      }
+
+      // If expiry is in the past, clear everything
+      if (expiry && expiry.getTime() < Date.now()) {
+        this.clearSession();
+        return false;
+      }
+
+      return sessionId !== null && expiry !== null;
+    } catch (error) {
+      // Any error during validation, clear everything
+      this.clearSession();
+      return false;
+    }
+  }
+
+  /**
+   * Initialize and clean up any corrupted data on app startup
+   */
+  static initializeSession(): void {
+    if (typeof window === "undefined") return;
+
+    try {
+      // Validate current session data
+      this.validateAndCleanSession();
+    } catch (error) {
+      // If any error occurs, clear all session data
+      this.clearSession();
+    }
+  }
+
+  /**
    * Check if user has an active guest session
    */
   static hasActiveSession(): boolean {
-    return this.getSessionId() !== null;
+    return this.validateAndCleanSession();
   }
 
   /**
@@ -207,9 +252,24 @@ export class GuestSessionManager {
    */
   static getSessionExpiry(): Date | null {
     if (typeof window === "undefined") return null;
-    
+
     const expiry = localStorage.getItem(this.EXPIRY_KEY);
-    return expiry ? new Date(expiry) : null;
+    if (!expiry) return null;
+
+    try {
+      const date = new Date(expiry);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        // Invalid date, clear the corrupted data
+        localStorage.removeItem(this.EXPIRY_KEY);
+        return null;
+      }
+      return date;
+    } catch (error) {
+      // Error parsing date, clear the corrupted data
+      localStorage.removeItem(this.EXPIRY_KEY);
+      return null;
+    }
   }
 
   /**

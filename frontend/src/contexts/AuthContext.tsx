@@ -1,10 +1,10 @@
 "use client";
 
 import {
-    convertGuestToUser,
-    createGuestSession,
-    getCurrentUser,
-    GuestSessionManager
+  convertGuestToUser,
+  createGuestSession,
+  getCurrentUser,
+  GuestSessionManager
 } from '@/lib/api/guest';
 import { AuthContextType, GuestUserData, UnifiedUser } from '@/lib/auth/types';
 import { useAuth, useUser } from '@clerk/nextjs';
@@ -182,6 +182,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!clerkLoaded) return;
 
+    // Initialize guest session on mount
+    GuestSessionManager.initializeSession();
+
     setIsLoading(true);
     let isMounted = true;
 
@@ -214,21 +217,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const sessionId = GuestSessionManager.getSessionId();
+    // Validate session before using it
+    if (GuestSessionManager.validateAndCleanSession()) {
+      const sessionId = GuestSessionManager.getSessionId();
 
-    if (sessionId) {
+      if (sessionId) {
+        const tempGuestUser: UnifiedUser = {
+          id: `guest_${sessionId.substring(0, 8)}`,
+          username: "Guest User",
+          isGuest: true,
+          guest_expires_at: GuestSessionManager.getSessionExpiry()?.toISOString(),
+        };
+        setUser(tempGuestUser);
 
-      const tempGuestUser: UnifiedUser = {
-        id: `guest_${sessionId.substring(0, 8)}`,
-        username: "Guest User",
-        isGuest: true,
-        guest_expires_at: GuestSessionManager.getSessionExpiry()?.toISOString(),
-      };
-      setUser(tempGuestUser);
-
-      loadGuestUser(sessionId).finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
+        loadGuestUser(sessionId).finally(() => {
+          if (isMounted) setIsLoading(false);
+        });
+      }
     } else if (!sessionRecoveryAttempted.current) {
       sessionRecoveryAttempted.current = true;
 
@@ -302,6 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const convertToUser = useCallback(async (token: string) => {
     const sessionId = GuestSessionManager.getSessionId();
+
     if (!sessionId) {
       throw new Error("No guest session found");
     }
@@ -309,14 +315,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
-      
-      await convertGuestToUser(sessionId, token);
 
+      const convertedUser = await convertGuestToUser(sessionId, token);
+
+      // Clear guest session data after successful conversion
       GuestSessionManager.clearSession();
       cacheRef.current.promise = null;
-      setUser(null);
+      UserCacheManager.clearCache();
+
+      // Return the converted user data for the caller to use
+      return convertedUser;
     } catch (err: any) {
-      setError("Failed to convert account. Please try again.");
+      // Don't set error state here, let the caller handle it
       throw err;
     } finally {
       setIsLoading(false);

@@ -169,31 +169,88 @@ async def convert_guest_to_user(
     first_name = auth_user.get("first_name", "")
     last_name = auth_user.get("last_name", "")
 
-    # Check if user already exists
+    # Check if user already exists - if so, this conversion has already happened
     existing_user = await get_local_user_by_clerk_id(session, clerk_id)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
+    if existing_user and not existing_user.is_guest:
+        # User already converted, return existing user data
+        logger.info(f"User {clerk_id} already exists and is converted")
+        return {
+            "user_id": str(existing_user.id),
+            "clerk_id": existing_user.clerk_id,
+            "email": existing_user.email,
+            "username": existing_user.username,
+            "first_name": existing_user.first_name,
+            "last_name": existing_user.last_name,
+            "credits": existing_user.balance.credits if existing_user.balance else 0,
+            "is_guest": existing_user.is_guest,
+        }
 
-    # Get guest user
+    # First try to get active guest user
     guest_user = await guest_auth_manager.get_guest_user_by_session(
         session, convert_request.guest_session_id
     )
 
+    # If not found as active guest, try to find any user with this session ID (might be already converted)
     if not guest_user:
-        raise HTTPException(
-            status_code=404, detail="Guest session not found or expired"
+        guest_user = await guest_auth_manager.get_user_by_session_id_any_state(
+            session, convert_request.guest_session_id
         )
 
+        if not guest_user:
+            # No user found with this session ID - check if conversion already happened
+            logger.info(f"No user found with session {convert_request.guest_session_id}, checking if already converted")
+
+            # Check if there's already a user with this clerk_id (conversion already happened)
+            if existing_user:
+                logger.info(f"User {clerk_id} already exists and is converted, returning existing user")
+                return {
+                    "user_id": str(existing_user.id),
+                    "clerk_id": existing_user.clerk_id,
+                    "email": existing_user.email,
+                    "username": existing_user.username,
+                    "first_name": existing_user.first_name,
+                    "last_name": existing_user.last_name,
+                    "credits": existing_user.balance.credits if existing_user.balance else 0,
+                    "is_guest": existing_user.is_guest,
+                }
+
+            raise HTTPException(
+                status_code=404, detail="Guest session not found or expired"
+            )
+
     if not guest_user.is_guest:
-        raise HTTPException(status_code=400, detail="User is not a guest")
+        # This guest user has already been converted
+        logger.info(f"Guest user {guest_user.id} has already been converted")
+
+        # Check if it was converted to the same clerk_id
+        if guest_user.clerk_id == clerk_id:
+            logger.info(f"User was converted to the same clerk_id {clerk_id}, returning existing user")
+            return {
+                "user_id": str(guest_user.id),
+                "clerk_id": guest_user.clerk_id,
+                "email": guest_user.email,
+                "username": guest_user.username,
+                "first_name": guest_user.first_name,
+                "last_name": guest_user.last_name,
+                "credits": guest_user.balance.credits if guest_user.balance else 0,
+                "is_guest": guest_user.is_guest,
+            }
+        else:
+            # User was converted to a different clerk_id - this shouldn't happen
+            logger.warning(f"Guest user {guest_user.id} was converted to different clerk_id: {guest_user.clerk_id} vs {clerk_id}")
+            raise HTTPException(
+                status_code=409, detail="Guest session was already converted to a different account"
+            )
 
     try:
+        logger.info(f"Starting conversion of guest {guest_user.id} to user {clerk_id}")
+
         # Convert guest to regular user
         converted_user = await guest_auth_manager.convert_guest_to_user(
             session, guest_user, clerk_id, email, username, first_name, last_name
         )
 
-        logger.info(f"Converted guest {guest_user.id} to user {clerk_id}")
+        logger.info(f"Successfully converted guest {guest_user.id} to user {clerk_id}")
 
         return {
             "user_id": str(converted_user.id),
@@ -209,7 +266,7 @@ async def convert_guest_to_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to convert guest user: {str(e)}")
+        logger.error(f"Unexpected error during guest conversion: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to convert guest user")
 
 

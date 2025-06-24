@@ -39,7 +39,7 @@ export interface AuthContextType {
 
   // Guest-specific actions
   createGuestAccount: () => Promise<void>;
-  convertToUser: (token: string) => Promise<void>;
+  convertToUser: (token: string) => Promise<any>;
   clearGuestSession: () => void;
   refreshUser: () => Promise<void>;
 
