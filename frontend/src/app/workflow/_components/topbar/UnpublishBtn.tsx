@@ -2,8 +2,8 @@
 
 import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { Button } from '@/components/ui/button';
-import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { useMutation } from '@tanstack/react-query';
 import { DownloadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -30,7 +30,6 @@ const UnPublishBtn = ( { workflowId }: PublishBtnProps) => {
       router.refresh();
     },
     onError: (err) => {
-      console.error(err);
       toast.error("Failed to unpublished workflow", { id: workflowId });
   }})
   return (

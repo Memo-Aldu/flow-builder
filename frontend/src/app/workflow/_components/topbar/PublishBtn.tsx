@@ -66,7 +66,6 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
       router.refresh();
     },
     onError: (err) => {
-      console.error(err);
       toast.error("Failed to publish workflow", { id: workflowId });
   }})
   return (

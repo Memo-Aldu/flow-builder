@@ -3,8 +3,8 @@
 import Greeting from "@/components/Greeting";
 import { Logo } from "@/components/Logo";
 import { useUnifiedAuth } from "@/contexts/AuthContext";
-import { UnifiedUsersAPI } from "@/lib/api/unified-functions-client";
 import { GuestSessionManager } from "@/lib/api/guest";
+import { UnifiedUsersAPI } from "@/lib/api/unified-functions-client";
 import { useAuth } from "@clerk/nextjs";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useRouter } from "next/navigation";
@@ -50,30 +50,18 @@ export function SignUpSuccessHandler() {
 
         // Check if there's a guest session to convert
         const guestSessionId = GuestSessionManager.getSessionId();
-        
-        if (guestSessionId && contextUser?.isGuest) {
-          console.log("Converting guest user to regular user...");
-          
+
+        if (guestSessionId) {
           try {
-            // Convert guest to regular user
-            await convertToUser(token);
-            
-            // Fetch the converted user data
-            const convertedUser = await UnifiedUsersAPI.client.getCurrent(token);
+            // Convert guest to regular user and get the converted user data
+            const convertedUser = await convertToUser(token);
             setUser(convertedUser);
-            
-            console.log("Guest user converted successfully:", convertedUser);
           } catch (conversionError) {
-            console.error("Failed to convert guest user:", conversionError);
-            
-            // If conversion fails, try creating a new user
-            console.log("Fallback: Creating new user...");
+            // If conversion fails, fall back to creating a new user
             const newUser = await UnifiedUsersAPI.client.create(token);
             setUser(newUser);
           }
         } else {
-          console.log("Creating new user...");
-          
           // No guest session, create a new user
           const newUser = await UnifiedUsersAPI.client.create(token);
           setUser(newUser);
@@ -85,7 +73,6 @@ export function SignUpSuccessHandler() {
         }, 3000);
 
       } catch (err: any) {
-        console.error("Error during sign-up success handling:", err);
         setError("Something went wrong. Please try again.");
       } finally {
         setIsLoading(false);
@@ -144,7 +131,7 @@ export function SignUpSuccessHandler() {
     );
   }
 
-  const greetingName = user.username ?? (`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User');
+  const greetingName = user.username ?? (`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || 'User');
   const wasGuestConverted = contextUser?.isGuest && !user.is_guest;
   
   return (

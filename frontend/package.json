@@ -3,18 +3,22 @@
   "version": "1.0.0",
   "private": true,
   "description": "FlowBuilder - Visual Workflow Automation Platform Frontend",
-  "homepage": "https://flowbuilder.app",
+  "homepage": "https://flow-builder.app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/flowbuilder/flowbuilder.git"
+    "url": "https://github.com/Memo-Aldu/flow-builder.git"
   },
   "keywords": ["workflow", "automation", "visual-builder", "nextjs", "react"],
-  "author": "FlowBuilder Team",
+  "author": "Memo Al-dujaili",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .next out"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.9.14",

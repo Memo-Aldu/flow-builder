@@ -1,13 +1,13 @@
 "use client"
-import { TooltipWrapper } from '@/components/TooltipWrapper'
-import { Button } from '@/components/ui/button'
-import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client'
+import { TooltipWrapper } from '@/components/TooltipWrapper';
+import { Button } from '@/components/ui/button';
 import { useUnifiedAuth } from '@/contexts/AuthContext';
-import { useMutation } from '@tanstack/react-query'
-import { CheckIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import React from 'react'
-import { toast } from 'sonner'
+import { UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
+import { useMutation } from '@tanstack/react-query';
+import { CheckIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+import { toast } from 'sonner';
 
 const EnableBtn = ({ workflowId }: { workflowId: string }) => {
   const { getToken } = useUnifiedAuth();
@@ -26,8 +26,7 @@ const EnableBtn = ({ workflowId }: { workflowId: string }) => {
     router.refresh();
 	},
 	onError: (err) => {
-		console.error(err);
-		toast.error("Failed to enable workflow", { id: "save-workflow" });			
+		toast.error("Failed to enable workflow", { id: "save-workflow" });
 	}
   })
 

@@ -1,23 +1,23 @@
 'use client';
 
 import { DeleteWorkflowDialog } from '@/app/dashboard/workflows/_components/DeleteWorkflowDialog';
+import { DisableWorkflowDialog } from '@/app/dashboard/workflows/_components/DisableWorkflowDialog';
+import RunBtn from '@/app/dashboard/workflows/_components/RunBtn';
+import ExecutionStatusIndicator, { ExecutionStatusLabel } from '@/app/workflow/runs/[workflowId]/_components/ExecutionStatusIndicator';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { ExecutionStatus } from '@/types/executions';
 import { Workflow, WorkflowStatus } from '@/types/workflows';
+import { format, formatDistanceToNow } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { ChevronRightIcon, ClockIcon, CoinsIcon, CornerDownRightIcon, FileTextIcon, MoreVerticalIcon, MoveRightIcon, PlayIcon, PowerOffIcon, ShuffleIcon, TrashIcon } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
-import RunBtn from '@/app/dashboard/workflows/_components/RunBtn';
 import ScheduleDialog from './ScheduleDialog';
-import { Badge } from '@/components/ui/badge';
-import ExecutionStatusIndicator, { ExecutionStatusLabel } from '@/app/workflow/runs/[workflowId]/_components/ExecutionStatusIndicator';
-import { ExecutionStatus } from '@/types/executions';
-import { format, formatDistanceToNow } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
-import { DisableWorkflowDialog } from '@/app/dashboard/workflows/_components/DisableWorkflowDialog';
 
 export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
   const statusColors = {
@@ -63,7 +63,7 @@ export const WorkflowCard = ({ workflow }: { workflow: Workflow}) => {
                         isDraft={isDraft} 
                         creditsCost={workflow.credits_cost!} 
                         workflowId={workflow.id} 
-                        cron={workflow.cron ? workflow.cron : ''}
+                        cron={workflow.cron ?? ''}
                     />
                 </div>
             </div>
@@ -168,7 +168,7 @@ const LastRunDetails = ({ workflow }: { workflow: Workflow }) => {
     const nextSchedule = workflow.next_run_at && format(new Date(workflow.next_run_at), 'yyyy-MM-dd HH:mm')
     const nextScheduleUTC = workflow.next_run_at && formatInTimeZone(new Date(workflow.next_run_at), 'UTC', 'HH:mm')
 
-    console.log("next run at", workflow.next_run_at, nextScheduleUTC)
+
     return (
         <div className="bg-primary/5 px-4 py-1 flex justify-between items-center text-muted-foreground">
             <div className="flex items-center text-sm gap-2">

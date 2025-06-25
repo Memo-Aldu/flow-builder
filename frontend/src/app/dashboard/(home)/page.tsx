@@ -96,7 +96,6 @@ const PeriodSelectorWrapper = async ({selectedPeriod}: {selectedPeriod: Period})
 
     return <DateSelector periods={periods} selectedPeriod={selectedPeriod} />;
   } catch (error) {
-    console.error("Failed to fetch executions:", error);
     return <DateSelector periods={[]} selectedPeriod={selectedPeriod} />;
   }
 }

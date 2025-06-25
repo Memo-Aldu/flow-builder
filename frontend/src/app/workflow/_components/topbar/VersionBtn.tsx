@@ -25,8 +25,7 @@ const VersionBtn = ({ workflowId }: { workflowId: string }) => {
 	  toast.success("Version created successfully", { id: "created-version" });
 	},
 	onError: (err) => {
-		console.error(err);
-		toast.error("Failed to create version", { id: "created-version" });			
+		toast.error("Failed to create version", { id: "created-version" });
 	}
   })
 

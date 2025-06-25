@@ -17,7 +17,7 @@ services:
       - DEBUG_MODE=true
       - LOG_LEVEL=INFO
       # Configure database connection
-      - DB_USE_SSL=false
+      - DB_USE_SSL=true
       # Increase poll wait time to reduce CPU usage
       - POLL_WAIT_TIME=20
       - MAX_POLL_MESSAGES=5

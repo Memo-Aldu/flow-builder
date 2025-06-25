@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.com https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.clerk.com https://*.clerk.accounts.dev wss://*.clerk.accounts.dev https://*.onrender.com http://localhost:* https://localhost:*;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.com https://*.clerk.accounts.dev https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.clerk.com https://*.clerk.accounts.dev wss://*.clerk.accounts.dev https://*.onrender.com http://localhost:* https://localhost:* https://www.google.com https://www.recaptcha.net https://challenges.cloudflare.com; frame-src 'self' https://www.google.com https://www.recaptcha.net https://challenges.cloudflare.com https://*.clerk.accounts.dev;",
           },
         ],
       },

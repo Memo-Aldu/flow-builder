@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FlowBuilder - Workflow Automation Platform",
-  description: "Create, manage, and automate your workflows with our powerful visual workflow builder. Build complex automation workflows with ease.",
-  keywords: ["workflow", "automation", "builder", "visual", "drag-and-drop", "business process"],
-  authors: [{ name: "FlowBuilder Team" }],
-  creator: "FlowBuilder",
+  title: "FlowBuilder - Visual Workflow Automation Platform",
+  description: "Create, manage, and automate your workflows with our powerful visual workflow builder. Build complex automation workflows with ease using our intuitive drag-and-drop interface.",
+  keywords: ["workflow", "automation", "builder", "visual", "drag-and-drop", "business process", "no-code", "workflow management"],
+  authors: [{ name: "Memo Al-dujaili" }],
+  creator: "Memo Al-dujaili",
   publisher: "FlowBuilder",
   robots: {
     index: true,
@@ -29,16 +29,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://flowbuilder.app",
-    title: "FlowBuilder - Workflow Automation Platform",
-    description: "Create, manage, and automate your workflows with our powerful visual workflow builder.",
+    url: "https://flow-builder.app",
+    title: "FlowBuilder - Visual Workflow Automation Platform",
+    description: "Create, manage, and automate your workflows with our powerful visual workflow builder. Build complex automation workflows with ease.",
     siteName: "FlowBuilder",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FlowBuilder - Workflow Automation Platform",
+    title: "FlowBuilder - Visual Workflow Automation Platform",
     description: "Create, manage, and automate your workflows with our powerful visual workflow builder.",
-    creator: "@flowbuilder",
   },
   viewport: {
     width: "device-width",

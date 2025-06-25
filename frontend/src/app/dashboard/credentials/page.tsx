@@ -72,7 +72,6 @@ const UserCredentialsWrapper = async () => {
 
         return <UserCredentials initialData={credentials}/>
     } catch (error) {
-        console.error("Failed to fetch credentials:", error);
         return (
             <Alert variant="destructive">
                 <AlertCircle className="w-4 h-4" />

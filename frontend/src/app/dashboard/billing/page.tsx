@@ -103,7 +103,6 @@ const CreditsUsageCard = () => {
       try {
         const token = await getToken();
         if (!token) {
-          console.error('No token available');
           return;
         }
         const dateRange = PeriodToDateRange(period);
@@ -114,7 +113,7 @@ const CreditsUsageCard = () => {
         );
         setStats(data);
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
+        // Silently handle error for stats
       } finally {
         setIsLoading(false);
       }

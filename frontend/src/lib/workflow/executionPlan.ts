@@ -71,7 +71,7 @@ export const FlowToExecutionPlan = (nodes: AppNode[], edges: Edge[]): WorkFlowTo
                     // if all incomers are planned, and there are invalid inputs
                     // this means this node has invalid inputs
                     // workflow is invalid
-                    console.error(`Node ${currentNode.id} has invalid inputs ${invalidInputs.join(", ")}`)
+
                     inputsWithErrors.push({
                         nodeId: currentNode.id,
                         inputs: invalidInputs

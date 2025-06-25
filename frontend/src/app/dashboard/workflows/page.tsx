@@ -68,7 +68,6 @@ const UserWorkflowsWrapper = async () => {
     }
     return <UserWorkflows initialData={workflows} />
   } catch (error) {
-    console.error("Failed to fetch workflows:", error);
     return (
       <Alert variant="destructive">
         <AlertCircle className="w-4 h-4" />
