@@ -12,10 +12,10 @@ import { AlertCircle, CirclePlayIcon, CoinsIcon, WaypointsIcon } from "lucide-re
 import { Suspense } from "react";
 import DateSelector from "./_components/DateSelector";
 
-export default async function HomePage({ searchParams }: { searchParams:  { month?: string; year?: string }}) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ month?: string; year?: string }> }) {
   const currentDate = new Date()
-  
-  const resolvedParams = await Promise.resolve(searchParams); 
+
+  const resolvedParams = await searchParams;
   const { month, year } = resolvedParams;
   const period: Period = {
     month: month ? parseInt(month) : currentDate.getMonth() + 1,

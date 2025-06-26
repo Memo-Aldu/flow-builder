@@ -3,7 +3,7 @@ import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-funct
 import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 import React from 'react';
 
-const page = async ({ params }: { params: { workflowId: string }}) => {
+const page = async ({ params }: { params: Promise<{ workflowId: string }> }) => {
   const user = await getUnifiedAuth();
 
   if (!user) {
@@ -14,7 +14,7 @@ const page = async ({ params }: { params: { workflowId: string }}) => {
     )
   }
 
-  const resolvedParams = await Promise.resolve(params);
+  const resolvedParams = await params;
   const { workflowId } = resolvedParams;
 
   if (!user.id) {

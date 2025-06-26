@@ -5,8 +5,8 @@ import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { InboxIcon, Loader2Icon } from 'lucide-react'
 import React, { Suspense } from 'react'
 
-const ExecutionsPage = async ({ params } : { params: {workflowId: string}}) => {
-  const resolvedParams = await Promise.resolve(params); 
+const ExecutionsPage = async ({ params } : { params: Promise<{workflowId: string}>}) => {
+  const resolvedParams = await params;
   const { workflowId } = resolvedParams;
   return (
     <div className='w-full h-full overflow-auto'>

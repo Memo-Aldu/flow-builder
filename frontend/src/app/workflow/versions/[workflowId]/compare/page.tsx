@@ -7,13 +7,13 @@ import React, { Suspense } from 'react';
 
 
 type CompareProps = {
-  params: { workflowId: string };
-  searchParams: { version_1?: string; version_2?: string };
+  params: Promise<{ workflowId: string }>;
+  searchParams: Promise<{ version_1?: string; version_2?: string }>;
 };
 
 const compare = async ({ params, searchParams }: CompareProps) => {
-  const resolvedParams = await Promise.resolve(params); 
-  const resolvedSearchParams = await Promise.resolve(searchParams);
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const { workflowId } = resolvedParams;
   const { version_1, version_2 } = resolvedSearchParams;
 

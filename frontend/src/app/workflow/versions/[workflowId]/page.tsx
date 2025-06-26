@@ -1,14 +1,14 @@
-import { InboxIcon, Loader2Icon } from 'lucide-react';
-import React, { Suspense } from 'react'
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
 import { UnifiedVersionsAPI } from '@/lib/api/unified-functions';
-import { auth } from '@clerk/nextjs/server';
-import VersionControl from './_components/VersionControl';
-import { ReactFlowProvider } from '@xyflow/react';
 import { getUnifiedAuth } from '@/lib/auth/unified-auth';
+import { auth } from '@clerk/nextjs/server';
+import { ReactFlowProvider } from '@xyflow/react';
+import { InboxIcon, Loader2Icon } from 'lucide-react';
+import React, { Suspense } from 'react';
+import VersionControl from './_components/VersionControl';
 
-const WorkflowVersionsPage = async ({ params } : { params: {workflowId: string}}) => {
-    const resolvedParams = await Promise.resolve(params); 
+const WorkflowVersionsPage = async ({ params } : { params: Promise<{workflowId: string}>}) => {
+    const resolvedParams = await params;
     const { workflowId } = resolvedParams;
     return (
       <ReactFlowProvider>

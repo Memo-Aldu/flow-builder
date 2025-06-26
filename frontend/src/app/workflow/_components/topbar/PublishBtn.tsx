@@ -78,7 +78,7 @@ const PublishBtn = ( { workflowId }: PublishBtnProps) => {
 
           // Generate execution plan with converted edges (original handles)
           const { executionPlan, error } = FlowToExecutionPlan(flowDefinition.nodes as AppNode[], convertedEdges);
-          if (error) {
+          if (error || !executionPlan) {
               toast.error("Failed to generate execution plan");
               return;
           }

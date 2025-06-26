@@ -5,8 +5,8 @@ import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { Loader2Icon } from 'lucide-react'
 import React, { Suspense } from 'react'
 
-const ExecutionPage = async ({ params} : { params: {executionId: string, workflowId: string}}) => {
-    const resolvedParams = await Promise.resolve(params); 
+const ExecutionPage = async ({ params} : { params: Promise<{executionId: string, workflowId: string}>}) => {
+    const resolvedParams = await params;
     const { workflowId, executionId } = resolvedParams;
 
   return (
