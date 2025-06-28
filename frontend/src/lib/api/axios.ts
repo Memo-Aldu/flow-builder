@@ -6,6 +6,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 30000, // 30 second default timeout
 });
 
 // Add request interceptor to automatically include guest session headers
@@ -19,6 +20,26 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Add response interceptor to handle backend startup errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Add helpful error messages for common backend startup issues
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      error.isBackendStarting = true;
+      error.userMessage = 'Backend is starting up, please wait...';
+    } else if (error.response?.status === 503) {
+      error.isBackendStarting = true;
+      error.userMessage = 'Backend is starting up, please wait...';
+    } else if (!error.response && error.code === 'ERR_NETWORK') {
+      error.isBackendStarting = true;
+      error.userMessage = 'Cannot connect to backend. It may be starting up...';
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export const getAuthHeaders = (token: string) => {
   if (!token) {
