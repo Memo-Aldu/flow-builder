@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useUnifiedAuth } from "@/contexts/AuthContext";
+import { useBackendHealth } from "@/hooks/useBackendHealth";
 import { CreditsPackages } from "@/types/billing";
 import {
   SignedIn,
@@ -47,12 +48,19 @@ import React, { useState } from "react";
 
 export default function LandingPage() {
   const { user: clerkUser } = useUser();
-  const { createGuestAccount, isLoading } = useUnifiedAuth();
+  const { user: unifiedUser, createGuestAccount, isLoading: authLoading } = useUnifiedAuth();
+  const { warmUp } = useBackendHealth();
   const router = useRouter();
   const [isCreatingGuest, setIsCreatingGuest] = useState(false);
+  const isAuthenticated = !!clerkUser || !!unifiedUser;
+
+  // Warm up the backend on component mount (only once)
+  React.useEffect(() => {
+    warmUp();
+  }, []);
 
   const handleStartFreeTrial = () => {
-    if (clerkUser) {
+    if (isAuthenticated) {
       router.push("/dashboard");
     } else {
       router.push("/sign-up");
@@ -60,13 +68,17 @@ export default function LandingPage() {
   };
 
   const handleTryAsGuest = async () => {
+    if (unifiedUser?.isGuest) {
+      router.push("/dashboard");
+      return;
+    }
+
     try {
       setIsCreatingGuest(true);
       await createGuestAccount();
       router.push("/dashboard");
     } catch (error) {
       console.error("Failed to create guest account:", error);
-      // Still redirect to dashboard - the auth context will handle the error
       router.push("/dashboard");
     } finally {
       setIsCreatingGuest(false);
@@ -159,11 +171,11 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            {clerkUser ? (
+            {isAuthenticated ? (
               <Link href="/dashboard">
                 <Button size="lg" className="px-8 py-6 text-lg font-semibold">
                   <LayoutDashboard className="w-5 h-5 mr-2" />
-                  Go to Dashboard
+                  {unifiedUser?.isGuest ? "Continue as Guest" : "Go to Dashboard"}
                 </Button>
               </Link>
             ) : (
@@ -182,7 +194,7 @@ export default function LandingPage() {
                   variant="outline"
                   className="px-8 py-6 text-lg font-semibold border-blue-300 text-blue-700 hover:bg-blue-50"
                   onClick={handleTryAsGuest}
-                  disabled={isCreatingGuest}
+                  disabled={isCreatingGuest || authLoading}
                 >
                   {isCreatingGuest ? (
                     <>

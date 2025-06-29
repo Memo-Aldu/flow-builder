@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  convertGuestToUser,
-  createGuestSession,
-  getCurrentUser,
-  GuestSessionManager
+    convertGuestToUser,
+    createGuestSession,
+    getCurrentUser,
+    GuestSessionManager
 } from '@/lib/api/guest';
 import { AuthContextType, GuestUserData, UnifiedUser } from '@/lib/auth/types';
 import { useAuth, useUser } from '@clerk/nextjs';
@@ -172,7 +172,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      setError("Limited guest access - some features may not work");
+      // If we reach here, authentication failed completely      setUser(null);
+      GuestSessionManager.clearSession();
+      setError("Failed to authenticate guest session. Please try creating a new guest account.");
     }
   }, [fetchCurrentUser]);
 

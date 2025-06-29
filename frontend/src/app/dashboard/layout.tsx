@@ -1,11 +1,13 @@
 "use client";
 
+import { BackendStatusIndicator } from '@/components/BackendStatusIndicator';
 import { BreadcrumbHeader } from '@/components/BreadcrumbHeader';
 import { GuestBanner, GuestModeIndicator } from '@/components/GuestBanner';
 import DesktopSidebar from '@/components/Sidebar';
 import { ModeToggle } from '@/components/ThemeToggle';
 import { Separator } from '@/components/ui/separator';
 import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { useBackendHealth } from '@/hooks/useBackendHealth';
 import { useUserBalance } from '@/hooks/useUserBalance';
 import { SignedIn, UserButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
@@ -14,6 +16,10 @@ import React, { useEffect } from 'react';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useUnifiedAuth();
   const { balance } = useUserBalance();
+  const { status: backendStatus, isChecking: isCheckingBackend, checkHealth } = useBackendHealth({
+    autoCheck: isAuthenticated && !isLoading,
+    checkInterval: 30000, // Check every 30 seconds
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -39,6 +45,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  // Show backend status if backend is not healthy
+  if (backendStatus && !backendStatus.isHealthy && (backendStatus.status === 'starting' || backendStatus.status === 'timeout')) {
+    return (
+      <div className="flex h-screen items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          <BackendStatusIndicator
+            status={backendStatus}
+            isChecking={isCheckingBackend}
+            onRetry={checkHealth}
+            showProgress={true}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='flex h-screen'>
         <DesktopSidebar />
@@ -46,6 +68,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <header className='flex items-center justify-between px-6 py-4 h-[50px] container'>
                 <BreadcrumbHeader />
                 <div className='gap-2 flex items-center'>
+                    {/* Show compact backend status if there are issues */}
+                    {backendStatus && !backendStatus.isHealthy && backendStatus.status !== 'starting' && backendStatus.status !== 'timeout' && (
+                        <BackendStatusIndicator
+                            status={backendStatus}
+                            isChecking={isCheckingBackend}
+                            onRetry={checkHealth}
+                            compact={true}
+                        />
+                    )}
                     {user?.isGuest && (
                         <GuestModeIndicator
                             credits={balance}
