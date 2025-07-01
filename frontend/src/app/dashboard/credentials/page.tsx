@@ -1,5 +1,6 @@
 import { CreateCredentialDialog } from '@/app/dashboard/credentials/_components/CreateCredentialDialog';
 import UserCredentials from '@/app/dashboard/credentials/_components/UserCredentials';
+import { ClientAuthFallback } from '@/components/ClientAuthFallback';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,8 +13,10 @@ import React, { Suspense } from 'react';
 // Force dynamic rendering to enable server-side authentication
 export const dynamic = 'force-dynamic';
 
-const CredentialPage = () => {
-  return (
+const CredentialPage = async () => {
+  const user = await getUnifiedAuth();
+
+  const content = (
     <div className='flex flex-1 flex-col h-full'>
         <div className="flex justify-between">
             <div className="flex flex-col">
@@ -35,7 +38,13 @@ const CredentialPage = () => {
             </Suspense>
         </div>
     </div>
-  )
+  );
+
+  return (
+    <ClientAuthFallback serverUser={user}>
+      {content}
+    </ClientAuthFallback>
+  );
 }
 
 

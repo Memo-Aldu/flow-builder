@@ -1,6 +1,7 @@
 
 import { CreateWorkflowDialog } from '@/app/dashboard/workflows/_components/CreateWorkflowDialog'
 import UserWorkflows from '@/app/dashboard/workflows/_components/UserWorkflows'
+import { ClientAuthFallback } from '@/components/ClientAuthFallback'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getServerWorkflows } from '@/lib/api/unified-server-api'
@@ -11,8 +12,10 @@ import React, { Suspense } from 'react'
 // Force dynamic rendering to enable server-side authentication
 export const dynamic = 'force-dynamic';
 
-const page = () => {
-  return (
+const page = async () => {
+  const user = await getUnifiedAuth();
+
+  const content = (
     <div className='flex-1 flex flex-col h-hull'>
         <div className='flex justify-between'>
             <div className='flex flex-col'>
@@ -29,7 +32,13 @@ const page = () => {
             </Suspense>
         </div>
     </div>
-  )
+  );
+
+  return (
+    <ClientAuthFallback serverUser={user}>
+      {content}
+    </ClientAuthFallback>
+  );
 }
 
 

@@ -29,13 +29,21 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
                           cookieHeader?.match(/guest_session_id=([^;]+)/)?.[1];
 
     if (guestSessionId) {
-      // Validate guest session by calling the API
+      // For server-side rendering, we'll trust the cookie presence and defer validation to client-side
+      // This prevents issues with API calls in serverless environments (Vercel)
       try {
+        // Try to validate with a short timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/current`, {
           headers: {
             "X-Guest-Session-ID": guestSessionId,
           },
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const userData = await response.json();
@@ -52,7 +60,23 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
           }
         }
       } catch (error) {
-        console.error("Failed to validate guest session:", error);
+        // If API validation fails, fall back to trusting the cookie for server-side rendering
+        // The client-side will handle proper validation
+        console.warn("Server-side guest session validation failed, falling back to cookie trust:", error instanceof Error ? error.message : String(error));
+
+        // Extract expiry from cookie if available
+        const cookieHeader = (await headers()).get("cookie");
+        const expiryMatch = cookieHeader?.match(/guest_session_expiry=([^;]+)/);
+        const expiryDate = expiryMatch ? expiryMatch[1] : undefined;
+
+        return {
+          id: `guest_${guestSessionId.substring(0, 8)}`,
+          username: "Guest User",
+          isGuest: true,
+          guestSessionId,
+          token: undefined,
+          guest_expires_at: expiryDate,
+        };
       }
     }
 

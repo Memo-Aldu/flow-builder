@@ -1,6 +1,7 @@
 import ExecutionStatusChart from "@/app/dashboard/(home)/_components/ExecutionStatusChart";
 import StatsCard from "@/app/dashboard/(home)/_components/StatsCard";
 import CreditUsageChart from "@/app/dashboard/billing/_components/CreditUsageChart";
+import { ClientAuthFallback } from "@/components/ClientAuthFallback";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerExecutions, getServerExecutionStats } from "@/lib/api/unified-server-api";
@@ -26,20 +27,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   }
 
   const user = await getUnifiedAuth();
-
-  if (!user) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Please log in to access the dashboard.</AlertTitle>
-      </Alert>
-    );
-  }
-
   const dateRange = PeriodToDateRange(period);
-  const statsPromise = getServerExecutionStats(dateRange.start.toISOString(), dateRange.end.toISOString());
+  const statsPromise = user ? getServerExecutionStats(dateRange.start.toISOString(), dateRange.end.toISOString()) : Promise.resolve({
+    num_executions: 0,
+    num_successful_executions: 0,
+    num_failed_executions: 0,
+    total_credits_spent: 0,
+    execution_dates_status: [],
+    credits_dates_status: []
+  });
 
-  return (
+  const content = (
     <div className="flex flex-1 flex-col h-full">
       <div className="flex justify-between">
         <h1 className='text-3xl font-bold'>Home</h1>
@@ -59,6 +57,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </Suspense>
       </div>
     </div>
+  );
+
+  return (
+    <ClientAuthFallback serverUser={user}>
+      {content}
+    </ClientAuthFallback>
   );
 }
 
