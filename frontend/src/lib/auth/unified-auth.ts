@@ -1,4 +1,3 @@
-import { GuestSessionManager } from "@/lib/api/guest";
 import { auth } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { UnifiedUser } from "./types";
@@ -25,8 +24,9 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
 
     // Try guest authentication
     const headersList = await headers();
-    const guestSessionId = headersList.get("X-Guest-Session-ID") ?? 
-                          headersList.get("cookie")?.match(/guest_session_id=([^;]+)/)?.[1];
+    const cookieHeader = headersList.get("cookie");
+    const guestSessionId = headersList.get("X-Guest-Session-ID") ??
+                          cookieHeader?.match(/guest_session_id=([^;]+)/)?.[1];
 
     if (guestSessionId) {
       // Validate guest session by calling the API
@@ -39,6 +39,7 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
 
         if (response.ok) {
           const userData = await response.json();
+
           if (userData.is_guest) {
             return {
               id: userData.id,

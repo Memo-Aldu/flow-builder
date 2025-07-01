@@ -12,6 +12,9 @@ import { AlertCircle, CirclePlayIcon, CoinsIcon, WaypointsIcon } from "lucide-re
 import { Suspense } from "react";
 import DateSelector from "./_components/DateSelector";
 
+// Force dynamic rendering to enable server-side authentication
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ month?: string; year?: string }> }) {
   const currentDate = new Date()
 

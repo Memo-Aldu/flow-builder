@@ -9,6 +9,9 @@ import { CredentialSortField } from '@/types/credential';
 import { AlertCircle, ShieldIcon, ShieldOffIcon } from 'lucide-react';
 import React, { Suspense } from 'react';
 
+// Force dynamic rendering to enable server-side authentication
+export const dynamic = 'force-dynamic';
+
 const CredentialPage = () => {
   return (
     <div className='flex flex-1 flex-col h-full'>

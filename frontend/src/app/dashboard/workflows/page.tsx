@@ -8,6 +8,9 @@ import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { AlertCircle } from 'lucide-react'
 import React, { Suspense } from 'react'
 
+// Force dynamic rendering to enable server-side authentication
+export const dynamic = 'force-dynamic';
+
 const page = () => {
   return (
     <div className='flex-1 flex flex-col h-hull'>
