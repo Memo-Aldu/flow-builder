@@ -51,12 +51,22 @@ const CredentialPage = async () => {
 const UserCredentialsWrapper = async () => {
     const user = await getUnifiedAuth();
 
+    // If no user, return empty state - the main ClientAuthFallback will handle auth
     if (!user) {
         return (
-            <Alert variant="destructive">
-                <AlertCircle className="w-4 h-4" />
-                <AlertTitle>Please log in to access your credentials.</AlertTitle>
-            </Alert>
+            <Card className='w-full p-4'>
+                <div className="flex flex-col gap-4 h-full items-center justify-center">
+                    <div className="rounded-full bg-accent w-20 h-20 flex items-center justify-center">
+                        <ShieldOffIcon size={40} className='stroke-primary'/>
+                    </div>
+                    <div className="flex flex-col gap-1 text-center">
+                        <p className="font-bold">No credentials available.</p>
+                        <p className="text-sm text-muted-foreground">
+                            Please log in to view your credentials.
+                        </p>
+                    </div>
+                </div>
+            </Card>
         );
     }
 

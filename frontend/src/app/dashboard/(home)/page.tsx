@@ -2,14 +2,13 @@ import ExecutionStatusChart from "@/app/dashboard/(home)/_components/ExecutionSt
 import StatsCard from "@/app/dashboard/(home)/_components/StatsCard";
 import CreditUsageChart from "@/app/dashboard/billing/_components/CreditUsageChart";
 import { ClientAuthFallback } from "@/components/ClientAuthFallback";
-import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerExecutions, getServerExecutionStats } from "@/lib/api/unified-server-api";
 import { getUnifiedAuth } from "@/lib/auth/unified-auth";
 import { PeriodToDateRange } from "@/lib/helper/dates";
 import { Period } from "@/types/base";
 import { ExecutionStats, WorkflowExecutionSortField } from "@/types/executions";
-import { AlertCircle, CirclePlayIcon, CoinsIcon, WaypointsIcon } from "lucide-react";
+import { CirclePlayIcon, CoinsIcon, WaypointsIcon } from "lucide-react";
 import { Suspense } from "react";
 import DateSelector from "./_components/DateSelector";
 
@@ -69,13 +68,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 const PeriodSelectorWrapper = async ({selectedPeriod}: {selectedPeriod: Period}) => {
   const user = await getUnifiedAuth();
 
+  // If no user, just return empty periods - the main ClientAuthFallback will handle auth
   if (!user) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Please log in to access the dashboard.</AlertTitle>
-      </Alert>
-    )
+    return <DateSelector periods={[]} selectedPeriod={selectedPeriod} />;
   }
 
   try {
