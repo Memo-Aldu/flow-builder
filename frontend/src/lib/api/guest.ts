@@ -207,19 +207,30 @@ export class GuestSessionManager {
 
       // If we have a session ID but no valid expiry, clear everything
       if (sessionId && !expiry) {
+        console.warn("Guest session found without expiry, clearing session");
         this.clearSession();
         return false;
       }
 
       // If expiry is in the past, clear everything
       if (expiry && expiry.getTime() < Date.now()) {
+        console.warn("Guest session expired, clearing session");
         this.clearSession();
         return false;
       }
 
-      return sessionId !== null && expiry !== null;
+      // If we have both session ID and valid expiry, session is valid
+      const isValid = sessionId !== null && expiry !== null;
+
+      if (!isValid) {
+        console.warn("Guest session validation failed, clearing session");
+        this.clearSession();
+      }
+
+      return isValid;
     } catch (error) {
       // Any error during validation, clear everything
+      console.error("Error validating guest session:", error);
       this.clearSession();
       return false;
     }

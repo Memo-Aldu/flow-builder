@@ -1,40 +1,36 @@
 import Editor from '@/app/workflow/_components/Editor';
 import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions';
 import { getUnifiedAuth } from '@/lib/auth/unified-auth';
+import { redirect } from 'next/navigation';
 import React from 'react';
 
 const page = async ({ params }: { params: Promise<{ workflowId: string }> }) => {
   const user = await getUnifiedAuth();
 
-  if (!user) {
-    return (
-      <div>
-        Please log in again.
-      </div>
-    )
+  // If no user or invalid user, redirect to landing page
+  if (!user?.id) {
+    redirect('/');
   }
 
   const resolvedParams = await params;
   const { workflowId } = resolvedParams;
 
-  if (!user.id) {
+  try {
+    const workflow = await UnifiedWorkflowsAPI.server.get(workflowId);
+
+    if (workflow.active_version_id) {
+      const workflowVersion = await UnifiedVersionsAPI.server.get(workflowId, workflow.active_version_id);
+      workflow.active_version = workflowVersion;
+    }
+
     return (
-      <div>
-        Please log in again.
-      </div>
+      <Editor workflow={workflow} />
     )
+  } catch (error) {
+    console.error('Failed to load workflow:', error);
+    // If workflow doesn't exist or user doesn't have access, redirect to workflows page
+    redirect('/dashboard/workflows');
   }
-
-  const workflow = await UnifiedWorkflowsAPI.server.get(workflowId);
-
-  if (workflow.active_version_id) {
-    const workflowVersion = await UnifiedVersionsAPI.server.get(workflowId, workflow.active_version_id);
-    workflow.active_version = workflowVersion;
-  }
-
-  return (
-    <Editor workflow={workflow} />
-  )
 }
 
 export default page

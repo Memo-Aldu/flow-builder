@@ -34,7 +34,7 @@ export default ExecutionPage
 const ExecutionViewWrapper = async ({ executionId, workflowId }: { executionId: string, workflowId: string }) => {
   const user = await getUnifiedAuth()
 
-  if (!user) {
+  if (!user?.id) {
     return <div>
       Please log in again.
     </div>

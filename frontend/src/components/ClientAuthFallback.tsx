@@ -1,9 +1,10 @@
 "use client";
 
-import { useUnifiedAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUnifiedAuth } from "@/contexts/AuthContext";
 import { AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface ClientAuthFallbackProps {
@@ -19,6 +20,8 @@ interface ClientAuthFallbackProps {
 export function ClientAuthFallback({ children, serverUser }: ClientAuthFallbackProps) {
   const { user: clientUser, isLoading: clientLoading, isAuthenticated } = useUnifiedAuth();
   const [showFallback, setShowFallback] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // If server-side auth failed but we have a guest session cookie, show fallback
@@ -26,9 +29,18 @@ export function ClientAuthFallback({ children, serverUser }: ClientAuthFallbackP
       const hasGuestCookie = document.cookie.includes("guest_session_id=");
       if (hasGuestCookie) {
         setShowFallback(true);
+      } else {
+        // No valid authentication, redirect to landing page
+        setShouldRedirect(true);
       }
     }
   }, [serverUser]);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push('/');
+    }
+  }, [shouldRedirect, router]);
 
   // If server-side auth succeeded, render normally
   if (serverUser) {
@@ -70,6 +82,16 @@ export function ClientAuthFallback({ children, serverUser }: ClientAuthFallbackP
   // If client-side auth succeeded, render the content
   if (isAuthenticated && clientUser) {
     return <>{children}</>;
+  }
+
+  // If all auth methods failed, show redirect message
+  if (shouldRedirect) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="w-4 h-4" />
+        <AlertTitle>Redirecting to login...</AlertTitle>
+      </Alert>
+    );
   }
 
   // If all auth methods failed, show login prompt

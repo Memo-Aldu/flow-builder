@@ -1,7 +1,6 @@
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
 import { UnifiedVersionsAPI } from '@/lib/api/unified-functions';
 import { getUnifiedAuth } from '@/lib/auth/unified-auth';
-import { auth } from '@clerk/nextjs/server';
 import { ReactFlowProvider } from '@xyflow/react';
 import { InboxIcon, Loader2Icon } from 'lucide-react';
 import React, { Suspense } from 'react';

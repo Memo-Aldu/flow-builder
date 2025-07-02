@@ -14,7 +14,7 @@ import {
     useNodesState,
     useReactFlow
 } from '@xyflow/react';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import DeletableEdge from '@/app/workflow/_components/edges/DeletableEdge';
 import NodeComponent from '@/app/workflow/_components/nodes/NodeComponent';
@@ -40,6 +40,7 @@ const fitViewOptions = { padding: 0.5 };
 const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [isWorkflowLoaded, setIsWorkflowLoaded] = useState(false);
   const { setViewport, screenToFlowPosition, updateNodeData } = useReactFlow();
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -98,7 +99,14 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
 
   useEffect(() => {
     try {
-      if (!workflow.active_version) return;
+      if (!workflow.active_version) {
+        // Workflow has no active version - this is a new/empty workflow
+        setNodes([]);
+        setEdges([]);
+        setIsWorkflowLoaded(true);
+        return;
+      }
+
       setNodes(workflow.active_version.definition?.nodes ?? []);
 
       // Migrate old handle names in edges
@@ -106,14 +114,21 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
       const migratedEdges = migrateHandleNames(originalEdges);
       setEdges(migratedEdges);
 
-      if (!workflow.active_version.definition?.viewport) return;
-      const { x=0, y=0, zoom=1 } = workflow.active_version.definition.viewport;
-      setViewport({ x, y, zoom });
+      if (workflow.active_version.definition?.viewport) {
+        const { x=0, y=0, zoom=1 } = workflow.active_version.definition.viewport;
+        setViewport({ x, y, zoom });
+      }
+
+      setIsWorkflowLoaded(true);
 
     } catch (error) {
-      // Silently handle viewport parsing errors - use default viewport
+      console.error('Error loading workflow data:', error);
+      // Set empty state on error
+      setNodes([]);
+      setEdges([]);
+      setIsWorkflowLoaded(true);
     }
-  }, [workflow.active_version?.definition, setEdges, setNodes, setViewport, migrateHandleNames])
+  }, [workflow.active_version?.definition, setEdges, setNodes, setViewport, migrateHandleNames, setIsWorkflowLoaded])
 
   const isValidConnection = useCallback((connection: Edge | Connection) => {
     // Prevent connecting to self
@@ -162,6 +177,18 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
 
   const isViewOnly = workflow.status === 'published' || workflow.status === 'disabled';
 
+  // Show loading state while workflow is being loaded
+  if (!isWorkflowLoaded) {
+    return (
+      <main className='h-full w-full flex items-center justify-center'>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading workflow...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className='h-full w-full'>
       { isViewOnly ? (
@@ -189,6 +216,17 @@ const FlowEditor = ({ workflow }: { workflow: Workflow}) => {
         >
             <Controls position='top-left' fitViewOptions={fitViewOptions}/>
             <Background variant={BackgroundVariant.Dots} gap={24} size={1}/>
+            {/* Show helpful message for empty workflows */}
+            {nodes.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-center p-8 bg-background/80 rounded-lg border border-border">
+                  <p className="text-lg font-medium mb-2">Start building your workflow</p>
+                  <p className="text-muted-foreground">
+                    Drag and drop nodes from the task menu to get started
+                  </p>
+                </div>
+              </div>
+            )}
         </ReactFlow>
       )}
     </main>

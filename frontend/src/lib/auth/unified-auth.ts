@@ -60,23 +60,10 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
           }
         }
       } catch (error) {
-        // If API validation fails, fall back to trusting the cookie for server-side rendering
-        // The client-side will handle proper validation
-        console.warn("Server-side guest session validation failed, falling back to cookie trust:", error instanceof Error ? error.message : String(error));
-
-        // Extract expiry from cookie if available
-        const cookieHeader = (await headers()).get("cookie");
-        const expiryMatch = cookieHeader?.match(/guest_session_expiry=([^;]+)/);
-        const expiryDate = expiryMatch ? expiryMatch[1] : undefined;
-
-        return {
-          id: `guest_${guestSessionId.substring(0, 8)}`,
-          username: "Guest User",
-          isGuest: true,
-          guestSessionId,
-          token: undefined,
-          guest_expires_at: expiryDate,
-        };
+        // If API validation fails, don't trust the cookie - return null
+        // This prevents invalid authentication states
+        console.warn("Server-side guest session validation failed:", error instanceof Error ? error.message : String(error));
+        return null;
       }
     }
 
