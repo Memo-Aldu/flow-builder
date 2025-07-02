@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getServerCredentials } from '@/lib/api/unified-server-api';
 import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 import { CredentialSortField } from '@/types/credential';
-import { AlertCircle, ShieldIcon, ShieldOffIcon } from 'lucide-react';
+import { ShieldIcon, ShieldOffIcon } from 'lucide-react';
 import React, { Suspense } from 'react';
 
 // Force dynamic rendering to enable server-side authentication
@@ -94,12 +94,9 @@ const UserCredentialsWrapper = async () => {
 
         return <UserCredentials initialData={credentials}/>
     } catch (error) {
-        return (
-            <Alert variant="destructive">
-                <AlertCircle className="w-4 h-4" />
-                <AlertTitle>Something went wrong. Please try again later.</AlertTitle>
-            </Alert>
-        );
+        console.error('Failed to fetch credentials on server-side, falling back to client-side:', error);
+        // Fall back to client-side loading instead of showing error
+        return <UserCredentials initialData={[]}/>
     }
 }
 

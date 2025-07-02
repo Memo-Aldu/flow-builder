@@ -2,11 +2,9 @@
 import { CreateWorkflowDialog } from '@/app/dashboard/workflows/_components/CreateWorkflowDialog'
 import UserWorkflows from '@/app/dashboard/workflows/_components/UserWorkflows'
 import { ClientAuthFallback } from '@/components/ClientAuthFallback'
-import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getServerWorkflows } from '@/lib/api/unified-server-api'
 import { getUnifiedAuth } from '@/lib/auth/unified-auth'
-import { AlertCircle } from 'lucide-react'
 import React, { Suspense } from 'react'
 
 // Force dynamic rendering to enable server-side authentication
@@ -69,25 +67,14 @@ const UserWorkflowsWrapper = async () => {
   try {
     const workflows = await getServerWorkflows();
     if (!workflows) {
-        return (
-        <Alert
-            variant={'destructive'}
-        >
-            <AlertCircle className='w-4 h-4' />
-            <AlertTitle>
-                Something went wrong. Please try again later.
-            </AlertTitle>
-        </Alert>
-        );
+        // Fall back to client-side loading if server-side fails
+        return <UserWorkflows initialData={[]} />
     }
     return <UserWorkflows initialData={workflows} />
   } catch (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Something went wrong. Please try again later.</AlertTitle>
-      </Alert>
-    );
+    console.error('Failed to fetch workflows on server-side, falling back to client-side:', error);
+    // Fall back to client-side loading instead of showing error
+    return <UserWorkflows initialData={[]} />
   }
 }
 

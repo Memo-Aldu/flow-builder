@@ -12,8 +12,24 @@ export class UnifiedServerAPI {
    */
   static async get<T>(url: string, params?: Record<string, any>): Promise<T> {
     const headers = await getUnifiedAuthHeaders();
-    const response = await api.get<T>(url, { headers, params });
-    return response.data;
+
+    // In serverless environments, add a timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    try {
+      const response = await api.get<T>(url, {
+        headers,
+        params,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response.data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error(`Server API GET request failed for ${url}:`, error);
+      throw error;
+    }
   }
 
   /**

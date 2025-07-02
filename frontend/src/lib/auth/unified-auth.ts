@@ -29,12 +29,12 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
                           cookieHeader?.match(/guest_session_id=([^;]+)/)?.[1];
 
     if (guestSessionId) {
-      // For server-side rendering, we'll trust the cookie presence and defer validation to client-side
-      // This prevents issues with API calls in serverless environments (Vercel)
+      // In serverless environments (Vercel), server-side API calls can be unreliable
+      // For guest sessions, we'll trust the cookie presence and defer full validation to client-side
       try {
-        // Try to validate with a short timeout
+        // Try to validate with a very short timeout to avoid blocking SSR
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/current`, {
           headers: {
@@ -60,10 +60,34 @@ export async function getUnifiedAuth(): Promise<UnifiedUser | null> {
           }
         }
       } catch (error) {
-        // If API validation fails, don't trust the cookie - return null
-        // This prevents invalid authentication states
-        console.warn("Server-side guest session validation failed:", error instanceof Error ? error.message : String(error));
-        return null;
+        // In serverless environments, API validation can fail due to cold starts
+        // Fall back to trusting the cookie for server-side rendering
+        console.warn("Server-side guest session validation failed, falling back to cookie trust:", error instanceof Error ? error.message : String(error));
+
+        // Extract expiry from cookie if available for basic validation
+        const cookieHeader = (await headers()).get("cookie");
+        const expiryMatch = cookieHeader?.match(/guest_session_expiry=([^;]+)/);
+        const expiryDate = expiryMatch ? expiryMatch[1] : undefined;
+
+        // Basic expiry check
+        if (expiryDate) {
+          const expiry = new Date(expiryDate);
+          if (expiry.getTime() < Date.now()) {
+            // Session is expired
+            return null;
+          }
+        }
+
+        // Return a basic guest user object for server-side rendering
+        // Client-side will handle full validation
+        return {
+          id: `guest_${guestSessionId.substring(0, 8)}`,
+          username: "Guest User",
+          isGuest: true,
+          guestSessionId,
+          token: undefined,
+          guest_expires_at: expiryDate,
+        };
       }
     }
 
