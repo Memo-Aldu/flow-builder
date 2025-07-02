@@ -11,17 +11,25 @@ import { LockKeyholeIcon } from 'lucide-react';
 import React from 'react';
 
 const UserCredentials = ({ initialData }: { initialData: AppCredential[]}) => {
-    const { getToken, isAuthenticated } = useUnifiedAuth();
+    const { getToken, user, isLoading } = useUnifiedAuth();
+
+    // Enable query when user exists (either Clerk user or guest user) and not loading
+    const shouldEnableQuery = !isLoading && !!user;
 
     const credentialMutation = useQuery<AppCredential[], Error, AppCredential[]>({
-        queryKey: ["credentials", isAuthenticated ? 'auth' : 'guest'],
+        queryKey: ["credentials", user?.isGuest ? 'guest' : 'auth', user?.id],
         queryFn: async () => {
             const token = await getToken();
             return UnifiedCredentialsAPI.client.list(1, 50, CredentialSortField.CREATED_AT, 'desc', token);
         },
-        refetchInterval: isAuthenticated ? 10000 : false, // Only refetch if authenticated
+        refetchInterval: shouldEnableQuery ? 10000 : false, // Only refetch if authenticated
         initialData: initialData,
-        enabled: isAuthenticated,
+        enabled: shouldEnableQuery,
+        retry: (failureCount, error) => {
+            // Retry up to 3 times for network errors
+            return failureCount < 3;
+        },
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     });
 
     return (
