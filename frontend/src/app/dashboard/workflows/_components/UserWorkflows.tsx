@@ -17,11 +17,15 @@ type UserWorkflowsProps = {
 const UserWorkflows = ({ initialData }: UserWorkflowsProps) => {
     const { getToken, user, isLoading } = useUnifiedAuth();
 
+
+
     // Enable query when user exists (either Clerk user or guest user) and not loading
-    const shouldEnableQuery = !isLoading && !!user;
+    // OR when we have a guest session but user loading failed (Vercel fallback)
+    const hasGuestSession = typeof window !== 'undefined' && !!localStorage.getItem('guest_session_id');
+    const shouldEnableQuery = !isLoading && (!!user || hasGuestSession);
 
     const query = useQuery({
-        queryKey: ["workflows", user?.isGuest ? 'guest' : 'auth', user?.id],
+        queryKey: ["workflows", user?.isGuest ? 'guest' : 'auth', user?.id || (hasGuestSession ? 'guest-session' : 'no-user')],
         queryFn: async () => {
             const token = await getToken();
 

@@ -14,10 +14,12 @@ const UserCredentials = ({ initialData }: { initialData: AppCredential[]}) => {
     const { getToken, user, isLoading } = useUnifiedAuth();
 
     // Enable query when user exists (either Clerk user or guest user) and not loading
-    const shouldEnableQuery = !isLoading && !!user;
+    // OR when we have a guest session but user loading failed (Vercel fallback)
+    const hasGuestSession = typeof window !== 'undefined' && !!localStorage.getItem('guest_session_id');
+    const shouldEnableQuery = !isLoading && (!!user || hasGuestSession);
 
     const credentialMutation = useQuery<AppCredential[], Error, AppCredential[]>({
-        queryKey: ["credentials", user?.isGuest ? 'guest' : 'auth', user?.id],
+        queryKey: ["credentials", user?.isGuest ? 'guest' : 'auth', user?.id || (hasGuestSession ? 'guest-session' : 'no-user')],
         queryFn: async () => {
             const token = await getToken();
             return UnifiedCredentialsAPI.client.list(1, 50, CredentialSortField.CREATED_AT, 'desc', token);

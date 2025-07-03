@@ -16,17 +16,22 @@ import React, { useEffect } from 'react';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useUnifiedAuth();
   const { balance } = useUserBalance();
+
+  // Check if we have a guest session even if user loading failed (Vercel fallback)
+  const hasGuestSession = typeof window !== 'undefined' && !!localStorage.getItem('guest_session_id');
+  const shouldAllowAccess = isAuthenticated || hasGuestSession;
+
   const { status: backendStatus, isChecking: isCheckingBackend, checkHealth } = useBackendHealth({
-    autoCheck: isAuthenticated && !isLoading,
+    autoCheck: shouldAllowAccess && !isLoading,
     checkInterval: 30000, // Check every 30 seconds
   });
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !shouldAllowAccess) {
       router.push('/');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, shouldAllowAccess, router]);
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -40,8 +45,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Don't render if not authenticated
-  if (!isAuthenticated) {
+  // Don't render if not authenticated and no guest session
+  if (!shouldAllowAccess) {
     return null;
   }
 
@@ -77,7 +82,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             compact={true}
                         />
                     )}
-                    {user?.isGuest && (
+                    {(user?.isGuest || hasGuestSession) && (
                         <GuestModeIndicator
                             credits={balance}
                             compact={true}
@@ -92,7 +97,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Separator />
 
             {/* Guest Banner */}
-            {user?.isGuest && balance !== undefined && (
+            {(user?.isGuest || hasGuestSession) && balance !== undefined && (
                 <div className="px-6 py-2">
                     <GuestBanner credits={balance} />
                 </div>
