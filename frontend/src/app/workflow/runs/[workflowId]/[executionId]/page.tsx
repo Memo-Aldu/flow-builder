@@ -1,7 +1,6 @@
 import TopBar from '@/app/workflow/_components/topbar/TopBar'
 import ExecutionView from '@/app/workflow/runs/[workflowId]/[executionId]/_components/ExecutionView'
 import { UnifiedExecutionsAPI, UnifiedPhasesAPI } from '@/lib/api/unified-functions'
-import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { Loader2Icon } from 'lucide-react'
 import React, { Suspense } from 'react'
 
@@ -32,13 +31,6 @@ export default ExecutionPage
 
 
 const ExecutionViewWrapper = async ({ executionId, workflowId }: { executionId: string, workflowId: string }) => {
-  const user = await getUnifiedAuth()
-
-  if (!user?.id) {
-    return <div>
-      Please log in again.
-    </div>
-  }
 
   const [execution, phases] = await Promise.all([
     UnifiedExecutionsAPI.server.get(executionId),

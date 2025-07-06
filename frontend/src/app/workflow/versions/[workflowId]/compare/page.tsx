@@ -1,7 +1,6 @@
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
 import VersionCompare from '@/app/workflow/versions/[workflowId]/compare/_components/VersionCompare';
 import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions';
-import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 import { InboxIcon, Loader2Icon } from 'lucide-react';
 import React, { Suspense } from 'react';
 
@@ -41,16 +40,6 @@ export default compare
 
 
 const CompareVersionsWrapper = async ({ workflowId, version_1, version_2 } : { workflowId: string, version_1: number, version_2: number}) => {
-  const user = await getUnifiedAuth();
-  if (!user) {
-    return (
-      <div>
-        Please log in again.
-      </div>
-    )
-  }
-
-
   if (!version_1 || !version_2) {
     return (
       <div className="container w-full py-6">

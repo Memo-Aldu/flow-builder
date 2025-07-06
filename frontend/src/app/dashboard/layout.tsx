@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, isAuthenticated } = useUnifiedAuth();
+  const { user, isLoading, isAuthenticated, error } = useUnifiedAuth();
   const { balance } = useUserBalance();
   const { status: backendStatus, isChecking: isCheckingBackend, checkHealth } = useBackendHealth({
     autoCheck: isAuthenticated && !isLoading,
@@ -23,10 +23,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Redirect if not authenticated or if there's an auth error (expired session, etc.)
+    if (!isLoading && (!isAuthenticated || error)) {
       router.push('/');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, error, router]);
 
   // Show loading while checking authentication
   if (isLoading) {

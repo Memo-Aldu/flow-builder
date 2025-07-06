@@ -1,10 +1,10 @@
 "use client";
 
 import {
-    convertGuestToUser,
-    createGuestSession,
-    getCurrentUser,
-    GuestSessionManager
+  convertGuestToUser,
+  createGuestSession,
+  getCurrentUser,
+  GuestSessionManager
 } from '@/lib/api/guest';
 import { AuthContextType, GuestUserData, UnifiedUser } from '@/lib/auth/types';
 import { useAuth, useUser } from '@clerk/nextjs';
@@ -356,6 +356,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         cacheRef.current.promise = null;
         await loadGuestUser(sessionId);
       }
+    }
+  }, [user?.isGuest, loadGuestUser]);
+
+  // Periodic session validation for guest users
+  useEffect(() => {
+    if (user?.isGuest) {
+      const interval = setInterval(() => {
+        // Validate the session is still valid (not expired)
+        if (!GuestSessionManager.validateAndCleanSession()) {
+          // Session is expired or invalid, clear user and set error
+          setUser(null);
+          setError("Your guest session has expired. Please create a new guest account.");
+        }
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(interval);
     }
   }, [user?.isGuest]);
 

@@ -1,20 +1,27 @@
 "use client";
 
 import Editor from '@/app/workflow/_components/Editor';
-import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { useUnifiedAuth } from '@/contexts/AuthContext';
+import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions-client';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ClientWorkflowEditorProps {
   workflowId: string;
 }
 
 export function ClientWorkflowEditor({ workflowId }: ClientWorkflowEditorProps) {
-  const { getToken, isAuthenticated } = useUnifiedAuth();
+  const { getToken, isAuthenticated, error: authError } = useUnifiedAuth();
   const router = useRouter();
+
+  // Redirect if not authenticated or auth error
+  useEffect(() => {
+    if (!isAuthenticated || authError) {
+      router.push('/');
+    }
+  }, [isAuthenticated, authError, router]);
 
   const { data: workflow, isLoading, error } = useQuery({
     queryKey: ['workflow', workflowId],
