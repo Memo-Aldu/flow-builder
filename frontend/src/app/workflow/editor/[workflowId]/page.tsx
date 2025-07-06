@@ -1,17 +1,9 @@
 import Editor from '@/app/workflow/_components/Editor';
 import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions';
-import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 import { redirect } from 'next/navigation';
 import React from 'react';
 
 const page = async ({ params }: { params: Promise<{ workflowId: string }> }) => {
-  const user = await getUnifiedAuth();
-
-  // If no user or invalid user, redirect to landing page
-  if (!user?.id) {
-    redirect('/');
-  }
-
   const resolvedParams = await params;
   const { workflowId } = resolvedParams;
 

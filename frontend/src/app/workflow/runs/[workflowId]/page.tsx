@@ -1,7 +1,6 @@
 import TopBar from '@/app/workflow/_components/topbar/TopBar'
 import ExecutionTable from '@/app/workflow/runs/[workflowId]/_components/ExecutionTable'
 import { UnifiedExecutionsAPI } from '@/lib/api/unified-functions'
-import { getUnifiedAuth } from '@/lib/auth/unified-auth'
 import { InboxIcon, Loader2Icon } from 'lucide-react'
 import React, { Suspense } from 'react'
 
@@ -32,14 +31,6 @@ export default ExecutionsPage
 
 
 const ExecutionTableWrapper = async ({ workflowId } : {workflowId: string}) => {
-    const user = await getUnifiedAuth();
-    if (!user) {
-      return (
-        <div>
-          Please log in again.
-        </div>
-      )
-    }
 
     const executions = await UnifiedExecutionsAPI.server.list(workflowId)
 

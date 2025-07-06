@@ -1,6 +1,5 @@
 import TopBar from '@/app/workflow/_components/topbar/TopBar';
 import { UnifiedVersionsAPI } from '@/lib/api/unified-functions';
-import { getUnifiedAuth } from '@/lib/auth/unified-auth';
 import { ReactFlowProvider } from '@xyflow/react';
 import { InboxIcon, Loader2Icon } from 'lucide-react';
 import React, { Suspense } from 'react';
@@ -35,14 +34,6 @@ export default WorkflowVersionsPage
 
 
 const WorkflowVersionsWrapper = async ({ workflowId } : {workflowId: string}) => {
-    const user = await getUnifiedAuth();
-    if (!user?.id) {
-      return (
-        <div>
-          Please log in again.
-        </div>
-      )
-    }
     
     const versions = await UnifiedVersionsAPI.server.list(workflowId, 1, 25);
 
