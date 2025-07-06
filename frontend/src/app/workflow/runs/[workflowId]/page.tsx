@@ -31,8 +31,8 @@ export default ExecutionsPage
 
 
 const ExecutionTableWrapper = async ({ workflowId } : {workflowId: string}) => {
-
-    const executions = await UnifiedExecutionsAPI.server.list(workflowId)
+    try {
+        const executions = await UnifiedExecutionsAPI.server.list(workflowId)
 
     if (!executions) {
       return (
@@ -62,7 +62,14 @@ const ExecutionTableWrapper = async ({ workflowId } : {workflowId: string}) => {
       )
     }
 
-    return <div className="container w-full py-6">
-        <ExecutionTable workflowId={workflowId} initialData={executions}/>
-      </div>
+        return <div className="container w-full py-6">
+            <ExecutionTable workflowId={workflowId} initialData={executions}/>
+          </div>
+    } catch (error) {
+        console.error('Failed to load executions on server-side, falling back to client-side loading:', error);
+        // Fall back to client-side loading instead of failing
+        return <div className="container w-full py-6">
+            <ExecutionTable workflowId={workflowId} initialData={[]}/>
+          </div>
+    }
 }

@@ -34,8 +34,8 @@ export default WorkflowVersionsPage
 
 
 const WorkflowVersionsWrapper = async ({ workflowId } : {workflowId: string}) => {
-    
-    const versions = await UnifiedVersionsAPI.server.list(workflowId, 1, 25);
+    try {
+        const versions = await UnifiedVersionsAPI.server.list(workflowId, 1, 25);
 
     if (versions.length === 0) {
       return (
@@ -57,9 +57,18 @@ const WorkflowVersionsWrapper = async ({ workflowId } : {workflowId: string}) =>
       )
     }
 
-    return (
-      <div className="container w-full py-6">
-        <VersionControl workflowId={workflowId} initialData={versions} />
-      </div>
-    )
+        return (
+          <div className="container w-full py-6">
+            <VersionControl workflowId={workflowId} initialData={versions} />
+          </div>
+        )
+    } catch (error) {
+        console.error('Failed to load versions on server-side, falling back to client-side loading:', error);
+        // Fall back to client-side loading instead of failing
+        return (
+          <div className="container w-full py-6">
+            <VersionControl workflowId={workflowId} initialData={[]} />
+          </div>
+        )
+    }
 }

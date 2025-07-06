@@ -1,7 +1,7 @@
 import Editor from '@/app/workflow/_components/Editor';
 import { UnifiedVersionsAPI, UnifiedWorkflowsAPI } from '@/lib/api/unified-functions';
-import { redirect } from 'next/navigation';
 import React from 'react';
+import { ClientWorkflowEditor } from './ClientWorkflowEditor';
 
 const page = async ({ params }: { params: Promise<{ workflowId: string }> }) => {
   const resolvedParams = await params;
@@ -19,9 +19,12 @@ const page = async ({ params }: { params: Promise<{ workflowId: string }> }) => 
       <Editor workflow={workflow} />
     )
   } catch (error) {
-    console.error('Failed to load workflow:', error);
-    // If workflow doesn't exist or user doesn't have access, redirect to workflows page
-    redirect('/dashboard/workflows');
+    console.error('Failed to load workflow on server-side, falling back to client-side loading:', error);
+    // Fall back to client-side loading instead of redirecting
+    // This handles cases where server-side auth fails in Vercel but client-side works
+    return (
+      <ClientWorkflowEditor workflowId={workflowId} />
+    )
   }
 }
 
