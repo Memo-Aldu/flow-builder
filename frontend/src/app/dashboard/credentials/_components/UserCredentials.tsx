@@ -11,27 +11,17 @@ import { LockKeyholeIcon } from 'lucide-react';
 import React from 'react';
 
 const UserCredentials = ({ initialData }: { initialData: AppCredential[]}) => {
-    const { getToken, user, isLoading } = useUnifiedAuth();
-
-    // Enable query when user exists (either Clerk user or guest user) and not loading
-    // OR when we have a guest session but user loading failed (Vercel fallback)
-    const hasGuestSession = typeof window !== 'undefined' && !!localStorage.getItem('guest_session_id');
-    const shouldEnableQuery = !isLoading && (!!user || hasGuestSession);
+    const { getToken, isAuthenticated } = useUnifiedAuth();
 
     const credentialMutation = useQuery<AppCredential[], Error, AppCredential[]>({
-        queryKey: ["credentials", user?.isGuest ? 'guest' : 'auth', user?.id || (hasGuestSession ? 'guest-session' : 'no-user')],
+        queryKey: ["credentials", isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
             const token = await getToken();
             return UnifiedCredentialsAPI.client.list(1, 50, CredentialSortField.CREATED_AT, 'desc', token);
         },
-        refetchInterval: shouldEnableQuery ? 10000 : false, // Only refetch if authenticated
+        refetchInterval: isAuthenticated ? 10000 : false, // Only refetch if authenticated
         initialData: initialData,
-        enabled: shouldEnableQuery,
-        retry: (failureCount, error) => {
-            // Retry up to 3 times for network errors
-            return failureCount < 3;
-        },
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        enabled: isAuthenticated,
     });
 
     return (

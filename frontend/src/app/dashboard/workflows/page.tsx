@@ -51,19 +51,6 @@ const UserWorkflowSkeleton = () => {
 
 
 const UserWorkflowsWrapper = async () => {
-  const user = await getUnifiedAuth();
-
-  // If no user, return empty state - the main ClientAuthFallback will handle auth
-  if (!user) {
-    return (
-      <div className='space-y-2'>
-        {[1, 2, 3].map((item) =>
-          <div key={item} className='w-full h-[80px] bg-accent rounded-lg animate-pulse' />
-        )}
-      </div>
-    )
-  }
-
   try {
     const workflows = await getServerWorkflows();
     if (!workflows) {

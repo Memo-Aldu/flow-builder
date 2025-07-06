@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  convertGuestToUser,
-  createGuestSession,
-  getCurrentUser,
-  GuestSessionManager
+    convertGuestToUser,
+    createGuestSession,
+    getCurrentUser,
+    GuestSessionManager
 } from '@/lib/api/guest';
 import { AuthContextType, GuestUserData, UnifiedUser } from '@/lib/auth/types';
 import { useAuth, useUser } from '@clerk/nextjs';
@@ -298,8 +298,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await loadGuestUser(session.session_id);
     } catch (err: any) {
+      console.error('Failed to create guest session:', err);
       if (err.response?.status === 403) {
         setError("You already have a guest account. Please sign up for a full account.");
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError("Cannot connect to backend. Please check if the API URL is configured correctly in Vercel environment variables.");
       } else {
         setError("Failed to create guest account. Please try again.");
       }

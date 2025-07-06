@@ -28,7 +28,9 @@ export interface ConvertGuestResponse {
  * Create a new guest session
  */
 export async function createGuestSession(): Promise<GuestSession> {
-  const response = await api.post("/api/v1/guest/create-session");
+  // Create browser fingerprint for guest session
+  const fingerprint = await GuestSessionManager.createBrowserFingerprint();
+  const response = await api.post("/api/v1/guest/create-session", { fingerprint });
   return response.data;
 }
 
@@ -163,7 +165,7 @@ export class GuestSessionManager {
    * Create a simple browser fingerprint for session recovery
    * This is not for security, just for identifying the same browser
    */
-  private static async createBrowserFingerprint(): Promise<string> {
+  static async createBrowserFingerprint(): Promise<string> {
     const components = [
       navigator.userAgent,
       navigator.language,

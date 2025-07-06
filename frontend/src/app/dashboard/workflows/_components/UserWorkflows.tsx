@@ -15,17 +15,10 @@ type UserWorkflowsProps = {
 }
 
 const UserWorkflows = ({ initialData }: UserWorkflowsProps) => {
-    const { getToken, user, isLoading } = useUnifiedAuth();
-
-
-
-    // Enable query when user exists (either Clerk user or guest user) and not loading
-    // OR when we have a guest session but user loading failed (Vercel fallback)
-    const hasGuestSession = typeof window !== 'undefined' && !!localStorage.getItem('guest_session_id');
-    const shouldEnableQuery = !isLoading && (!!user || hasGuestSession);
+    const { getToken, isAuthenticated } = useUnifiedAuth();
 
     const query = useQuery({
-        queryKey: ["workflows", user?.isGuest ? 'guest' : 'auth', user?.id || (hasGuestSession ? 'guest-session' : 'no-user')],
+        queryKey: ["workflows", isAuthenticated ? 'auth' : 'guest'],
         queryFn: async () => {
             const token = await getToken();
 
@@ -34,58 +27,25 @@ const UserWorkflows = ({ initialData }: UserWorkflowsProps) => {
             return workflows;
         },
         // Only refetch if authenticated to prevent spam
-        refetchInterval: shouldEnableQuery ? 10000 : false,
+        refetchInterval: isAuthenticated ? 10000 : false,
         initialData,
-        enabled: shouldEnableQuery, // Enable when user exists and not loading
-        retry: (failureCount, error: any) => {
-            // Don't retry for authentication errors
-            if (error?.response?.status === 401 || error?.response?.status === 403) {
-                return false;
-            }
-
-            // Don't retry if backend is not available
-            if (error?.code === 'ERR_NETWORK' || error?.message?.includes('Network Error')) {
-                return false;
-            }
-
-            // Retry up to 3 times for other errors
-            return failureCount < 3;
-        },
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+        enabled: isAuthenticated, // Only enable when authenticated
     });
 
     if (query.isFetching && !query.data) {
         return <AppLoading />
     }
 
-    if (query.error) {
-        const error = query.error as any;
-        const isNetworkError = error?.code === 'ERR_NETWORK' || error?.message?.includes('Network Error');
-        const isBackendStarting = error?.isBackendStarting;
-
-        return (
-            <Alert variant={isBackendStarting ? 'default' : 'destructive'}>
-                <AlertCircle className='w-4 h-4' />
-                <AlertTitle>
-                    {isBackendStarting
-                        ? 'Backend is starting up...'
-                        : isNetworkError
-                            ? 'Cannot connect to backend'
-                            : 'Something went wrong. Please try again later.'
-                    }
-                </AlertTitle>
-            </Alert>
-        );
-    }
-
     if (!query.data) {
         return (
-            <Alert variant={'destructive'}>
-                <AlertCircle className='w-4 h-4' />
-                <AlertTitle>
-                    No data available. Please try again later.
-                </AlertTitle>
-            </Alert>
+        <Alert
+            variant={'destructive'}
+        >
+            <AlertCircle className='w-4 h-4' />
+            <AlertTitle>
+                Something went wrong. Please try again later.
+            </AlertTitle>
+        </Alert>
         );
     }
     
