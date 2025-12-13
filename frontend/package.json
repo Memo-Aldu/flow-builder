@@ -73,7 +73,7 @@
     "flow-builder": "file:",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.474.0",
-    "next": "15.1.5",
+    "next": "15.1.11",
     "next-themes": "^0.4.4",
     "nextjs-toploader": "^3.7.15",
     "react": "^19.0.0",
