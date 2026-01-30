@@ -81,7 +81,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],
 )
 
@@ -109,6 +109,8 @@ async def pong(request: Request) -> dict[str, str]:
     return {"ping": "pong!"}
 
 
+# Health check endpoint GET and HEAD
+@app.head("/health")
 @app.get("/health")
 @hybrid_limiter.limiter.limit("100/minute")
 async def health_check(request: Request) -> dict[str, str]:
